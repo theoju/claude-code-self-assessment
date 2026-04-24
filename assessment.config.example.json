@@ -1,0 +1,23 @@
+{
+  "$schema": "Copy to assessment.config.json and edit. Never commit the real file.",
+  "user": {
+    "displayName": "Theo",
+    "claudeHome": "~/.claude"
+  },
+  "slack": {
+    "enabled": true,
+    "channel": "#claude-code-mastery",
+    "username": "Claude Code Mastery",
+    "iconEmoji": ":chart_with_upwards_trend:",
+    "postOnScoreDelta": 0,
+    "webhookEnvVar": "SLACK_WEBHOOK_URL"
+  },
+  "publish": {
+    "publicUrl": "http://localhost:3737",
+    "comment": "Set to your deployed URL (e.g. https://claude-mastery.vercel.app) so the Slack message links somewhere useful."
+  },
+  "scoring": {
+    "includePluginSkillsAsPersonal": false,
+    "comment": "If true, plugin-provided agents/commands count toward Automation score. Default false — Boris's rule is about what YOU built."
+  }
+}

@@ -1,0 +1,157 @@
+{
+  "$schema": "Static rubric. Scores live in assessment.json. History lives in assessment-history.json.",
+  "dimensions": [
+    {
+      "id": "automation",
+      "title": "Automation — Hooks, Commands, Agents",
+      "weight": 3,
+      "target": 90,
+      "rubricArea": "Codified workflow / compounding engineering",
+      "borisTips": "5, 7, 19, 24, 41, 49, 59, 75",
+      "nextActions": [
+        "Add a PostToolUse hook that runs your formatter on Write|Edit — Boris tip 7",
+        "Create ~/.claude/commands/ship.md that chains test → simplify → commit → PR — Boris tip 5",
+        "Build one personal ~/.claude/agents/verify-app.md tuned to how you verify features end-to-end — Boris tip 14/73",
+        "Wire a Stop hook that pokes Claude to re-verify before yielding on long-running tasks — Boris tip 13"
+      ]
+    },
+    {
+      "id": "permissions",
+      "title": "Permissions & Safety",
+      "weight": 3,
+      "target": 85,
+      "rubricArea": "Operational safety",
+      "borisTips": "8, 20, 21, 42, 69",
+      "nextActions": [
+        "Turn off skipDangerousModePermissionPrompt, turn on auto mode (shift+tab or --enable-auto-mode) — Boris tip 42",
+        "Run /fewer-permission-prompts once this week to tune a real allowlist — Boris tip 69",
+        "Add wildcard allowlist entries (e.g. 'Bash(npm run *)', 'Bash(gh pr *)') to settings.json — Boris tip 20"
+      ]
+    },
+    {
+      "id": "model-effort",
+      "title": "Model & Effort Tuning",
+      "weight": 3,
+      "target": 90,
+      "rubricArea": "Reasoning depth for Opus 4.7",
+      "borisTips": "2, 17, 34, 67, 72",
+      "nextActions": [
+        "Change effortLevel to 'xhigh' in settings.json — Boris tip 67, 72",
+        "Learn the /effort max reflex for debugging and architecture sessions — Boris tip 34",
+        "Export CLAUDE_CODE_AUTO_COMPACT_WINDOW=400000 in shell rc — Boris tip 64"
+      ]
+    },
+    {
+      "id": "parallel",
+      "title": "Parallel Execution & Subagents",
+      "weight": 3,
+      "target": 90,
+      "rubricArea": "Throughput / concurrency",
+      "borisTips": "1, 6, 28, 30, 55, 56, 68",
+      "nextActions": [
+        "Set up 3 named worktree shell aliases (za/zb/zc) for your most active repo — Boris tip 1",
+        "Next migration or sweep: phrase it as 'use /batch with worktree isolation, put up PRs'",
+        "Add isolation: worktree to any custom agent you build — Boris tip 28"
+      ]
+    },
+    {
+      "id": "verification",
+      "title": "Verification — The #1 Tip",
+      "weight": 3,
+      "target": 95,
+      "rubricArea": "Feedback loops",
+      "borisTips": "14, 51, 52, 73",
+      "nextActions": [
+        "Install the Claude Chrome extension for any web work — Boris tip 51",
+        "Adopt 'Claude do X, then /go' as your default closing prompt — Boris tip 73",
+        "Ask Claude to diff behavior between main and the feature branch after any non-trivial change — Boris tip 10"
+      ]
+    },
+    {
+      "id": "memory",
+      "title": "Memory & Context Management",
+      "weight": 3,
+      "target": 92,
+      "rubricArea": "Long-horizon context hygiene",
+      "borisTips": "4, 45, 62, 63, 64, 70",
+      "nextActions": [
+        "Run /memory and enable auto-dream — Boris tip 45",
+        "Get into the /rewind reflex when Claude goes sideways — keeps failed attempts out of context — Boris tip 62",
+        "Write a CLAUDE.md for claude-extensions the first time you hit a correction worth remembering — Boris tip 4"
+      ]
+    },
+    {
+      "id": "planning",
+      "title": "Planning & Delegation",
+      "weight": 2,
+      "target": 95,
+      "rubricArea": "Task specification quality",
+      "borisTips": "3, 10, 65, 66",
+      "nextActions": [
+        "Adopt a template: Goal / Constraints / Acceptance Criteria at the top of every non-trivial prompt — Boris tip 66",
+        "After plan mode, resist the urge to narrate step by step — launch and come back — Boris tip 65"
+      ]
+    },
+    {
+      "id": "integrations",
+      "title": "Integrations — MCP, Plugins, Marketplaces",
+      "weight": 2,
+      "target": 95,
+      "rubricArea": "External tool reach",
+      "borisTips": "9, 18, 44, 51, 58",
+      "nextActions": [
+        "npm i -g vercel to unlock env/deploy/logs agentic flows",
+        "If your team uses Slack, add the Slack MCP — highest-value MCP per Boris — Boris tip 9"
+      ]
+    },
+    {
+      "id": "customization",
+      "title": "Terminal & Customization",
+      "weight": 1,
+      "target": 80,
+      "rubricArea": "Personal ergonomics",
+      "borisTips": "11, 16, 22, 23, 25, 26, 27, 38, 40, 71",
+      "nextActions": [
+        "Set per-worktree /color so parallel sessions are distinguishable at a glance — Boris tip 40",
+        "Try /focus for autonomous runs once auto mode is on — Boris tip 71",
+        "Customize a handful of spinner verbs — Boris tip 25"
+      ]
+    },
+    {
+      "id": "scheduled",
+      "title": "Scheduled & Autonomous Workflows",
+      "weight": 2,
+      "target": 80,
+      "rubricArea": "Headless / cron / event-driven runs",
+      "borisTips": "31, 43, 48, 61, 75",
+      "nextActions": [
+        "Start with one loop: /loop 30m /babysit — Boris tip 48",
+        "Set up a Stop-hook system notification for autonomous runs — Boris tip 75",
+        "Promote repeating patterns to a Routine (cloud-hosted, laptop-closed) — Boris tip 61"
+      ]
+    },
+    {
+      "id": "remote",
+      "title": "Remote & Mobile",
+      "weight": 1,
+      "target": 75,
+      "rubricArea": "Cross-device workflow",
+      "borisTips": "35, 44, 46, 47, 50",
+      "nextActions": [
+        "Enable 'Remote Control for all sessions' in /config — Boris tip 47",
+        "Try kicking off one task from iOS this week — Boris tip 46"
+      ]
+    },
+    {
+      "id": "learning",
+      "title": "Learning & Explanatory Mode",
+      "weight": 1,
+      "target": 90,
+      "rubricArea": "Growth through Claude",
+      "borisTips": "15, 26",
+      "nextActions": [
+        "Optional: build a spaced-repetition skill for parts of the codebase you want to retain — Boris tip 15"
+      ]
+    }
+  ]
+}

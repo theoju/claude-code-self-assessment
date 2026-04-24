@@ -1,0 +1,25 @@
+@import "tailwindcss";
+
+@theme {
+  --color-ink: #0b0d0f;
+  --color-panel: #12151a;
+  --color-panel-2: #1a1f26;
+  --color-line: #2a313b;
+  --color-mute: #8b96a6;
+  --color-text: #e6edf3;
+  --color-accent: #d4a84b;
+  --color-good: #4ade80;
+  --color-warn: #f59e0b;
+  --color-bad: #ef4444;
+}
+
+html, body {
+  background: var(--color-ink);
+  color: var(--color-text);
+  font-family: ui-sans-serif, system-ui, -apple-system, "SF Pro Text", Inter, sans-serif;
+  font-feature-settings: "cv11", "ss01";
+}
+
+.mono {
+  font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+}

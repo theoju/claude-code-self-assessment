@@ -1,0 +1,24 @@
+node_modules
+.next
+
+# Secrets — never commit
+.env
+.env.local
+.env*.local
+
+# Personal config and scored snapshots
+assessment.config.json
+app/data/assessment.json
+app/data/assessment-history.json
+
+# Installed LaunchAgent's runtime logs
+.launchd.out.log
+.launchd.err.log
+
+# Tooling artefacts
+.DS_Store
+.playwright-mcp
+dashboard-*.png
+
+# User-specific Claude Code settings (the command file in .claude/commands stays committed)
+.claude/settings.local.json
