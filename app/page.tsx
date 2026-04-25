@@ -1,4 +1,5 @@
 import RadarChart from "@/app/components/RadarChart";
+import ClaudeMdHealth from "@/app/components/ClaudeMdHealth";
 import {
   loadAssessment,
   computeStats,
@@ -121,6 +122,8 @@ export default async function Page() {
           ))}
         </ol>
       </section>
+
+      {assessment.claudeMd && <ClaudeMdHealth report={assessment.claudeMd} />}
 
       <section className="grid md:grid-cols-3 gap-6 mb-16">
         <Panel title="Strengths — keep running these" tone="good">

@@ -33,3 +33,7 @@ app/data/coverage-history.json
 
 # User-specific Claude Code settings (the command file in .claude/commands stays committed)
 .claude/settings.local.json
+.claude/scheduled_tasks.lock
+
+# TypeScript incremental build artifact
+tsconfig.tsbuildinfo

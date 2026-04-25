@@ -1,5 +1,7 @@
 // Slack webhook poster. Pure function: takes assessment + config, returns blocks + posts.
 
+import { CRITERIA } from "./claude-md-audit.mjs";
+
 export function buildSlackMessage(assessment, rubric, config) {
   const { overall, targetOverall, scores, capturedAt } = assessment;
   const byId = Object.fromEntries(rubric.dimensions.map((d) => [d.id, d]));
@@ -60,6 +62,31 @@ export function buildSlackMessage(assessment, rubric, config) {
                   .join("\n"),
             },
           }
+        : null,
+      assessment.claudeMd?.summary
+        ? (() => {
+            const s = assessment.claudeMd.summary;
+            const avgPart = s.avgScore == null ? "no scoreable files" : `Avg ${s.avgScore} (${s.avgGrade})`;
+            const lines = [
+              `*CLAUDE.md health* _(report-only)_`,
+              `Targets: ${s.targets} · Files: ${s.files} · ${avgPart}`,
+            ];
+            if (s.files > 0) {
+              const d = s.distribution;
+              lines.push(`Distribution: A:${d.A} B:${d.B} C:${d.C} D:${d.D} F:${d.F}`);
+            }
+            if (s.targetsMissing) lines.push(`Targets without CLAUDE.md: ${s.targetsMissing}`);
+            if (s.targetsError) lines.push(`Targets with errors: ${s.targetsError}`);
+            if (s.avgBreakdown) {
+              lines.push(
+                "*Breakdown (avg)*",
+                CRITERIA.map(
+                  (c) => `• ${c.label}: \`${s.avgBreakdown[c.key]}/${c.max}\``
+                ).join("\n")
+              );
+            }
+            return { type: "section", text: { type: "mrkdwn", text: lines.join("\n") } };
+          })()
         : null,
       {
         type: "actions",

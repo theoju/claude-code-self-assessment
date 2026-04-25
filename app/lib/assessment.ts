@@ -28,6 +28,77 @@ export interface Dimension extends RubricDimension, ScoredDimension {
   summary: string;
 }
 
+export type Grade = "A" | "B" | "C" | "D" | "F";
+
+export interface ClaudeMdFile {
+  path: string;
+  score: number;
+  grade: Grade;
+  lineCount: number;
+  ageDays: number;
+  breakdown: {
+    commands: number;
+    architecture: number;
+    patterns: number;
+    conciseness: number;
+    currency: number;
+    actionability: number;
+  };
+  issues: string[];
+}
+
+export interface ClaudeMdRun {
+  name: string;
+  path: string;
+  score: number | null;
+  grade: Grade;
+  files: ClaudeMdFile[];
+  missing?: boolean;
+  error?: string;
+}
+
+export type CriterionKey =
+  | "commands"
+  | "architecture"
+  | "patterns"
+  | "conciseness"
+  | "currency"
+  | "actionability";
+
+export interface CriterionDef {
+  key: CriterionKey;
+  label: string;
+  max: number;
+}
+
+export const CRITERIA: CriterionDef[] = [
+  { key: "commands", label: "Commands/workflows", max: 20 },
+  { key: "architecture", label: "Architecture clarity", max: 20 },
+  { key: "patterns", label: "Non-obvious patterns", max: 15 },
+  { key: "conciseness", label: "Conciseness", max: 15 },
+  { key: "currency", label: "Currency", max: 15 },
+  { key: "actionability", label: "Actionability", max: 15 },
+];
+
+export interface ClaudeMdSummary {
+  targets: number;
+  targetsScored: number;
+  targetsMissing: number;
+  targetsError: number;
+  files: number;
+  avgScore: number | null;
+  avgGrade: Grade | null;
+  distribution: Record<Grade, number>;
+  avgBreakdown: Record<CriterionKey, number> | null;
+}
+
+export interface ClaudeMdReport {
+  mode: "report-only";
+  auditedAt: string;
+  summary: ClaudeMdSummary;
+  runs: ClaudeMdRun[];
+}
+
 export interface Assessment {
   capturedAt: string;
   overall: number;
@@ -35,6 +106,7 @@ export interface Assessment {
   user: string | null;
   dimensions: Dimension[];
   signalsSummary: Record<string, unknown>;
+  claudeMd: ClaudeMdReport | null;
 }
 
 const DATA_DIR = join(process.cwd(), "app", "data");
@@ -77,7 +149,7 @@ async function readJson<T>(path: string): Promise<T | null> {
   }
 }
 
-function tierFor(score: number): Tier {
+export function tierFor(score: number): Tier {
   if (score >= 85) return "advanced";
   if (score >= 70) return "solid";
   if (score >= 55) return "developing";
@@ -97,6 +169,7 @@ export async function loadAssessment(): Promise<Assessment> {
     scores: ScoredDimension[];
     trends: Record<string, Trend>;
     signalsSummary: Record<string, unknown>;
+    claudeMd?: ClaudeMdReport | null;
   }>(ASSESSMENT_PATH);
 
   if (!scored) {
@@ -115,6 +188,7 @@ export async function loadAssessment(): Promise<Assessment> {
         summary: SUMMARIES[d.id] || "",
       })),
       signalsSummary: {},
+      claudeMd: null,
     };
   }
 
@@ -138,7 +212,24 @@ export async function loadAssessment(): Promise<Assessment> {
     user: scored.user,
     dimensions,
     signalsSummary: scored.signalsSummary,
+    claudeMd: scored.claudeMd ?? null,
   };
+}
+
+export function gradeColor(grade: Grade | null): string {
+  switch (grade) {
+    case "A":
+      return "text-[color:var(--color-good)]";
+    case "B":
+      return "text-[color:var(--color-accent)]";
+    case "C":
+      return "text-[color:var(--color-warn)]";
+    case "D":
+    case "F":
+      return "text-[color:var(--color-bad)]";
+    default:
+      return "text-[color:var(--color-mute)]";
+  }
 }
 
 export interface OverallStats {
