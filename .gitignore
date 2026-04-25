@@ -20,5 +20,16 @@ app/data/assessment-history.json
 .playwright-mcp
 dashboard-*.png
 
+# Test artefacts
+coverage/
+playwright-report/
+test-results/
+.launchd-coverage.out.log
+.launchd-coverage.err.log
+
+# Coverage data files (regenerated daily by the routine)
+app/data/coverage.json
+app/data/coverage-history.json
+
 # User-specific Claude Code settings (the command file in .claude/commands stays committed)
 .claude/settings.local.json

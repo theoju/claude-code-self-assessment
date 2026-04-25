@@ -1,0 +1,104 @@
+// Reusable test fixtures for the scoring engine.
+// Each helper returns a fresh object so tests can mutate without cross-talk.
+
+export function makeSignals(overrides = {}) {
+  const base = {
+    capturedAt: "2026-04-25T07:15:00.000Z",
+    settings: {
+      effortLevel: "unknown",
+      skipDangerousModePermissionPrompt: false,
+      allowList: [],
+      denyList: [],
+      autoCompactWindow: null,
+      hookEvents: [],
+      hookTotalCount: 0,
+    },
+    personalAgents: [],
+    personalCommands: [],
+    personalSkills: [],
+    projectAgents: [],
+    projectCommands: [],
+    plugins: [],
+    memory: [],
+    claudeMdExists: false,
+    plansCount: 0,
+    sessionsCount: 0,
+    statuslineConfigured: false,
+    keybindingsConfigured: false,
+    has: {
+      superpowers: false,
+      prReviewToolkit: false,
+      codeReview: false,
+      codeSimplifier: false,
+      featureDev: false,
+      skillCreator: false,
+      claudeMdMgmt: false,
+      ralphLoop: false,
+      commitCommands: false,
+      explanatoryStyle: false,
+      playwright: false,
+      semgrep: false,
+      vercel: false,
+      imessage: false,
+      karpathy: false,
+      claudeCodeSetup: false,
+      frontendDesign: false,
+    },
+  };
+  return deepMerge(base, overrides);
+}
+
+export function makeRubric() {
+  return {
+    dimensions: [
+      { id: "automation", title: "Automation", weight: 3, target: 90, rubricArea: "x", borisTips: "1", nextActions: ["a"] },
+      { id: "permissions", title: "Permissions", weight: 3, target: 85, rubricArea: "x", borisTips: "1", nextActions: ["a"] },
+      { id: "model-effort", title: "Model & Effort", weight: 3, target: 90, rubricArea: "x", borisTips: "1", nextActions: ["a"] },
+      { id: "parallel", title: "Parallel", weight: 3, target: 90, rubricArea: "x", borisTips: "1", nextActions: ["a"] },
+      { id: "verification", title: "Verification", weight: 3, target: 95, rubricArea: "x", borisTips: "1", nextActions: ["a"] },
+      { id: "memory", title: "Memory", weight: 3, target: 92, rubricArea: "x", borisTips: "1", nextActions: ["a"] },
+      { id: "planning", title: "Planning", weight: 2, target: 95, rubricArea: "x", borisTips: "1", nextActions: ["a"] },
+      { id: "integrations", title: "Integrations", weight: 2, target: 95, rubricArea: "x", borisTips: "1", nextActions: ["a"] },
+      { id: "customization", title: "Customization", weight: 1, target: 80, rubricArea: "x", borisTips: "1", nextActions: ["a"] },
+      { id: "scheduled", title: "Scheduled", weight: 2, target: 80, rubricArea: "x", borisTips: "1", nextActions: ["a"] },
+      { id: "remote", title: "Remote", weight: 1, target: 75, rubricArea: "x", borisTips: "1", nextActions: ["a"] },
+      { id: "learning", title: "Learning", weight: 1, target: 90, rubricArea: "x", borisTips: "1", nextActions: ["a"] },
+    ],
+  };
+}
+
+export function makeAssessment(overrides = {}) {
+  const rubric = makeRubric();
+  return {
+    capturedAt: "2026-04-25T07:15:00.000Z",
+    overall: 60,
+    targetOverall: 88,
+    user: "Test User",
+    scores: rubric.dimensions.map((d) => ({
+      id: d.id,
+      score: 60,
+      tier: "developing",
+      evidence: ["sample evidence"],
+      gaps: ["sample gap"],
+      target: d.target,
+      weight: d.weight,
+    })),
+    trends: Object.fromEntries(rubric.dimensions.map((d) => [d.id, "flat"])),
+    signalsSummary: {},
+    ...overrides,
+  };
+}
+
+function deepMerge(a, b) {
+  if (Array.isArray(b)) return b.slice();
+  if (b && typeof b === "object") {
+    const out = { ...a };
+    for (const [k, v] of Object.entries(b)) {
+      out[k] = a && typeof a[k] === "object" && a[k] !== null && !Array.isArray(a[k])
+        ? deepMerge(a[k], v)
+        : v;
+    }
+    return out;
+  }
+  return b;
+}

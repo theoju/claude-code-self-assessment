@@ -3,7 +3,9 @@ import { existsSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
 
-const CLAUDE_HOME = process.env.CLAUDE_HOME || join(homedir(), ".claude");
+function claudeHome() {
+  return process.env.CLAUDE_HOME || join(homedir(), ".claude");
+}
 
 async function safeReadJson(path) {
   try {
@@ -22,7 +24,7 @@ async function safeReaddir(path) {
 }
 
 async function listProjectMemoryFiles() {
-  const base = join(CLAUDE_HOME, "projects");
+  const base = join(claudeHome(), "projects");
   const projects = await safeReaddir(base);
   const found = [];
   for (const p of projects) {
@@ -41,17 +43,17 @@ async function dirSize(path) {
 }
 
 export async function gatherSignals(projectRoot = process.cwd()) {
-  const settings = (await safeReadJson(join(CLAUDE_HOME, "settings.json"))) || {};
+  const settings = (await safeReadJson(join(claudeHome(), "settings.json"))) || {};
   const projectSettings =
     (await safeReadJson(join(projectRoot, ".claude", "settings.local.json"))) || {};
 
-  const personalAgents = (await safeReaddir(join(CLAUDE_HOME, "agents"))).filter(
+  const personalAgents = (await safeReaddir(join(claudeHome(), "agents"))).filter(
     (f) => f.endsWith(".md")
   );
-  const personalCommands = (await safeReaddir(join(CLAUDE_HOME, "commands"))).filter(
+  const personalCommands = (await safeReaddir(join(claudeHome(), "commands"))).filter(
     (f) => f.endsWith(".md")
   );
-  const personalSkills = (await safeReaddir(join(CLAUDE_HOME, "skills"))).filter(
+  const personalSkills = (await safeReaddir(join(claudeHome(), "skills"))).filter(
     (f) => !f.startsWith(".")
   );
 
@@ -69,15 +71,15 @@ export async function gatherSignals(projectRoot = process.cwd()) {
   const memory = await listProjectMemoryFiles();
   const claudeMdExists =
     existsSync(join(projectRoot, "CLAUDE.md")) ||
-    existsSync(join(CLAUDE_HOME, "CLAUDE.md"));
+    existsSync(join(claudeHome(), "CLAUDE.md"));
 
   const hooks = settings.hooks || {};
   const env = settings.env || {};
 
-  const plansCount = await dirSize(join(CLAUDE_HOME, "plans"));
-  const sessionsCount = await dirSize(join(CLAUDE_HOME, "sessions"));
-  const statuslineConfigured = existsSync(join(CLAUDE_HOME, "statusline.sh"));
-  const keybindingsConfigured = existsSync(join(CLAUDE_HOME, "keybindings.json"));
+  const plansCount = await dirSize(join(claudeHome(), "plans"));
+  const sessionsCount = await dirSize(join(claudeHome(), "sessions"));
+  const statuslineConfigured = existsSync(join(claudeHome(), "statusline.sh"));
+  const keybindingsConfigured = existsSync(join(claudeHome(), "keybindings.json"));
 
   const hasPlugin = (prefix) => plugins.some((p) => p.startsWith(prefix));
 

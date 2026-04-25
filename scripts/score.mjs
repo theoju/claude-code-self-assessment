@@ -1,9 +1,9 @@
 // Deterministic scoring. Pure function of signals → {score, tier, evidence, gaps}.
 // Rules are intentionally transparent so trends (↗/↘) reflect actual config changes.
 
-const clamp = (n, min = 0, max = 100) => Math.max(min, Math.min(max, n));
+export const clamp = (n, min = 0, max = 100) => Math.max(min, Math.min(max, n));
 
-function tierFor(score) {
+export function tierFor(score) {
   if (score >= 85) return "advanced";
   if (score >= 70) return "solid";
   if (score >= 55) return "developing";
@@ -11,7 +11,7 @@ function tierFor(score) {
   return "not-touched";
 }
 
-const SCORERS = {
+export const SCORERS = {
   automation(s) {
     let score = 25;
     const ev = [];
