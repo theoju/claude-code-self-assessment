@@ -1,4 +1,6 @@
+import Link from "next/link";
 import RadarChart from "@/app/components/RadarChart";
+import ClaudeMdHealth from "@/app/components/ClaudeMdHealth";
 import {
   loadAssessment,
   computeStats,
@@ -6,6 +8,7 @@ import {
   tierLabel,
   trendGlyph,
 } from "@/app/lib/assessment";
+import { borisTipLink, parseBorisTipList } from "@/app/lib/boris-tips";
 
 export const dynamic = "force-dynamic";
 
@@ -115,12 +118,14 @@ export default async function Page() {
                 <div className="text-xs uppercase tracking-wider text-[color:var(--color-mute)] mb-1">
                   {a.title} · weight {a.weight} · −{a.deficit} pts gap
                 </div>
-                <div className="text-sm">{a.action}</div>
+                <div className="text-sm"><LinkifyBoris text={a.action} /></div>
               </div>
             </li>
           ))}
         </ol>
       </section>
+
+      {assessment.claudeMd && <ClaudeMdHealth report={assessment.claudeMd} />}
 
       <section className="grid md:grid-cols-3 gap-6 mb-16">
         <Panel title="Strengths — keep running these" tone="good">
@@ -169,7 +174,7 @@ export default async function Page() {
                 <div>
                   <h3 className="text-xl font-semibold">{d.title}</h3>
                   <div className="text-xs text-[color:var(--color-mute)] mt-1">
-                    Rubric: {d.rubricArea} · Boris §{d.borisTips}
+                    Rubric: {d.rubricArea} · Boris <BorisTips csv={d.borisTips} />
                   </div>
                 </div>
                 <div className="flex items-baseline gap-4">
@@ -200,23 +205,23 @@ export default async function Page() {
               </div>
 
               <p className="text-sm text-[color:var(--color-text)] leading-relaxed mb-5">
-                {d.summary}
+                <LinkifyBoris text={d.summary} />
               </p>
 
               <div className="grid md:grid-cols-3 gap-5 text-sm">
                 <Column label="Evidence observed">
                   {d.evidence.map((e, i) => (
-                    <li key={i}>{e}</li>
+                    <li key={i}><LinkifyBoris text={e} /></li>
                   ))}
                 </Column>
                 <Column label="Gaps">
                   {d.gaps.map((g, i) => (
-                    <li key={i}>{g}</li>
+                    <li key={i}><LinkifyBoris text={g} /></li>
                   ))}
                 </Column>
                 <Column label="Next actions">
                   {d.nextActions.map((a, i) => (
-                    <li key={i} className="text-[color:var(--color-text)]">{a}</li>
+                    <li key={i} className="text-[color:var(--color-text)]"><LinkifyBoris text={a} /></li>
                   ))}
                 </Column>
               </div>
@@ -266,6 +271,89 @@ function Panel({
       {children}
     </div>
   );
+}
+
+const TIP_LINK_CLASS =
+  "underline decoration-dotted underline-offset-2 hover:text-[color:var(--color-accent)]";
+
+function TipLink({ n, label }: { n: number; label?: React.ReactNode }) {
+  const t = borisTipLink(n);
+  return (
+    <Link
+      href={t.url}
+      title={`${t.topic} — ${t.where} (renders the tip locally; upstream site has no per-tip URL)`}
+      className={TIP_LINK_CLASS}
+    >
+      {label ?? n}
+    </Link>
+  );
+}
+
+function BorisTips({ csv }: { csv: string }) {
+  const tips = parseBorisTipList(csv);
+  if (tips.length === 0) return null;
+  return (
+    <span>
+      §
+      {tips.map((t, i) => (
+        <span key={t.n}>
+          <TipLink n={t.n} />
+          {i < tips.length - 1 ? ", " : ""}
+        </span>
+      ))}
+    </span>
+  );
+}
+
+/**
+ * Linkify inline mentions of Boris tips inside free text. The full phrase is
+ * the link (e.g. the entire "Boris tip 7" is clickable). For multi-number
+ * forms ("Boris tip 14/73", "Boris tip 14, 51, 52") the prefix attaches to
+ * the first number; remaining numbers are individual links separated by the
+ * original delimiter.
+ */
+function LinkifyBoris({ text }: { text: string }) {
+  const re = /\bBoris\s+(?:tips?|§)\s*\d+(?:\s*[,/]\s*\d+)*/gi;
+  const out: React.ReactNode[] = [];
+  let last = 0;
+  let key = 0;
+  for (const m of text.matchAll(re)) {
+    const start = m.index ?? 0;
+    if (start > last) out.push(text.slice(last, start));
+
+    // Split the whole phrase into [prefix, n1, sep, n2, sep, n3, ...]
+    // where prefix is "Boris tip " or "Boris §" with the first number stuck on.
+    const phrase = m[0];
+    const firstNumMatch = phrase.match(/\d+/)!;
+    const firstNumStart = phrase.indexOf(firstNumMatch[0]);
+    const firstNumEnd = firstNumStart + firstNumMatch[0].length;
+    const prefix = phrase.slice(0, firstNumEnd); // "Boris tip 7"
+    const tail = phrase.slice(firstNumEnd); // "" or "/73" or ", 51, 52"
+    const firstN = parseInt(firstNumMatch[0], 10);
+
+    const tailNodes: React.ReactNode[] = [];
+    const tailRe = /(\s*[,/]\s*)(\d+)/g;
+    let tailLast = 0;
+    let tailKey = 0;
+    for (const tm of tail.matchAll(tailRe)) {
+      const ts = tm.index ?? 0;
+      if (ts > tailLast) tailNodes.push(tail.slice(tailLast, ts));
+      tailNodes.push(tm[1]);
+      tailNodes.push(<TipLink key={tailKey++} n={parseInt(tm[2]!, 10)} />);
+      tailLast = ts + tm[0].length;
+    }
+    if (tailLast < tail.length) tailNodes.push(tail.slice(tailLast));
+
+    out.push(
+      <span key={key++}>
+        <TipLink n={firstN} label={prefix} />
+        {tailNodes}
+      </span>
+    );
+    last = start + m[0].length;
+  }
+  if (last < text.length) out.push(text.slice(last));
+  return <>{out}</>;
 }
 
 function Column({

@@ -1,7 +1,7 @@
 {
   "$schema": "Copy to assessment.config.json and edit. Never commit the real file.",
   "user": {
-    "displayName": "Theo",
+    "displayName": "Engineer",
     "claudeHome": "~/.claude"
   },
   "slack": {
@@ -19,5 +19,13 @@
   "scoring": {
     "includePluginSkillsAsPersonal": false,
     "comment": "If true, plugin-provided agents/commands count toward Automation score. Default false — Boris's rule is about what YOU built."
+  },
+  "claudeMd": {
+    "enabled": true,
+    "mode": "report-only",
+    "targets": [
+      { "name": "your-repo", "path": "~/Projects/your-repo" }
+    ],
+    "comment": "Audited deterministically each morning. Report-only — never edits CLAUDE.md. Add a target per repo you want tracked."
   }
 }

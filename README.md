@@ -18,7 +18,7 @@ notifier.
   stays local; the Slack message is the delivery vehicle.
 
 ```
-Claude Code Mastery — Theo
+Claude Code Mastery — Engineer
 Overall 66 / 89
 
    33 / 90  ↗  Automation — Hooks, Commands, Agents

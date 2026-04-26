@@ -11,6 +11,7 @@ import { fileURLToPath } from "node:url";
 import { gatherSignals } from "./signals.mjs";
 import { scoreAll, computeTrends } from "./score.mjs";
 import { buildSlackMessage, postToSlack } from "./slack.mjs";
+import { auditAll, summarize, CRITERIA, expandHome } from "./claude-md-audit.mjs";
 
 const ROOT = dirname(dirname(fileURLToPath(import.meta.url)));
 const DATA_DIR = join(ROOT, "app", "data");
@@ -20,7 +21,36 @@ const HISTORY_PATH = join(DATA_DIR, "assessment-history.json");
 const ASSESSMENT_PATH = join(DATA_DIR, "assessment.json");
 const RUBRIC_PATH = join(DATA_DIR, "rubric.json");
 
-const flags = new Set(process.argv.slice(2));
+const argv = process.argv.slice(2);
+const flags = new Set(argv);
+
+function flagValues(name) {
+  const out = [];
+  for (let i = 0; i < argv.length; i++) {
+    const a = argv[i];
+    if (a === name) {
+      const next = argv[i + 1];
+      if (next && !next.startsWith("--")) {
+        out.push(next);
+        i++;
+      }
+    } else if (a.startsWith(`${name}=`)) {
+      out.push(a.slice(name.length + 1));
+    }
+  }
+  return out;
+}
+
+function parseTargetSpec(spec) {
+  // Accepts "name=path" or just "path" (name defaults to last path segment).
+  const eq = spec.indexOf("=");
+  if (eq > 0) {
+    return { name: spec.slice(0, eq), path: spec.slice(eq + 1) };
+  }
+  const path = spec;
+  const name = path.replace(/\/+$/, "").split("/").pop() || path;
+  return { name, path };
+}
 
 async function readJson(path, fallback = null) {
   try {
@@ -44,6 +74,15 @@ async function main() {
   const history = (await readJson(HISTORY_PATH)) || [];
   const trends = computeTrends(scored, history);
 
+  const cliTargets = flagValues("--claude-md-target").map(parseTargetSpec);
+  const cmConfig = config?.claudeMd || {};
+  const configTargets = cmConfig.enabled === false ? [] : cmConfig.targets || [];
+  const cmTargets = (cliTargets.length ? cliTargets : configTargets).map((t) => ({
+    name: t.name,
+    path: expandHome(t.path),
+  }));
+  const claudeMdRuns = cmTargets.length ? await auditAll(cmTargets) : [];
+
   const assessment = {
     ...scored,
     trends,
@@ -58,6 +97,14 @@ async function main() {
       autoCompactWindow: signals.settings.autoCompactWindow,
       projectsWithMemory: signals.memory.length,
     },
+    claudeMd: claudeMdRuns.length
+      ? {
+          mode: "report-only",
+          auditedAt: new Date().toISOString(),
+          summary: summarize(claudeMdRuns),
+          runs: claudeMdRuns,
+        }
+      : null,
     user: config?.user?.displayName || null,
   };
 
@@ -82,6 +129,26 @@ async function main() {
         return `  ${s.score.toString().padStart(3)} / ${d.target}  ${trend}  ${d.title}`;
       }),
     ];
+    if (claudeMdRuns.length) {
+      const sum = assessment.claudeMd.summary;
+      lines.push("", "CLAUDE.md health (report-only):");
+      const avgPart = sum.avgScore == null ? "no scoreable files" : `Avg: ${sum.avgScore} (${sum.avgGrade})`;
+      lines.push(`  Targets: ${sum.targets} · Files: ${sum.files} · ${avgPart}`);
+      if (sum.files > 0) {
+        const dist = sum.distribution;
+        lines.push(`  Distribution: A:${dist.A} B:${dist.B} C:${dist.C} D:${dist.D} F:${dist.F}`);
+      }
+      if (sum.targetsMissing) lines.push(`  Targets without CLAUDE.md: ${sum.targetsMissing}`);
+      if (sum.targetsError) lines.push(`  Targets with errors: ${sum.targetsError}`);
+      if (sum.avgBreakdown) {
+        const labelWidth = Math.max(...CRITERIA.map((c) => c.label.length));
+        lines.push(`  Breakdown (avg across ${sum.files} file${sum.files === 1 ? "" : "s"}):`);
+        for (const c of CRITERIA) {
+          const v = sum.avgBreakdown[c.key];
+          lines.push(`    ${c.label.padEnd(labelWidth)}  ${v}/${c.max}`);
+        }
+      }
+    }
     console.log(lines.join("\n"));
   }
 
