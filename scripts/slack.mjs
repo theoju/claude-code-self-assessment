@@ -1,6 +1,7 @@
 // Slack webhook poster. Pure function: takes assessment + config, returns blocks + posts.
 
 import { CRITERIA } from "./claude-md-audit.mjs";
+import { formatTipsForSlack } from "./boris-tips.mjs";
 
 export function buildSlackMessage(assessment, rubric, config) {
   const { overall, targetOverall, scores, capturedAt } = assessment;
@@ -58,7 +59,11 @@ export function buildSlackMessage(assessment, rubric, config) {
               text:
                 "*Biggest gaps (weight × deficit)*\n" +
                 topGaps
-                  .map((s) => `• ${s.title} — ${s.score}/${byId[s.id].target} (w×${s.weight})`)
+                  .map((s) => {
+                    const tipLinks = formatTipsForSlack(byId[s.id].borisTips, url);
+                    const tail = tipLinks ? ` · Boris ${tipLinks}` : "";
+                    return `• ${s.title} — ${s.score}/${byId[s.id].target} (w×${s.weight})${tail}`;
+                  })
                   .join("\n"),
             },
           }

@@ -34,4 +34,6 @@ Run the deterministic assessment pipeline. Scoring reads real signals from the c
 
 - Scoring rules live in `scripts/score.mjs`. They are deterministic so trends reflect real config changes, not Claude's mood.
 - The rubric metadata (titles, weights, Boris tip references, target scores) lives in `app/data/rubric.json`. Update it there if you want to retune the target profile.
+- Boris tip references in the dashboard (and Slack post) are clickable. They point at the dashboard's own `/tips/N` route, which renders the tip content from a local snapshot of `~/.claude/skills/boris/SKILL.md`. The upstream site (`howborisusesclaudecode.com`) has no per-tip URLs (verified by crawl Apr 2026 — no hash routing, no query handling, no per-tip endpoints), so each `/tips/N` page also offers an "Open on howborisusesclaudecode.com ↗" link with a hint to manually navigate to the right volume/tab.
+- When Boris ships a new "Part": (1) update the boris skill from `https://howborisusesclaudecode.com/api/install`, (2) extend `app/data/boris-tip-index.json` with the new section→{volume,tab,label} entries, (3) run `npm run snapshot:boris-tips` to regenerate `app/data/boris-tips-content.json`.
 - For cloud routines (7:15 AM scheduled run), see `ROUTINE.md`.
