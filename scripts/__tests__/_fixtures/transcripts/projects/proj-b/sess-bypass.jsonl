@@ -1,0 +1,5 @@
+{"type":"permission-mode","permissionMode":"bypassPermissions","sessionId":"c"}
+{"type":"assistant","message":{"content":[{"type":"tool_use","name":"Bash","input":{"command":"git commit -m oops"}}]}}
+{"type":"assistant","message":{"content":[{"type":"tool_use","name":"Bash","input":{"command":"git push --force"}}]}}
+not-valid-json-on-this-line
+{"type":"assistant","message":{"content":[{"type":"tool_use","name":"Edit","input":{"file_path":"only.ts"}}]}}

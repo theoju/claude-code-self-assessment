@@ -8,6 +8,10 @@ import {
   type Dimension,
 } from "../assessment";
 
+function action(id: string, label = id, effort: "5min" | "15min" | "30min" | "1hr" | "2hr" = "30min", requires?: string[]) {
+  return { id, action: label, effort, ...(requires ? { requires } : {}) };
+}
+
 function dim(overrides: Partial<Dimension> = {}): Dimension {
   return {
     id: "x",
@@ -16,7 +20,7 @@ function dim(overrides: Partial<Dimension> = {}): Dimension {
     target: 80,
     rubricArea: "test",
     borisTips: "1",
-    nextActions: ["do thing"],
+    nextActions: [action("default", "do thing")],
     score: 50,
     tier: "developing",
     trend: "flat",
@@ -81,25 +85,56 @@ describe("computeStats", () => {
     expect(stats.byTier["not-touched"]).toBe(0);
   });
 
-  it("orders priorityActions by weight × deficit and caps at 6", () => {
+  it("orders priorityActions by leverage (weight × deficit / effortMinutes), capped at 6", () => {
     const dims = [
-      dim({ id: "low", weight: 1, target: 80, score: 70, nextActions: ["small"] }),
-      dim({ id: "high", weight: 3, target: 90, score: 30, nextActions: ["big"] }),
-      dim({ id: "mid", weight: 2, target: 80, score: 60, nextActions: ["mid"] }),
+      dim({ id: "low", weight: 1, target: 80, score: 70, nextActions: [action("low", "small")] }),
+      dim({ id: "high", weight: 3, target: 90, score: 30, nextActions: [action("high", "big")] }),
+      dim({ id: "mid", weight: 2, target: 80, score: 60, nextActions: [action("mid", "mid")] }),
     ];
     const stats = computeStats(dims);
-    // weight × deficit: high=180, mid=40, low=10 → high first
+    // All effort 30min → leverage proportional to weight × deficit: high=6, mid=1.33, low=0.33
     expect(stats.priorityActions[0].dimensionId).toBe("high");
     expect(stats.priorityActions[1].dimensionId).toBe("mid");
     expect(stats.priorityActions[2].dimensionId).toBe("low");
     expect(stats.priorityActions.length).toBeLessThanOrEqual(6);
   });
 
+  it("favors low-effort actions when weight × deficit ties", () => {
+    const dims = [
+      dim({ id: "x", weight: 2, target: 80, score: 60, nextActions: [action("slow", "slow", "1hr")] }),
+      dim({ id: "y", weight: 2, target: 80, score: 60, nextActions: [action("fast", "fast", "5min")] }),
+    ];
+    const stats = computeStats(dims);
+    expect(stats.priorityActions[0].id).toBe("fast");
+  });
+
+  it("bubbles a prerequisite action ahead of its dependent", () => {
+    const dims = [
+      dim({
+        id: "scheduled",
+        weight: 2,
+        target: 80,
+        score: 30,
+        nextActions: [action("loop-babysit", "loop", "15min", ["auto-mode-on"])],
+      }),
+      dim({
+        id: "permissions",
+        weight: 3,
+        target: 85,
+        score: 50,
+        nextActions: [action("auto-mode-on", "turn on auto mode", "5min")],
+      }),
+    ];
+    const stats = computeStats(dims);
+    const ids = stats.priorityActions.map((a) => a.id);
+    expect(ids.indexOf("auto-mode-on")).toBeLessThan(ids.indexOf("loop-babysit"));
+  });
+
   it("excludes dimensions already at or above target", () => {
     const dims = [
-      dim({ id: "done", target: 80, score: 80, nextActions: ["x"] }),
-      dim({ id: "exceeds", target: 70, score: 90, nextActions: ["y"] }),
-      dim({ id: "behind", target: 80, score: 50, nextActions: ["z"] }),
+      dim({ id: "done", target: 80, score: 80, nextActions: [action("a")] }),
+      dim({ id: "exceeds", target: 70, score: 90, nextActions: [action("b")] }),
+      dim({ id: "behind", target: 80, score: 50, nextActions: [action("c")] }),
     ];
     const stats = computeStats(dims);
     expect(stats.priorityActions.map((a) => a.dimensionId)).toEqual(["behind"]);
@@ -107,10 +142,10 @@ describe("computeStats", () => {
 
   it("flattens multiple nextActions per dimension", () => {
     const dims = [
-      dim({ id: "x", target: 90, score: 30, nextActions: ["a1", "a2", "a3"] }),
+      dim({ id: "x", target: 90, score: 30, nextActions: [action("a1"), action("a2"), action("a3")] }),
     ];
     const stats = computeStats(dims);
     expect(stats.priorityActions).toHaveLength(3);
-    expect(stats.priorityActions.map((a) => a.action)).toEqual(["a1", "a2", "a3"]);
+    expect(stats.priorityActions.map((a) => a.id).sort()).toEqual(["a1", "a2", "a3"]);
   });
 });

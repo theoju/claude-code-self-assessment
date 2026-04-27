@@ -218,11 +218,22 @@ describe("SCORERS.scheduled", () => {
 describe("SCORERS.remote", () => {
   it("rewards imessage plugin", () => {
     const r = SCORERS.remote(makeSignals({ has: { imessage: true } }));
-    expect(r.score).toBe(55);
+    expect(r.score).toBe(50);
   });
   it("flags missing imessage", () => {
     const r = SCORERS.remote(makeSignals());
     expect(r.gaps[0]).toMatch(/imessage/);
+  });
+  it("can reach the solid tier (target 75) when iMessage + Chrome ext + routines are present", () => {
+    const r = SCORERS.remote(
+      makeSignals({
+        has: { imessage: true },
+        chromeExtensionConfigured: true,
+        routinesCount: 2,
+        behavior: { teleportSessions: 3 },
+      })
+    );
+    expect(r.score).toBeGreaterThanOrEqual(75);
   });
 });
 
@@ -234,6 +245,74 @@ describe("SCORERS.learning", () => {
       }),
     );
     expect(r.score).toBeGreaterThanOrEqual(85);
+  });
+});
+
+describe("behavioral signal wiring", () => {
+  it("automation: configured-but-silent hooks lose their per-hook bonus when behavior is on", () => {
+    const silent = SCORERS.automation(
+      makeSignals({
+        settings: { hookTotalCount: 4, hookEvents: ["PostToolUse", "Stop"] },
+        behavior: { transcriptsEnabled: true, hookFires: 0 },
+      })
+    );
+    const firing = SCORERS.automation(
+      makeSignals({
+        settings: { hookTotalCount: 4, hookEvents: ["PostToolUse", "Stop"] },
+        behavior: { transcriptsEnabled: true, hookFires: 12 },
+      })
+    );
+    expect(silent.score).toBeLessThan(firing.score);
+    expect(silent.gaps.join(" ")).toMatch(/never fire/i);
+  });
+
+  it("permissions: bypassPermissions usage in transcripts subtracts points", () => {
+    const noBypass = SCORERS.permissions(
+      makeSignals({
+        behavior: { transcriptsEnabled: true, autoModeLongSessions: 3, bypassPermSessions: 0 },
+      })
+    );
+    const withBypass = SCORERS.permissions(
+      makeSignals({
+        behavior: { transcriptsEnabled: true, autoModeLongSessions: 3, bypassPermSessions: 4 },
+      })
+    );
+    expect(withBypass.score).toBeLessThan(noBypass.score);
+    expect(withBypass.gaps.join(" ")).toMatch(/bypassPermissions/);
+  });
+
+  it("verification: shipVerifyRate of 100% adds up to +12", () => {
+    const r = SCORERS.verification(
+      makeSignals({
+        behavior: { transcriptsEnabled: true, shipSessions: 5, shipVerifyRate: 1 },
+      })
+    );
+    const baseline = SCORERS.verification(makeSignals());
+    expect(r.score).toBeGreaterThan(baseline.score);
+  });
+
+  it("planning: high plan-mode utilization adds points and removes the GCA gap", () => {
+    const r = SCORERS.planning(
+      makeSignals({
+        behavior: { transcriptsEnabled: true, multiFileSessions: 5, multiFilePlanRate: 0.9 },
+      })
+    );
+    expect(r.gaps.find((g) => /Goal|Constraints|Acceptance/.test(g))).toBeUndefined();
+    expect(r.evidence.some((e) => /Plan-mode utilization/.test(e))).toBe(true);
+  });
+
+  it("integrations: plugin-spray with zero behavior gets gated to baseline + 5", () => {
+    const noBehavior = SCORERS.integrations(
+      makeSignals({ plugins: Array.from({ length: 25 }, (_, i) => `p${i}@1`) })
+    );
+    const gated = SCORERS.integrations(
+      makeSignals({
+        plugins: Array.from({ length: 25 }, (_, i) => `p${i}@1`),
+        behavior: { transcriptsEnabled: true, toolCounts: {} },
+      })
+    );
+    expect(gated.score).toBeLessThan(noBehavior.score);
+    expect(gated.gaps.join(" ")).toMatch(/installed but no recent tool invocations/);
   });
 });
 
@@ -282,34 +361,81 @@ describe("computeTrends", () => {
     expect(Object.values(trends).every((t) => t === "new")).toBe(true);
   });
 
-  it("classifies improving / slipping / flat against last entry", () => {
+  it("classifies improving / slipping / flat against last entry (with evidence change)", () => {
+    // Adaptive trend now requires both: |delta| >= noiseFloor AND evidence/gap changed.
+    // Bump the deltas above the default noise floor of 5 and toggle evidence.
     const history = [
       {
         capturedAt: "2026-04-24",
         overall: 60,
         scores: [
-          { id: "a", score: 65 },
-          { id: "b", score: 55 },
-          { id: "c", score: 80 },
+          { id: "a", score: 60, evidence: ["was-here"], gaps: [] },
+          { id: "b", score: 60, evidence: ["b-old"], gaps: [] },
+          { id: "c", score: 80, evidence: ["c-stable"], gaps: [] },
         ],
       },
     ];
-    const trends = computeTrends(current, history);
+    const next = {
+      scores: [
+        { id: "a", score: 70, evidence: ["new-thing"], gaps: [] },
+        { id: "b", score: 50, evidence: ["b-old"], gaps: ["b-new-gap"] },
+        { id: "c", score: 80, evidence: ["c-stable"], gaps: [] },
+        { id: "d", score: 40, evidence: [], gaps: [] },
+      ],
+    };
+    const trends = computeTrends(next, history);
     expect(trends.a).toBe("improving");
     expect(trends.b).toBe("slipping");
     expect(trends.c).toBe("flat");
     expect(trends.d).toBe("new");
   });
 
-  it("treats ±1 as flat (within noise band)", () => {
+  it("treats deltas below the noise floor as flat", () => {
+    // Default noise floor is 5; ±4 should be flat even if evidence changed.
     const history = [
-      { capturedAt: "x", overall: 60, scores: [{ id: "a", score: 71 }, { id: "b", score: 49 }] },
+      {
+        capturedAt: "x",
+        overall: 60,
+        scores: [
+          { id: "a", score: 71, evidence: ["a"], gaps: [] },
+          { id: "b", score: 49, evidence: ["b"], gaps: [] },
+        ],
+      },
     ];
     const trends = computeTrends(
-      { scores: [{ id: "a", score: 70 }, { id: "b", score: 50 }] },
+      {
+        scores: [
+          { id: "a", score: 67, evidence: ["different"], gaps: [] },
+          { id: "b", score: 53, evidence: ["different"], gaps: [] },
+        ],
+      },
       history,
     );
     expect(trends.a).toBe("flat");
     expect(trends.b).toBe("flat");
+  });
+
+  it("treats a score wobble without evidence change as flat (noise filter)", () => {
+    // delta exceeds noise floor but evidence/gaps identical → flat.
+    const history = [
+      { capturedAt: "x", overall: 60, scores: [{ id: "a", score: 60, evidence: ["same"], gaps: [] }] },
+    ];
+    const trends = computeTrends(
+      { scores: [{ id: "a", score: 75, evidence: ["same"], gaps: [] }] },
+      history,
+    );
+    expect(trends.a).toBe("flat");
+  });
+
+  it("respects per-dimension noiseFloor from rubric", () => {
+    const history = [
+      { capturedAt: "x", overall: 60, scores: [{ id: "a", score: 70, evidence: ["x"], gaps: [] }] },
+    ];
+    const next = { scores: [{ id: "a", score: 78, evidence: ["y"], gaps: [] }] };
+    // With noise floor 10, an 8-point move stays flat.
+    const trends = computeTrends(next, history, {
+      dimensions: [{ id: "a", noiseFloor: 10 }],
+    });
+    expect(trends.a).toBe("flat");
   });
 });

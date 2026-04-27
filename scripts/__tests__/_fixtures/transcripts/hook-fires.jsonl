@@ -1,0 +1,4 @@
+{"event":"PostToolUse","ts":"2026-04-25T12:00:00.000Z","matcher":"Write|Edit"}
+{"event":"PostToolUse","ts":"2026-04-25T12:01:00.000Z","matcher":"Write|Edit"}
+{"event":"Stop","ts":"2026-04-26T08:00:00.000Z"}
+{"event":"PostToolUse","ts":"2024-01-01T00:00:00.000Z","matcher":"Write|Edit"}

@@ -59,6 +59,40 @@ That's the whole loop. Everything else is optional polish.
 To retune targets or add a dimension, edit `app/data/rubric.json` and add a
 matching scorer in `scripts/score.mjs`. Frontend picks it up automatically.
 
+### Behavioral signals (opt-in)
+
+By default the score is purely a *configuration audit* — what's in your
+`~/.claude/`. You can opt into a *behavior audit* by setting
+`scoring.includeTranscripts: true` in `assessment.config.json` (or passing
+`--include-transcripts` for one run). When enabled, `scripts/transcript-signals.mjs`
+parses `~/.claude/projects/*/*.jsonl` from the last 30 days and feeds the
+following aggregates back into scoring:
+
+- Tool-use distribution and subagent dispatch frequency (`parallel`)
+- Plan-mode utilization on multi-file sessions (`planning`)
+- Verify-before-ship rate from Bash invocations (`verification`)
+- Auto-mode adoption and bypassPermissions usage (`permissions`)
+- Configured-but-silent hooks lose most of their score (`automation`)
+- Installed-but-never-invoked plugins are gated (`integrations`)
+
+**Privacy:** only aggregate counters land in `assessment.json` and the Slack
+post — never raw prompts or turns. Transcripts stay on your machine.
+
+To enable hook-fire counting, install the journal hook:
+
+```bash
+node scripts/install-journal-hook.mjs   # writes ~/.claude/hooks/journal.sh
+                                        # then prints a settings.json snippet
+```
+
+### Per-dimension explainer pages
+
+Every dimension card on the dashboard links to `/dimensions/<id>` — a page that
+shows the dimension's base score, full formula breakdown, the live
+evidence/gap signals, and the highest-leverage move that would push the score
+up by 10. Useful when "Automation: 33/90" is opaque and you want to know
+*exactly* what would change it.
+
 ## `/self-assessment` slash command
 
 Ships in `.claude/commands/self-assessment.md`, so `/self-assessment` is
@@ -67,6 +101,30 @@ available in any Claude Code session inside this repo. It calls
 three weight×deficit priority actions.
 
 Treat it like a morning standup with your toolchain.
+
+## Boris tip viewer (`/tips/[n]`)
+
+Each Boris-tip reference in the dashboard (and in the Slack post) is a clickable
+link to a local route that renders the tip's actual content. We snapshot the
+boris skill markdown (`~/.claude/skills/boris/SKILL.md`, the same payload Boris
+ships at `/api/install`) into `app/data/boris-tips-content.json` and serve it at
+`/tips/[n]`.
+
+```bash
+npm run snapshot:boris-tips    # regenerates the snapshot from your installed boris skill
+```
+
+Run it whenever Boris ships a new "Part" — also extend
+`app/data/boris-tip-index.json` with the new section→{volume, tab, label}
+entries so the navigation hint stays accurate.
+
+**Why local?** Verified by crawl (Apr 2026): `howborisusesclaudecode.com` is a
+SPA with no per-tip URLs at all (no hash routing, no query handling, no per-tip
+endpoints; query-string variants return byte-identical HTML to `/`). So a link
+straight to that domain — even with `#tip-7` — would silently load the
+homepage. Each `/tips/[n]` page also offers an "Open on
+howborisusesclaudecode.com ↗" with a manual *Vol N → tab* navigation hint, so
+the upstream site is one click away when you want it.
 
 ## Slack notifier (optional)
 
@@ -104,21 +162,32 @@ doesn't work here (Anthropic-cloud routines can't read your local
 ```
 app/
   layout.tsx, page.tsx, globals.css   # Next.js 16 App Router
+  tips/[n]/page.tsx                   # local Boris tip viewer (static-rendered)
   components/RadarChart.tsx           # hand-rolled SVG radar
+  components/ClaudeMdHealth.tsx       # CLAUDE.md health card
   lib/assessment.ts                   # loader + stats helpers
+  lib/boris-tips.ts                   # tip → /tips/N URL helper
+  lib/boris-content.tsx               # tip content loader + tiny markdown→React renderer
   data/
     rubric.json                       # static: titles, weights, targets, next-actions  ← committed
+    boris-tip-index.json              # section → {volume, tab, label, topic}            ← committed
+    boris-tips-content.json           # snapshot of boris skill content                  ← committed
     assessment.json                   # current scored snapshot                          ← gitignored
     assessment-history.json           # trend series                                    ← gitignored
 scripts/
   signals.mjs                         # read ~/.claude/
   score.mjs                           # rules → scores
   slack.mjs                           # webhook payload + poster
+  boris-tips.mjs                      # tip → URL helper (Node-side mirror of app/lib)
+  claude-md-audit.mjs                 # CLAUDE.md health auditor
+  snapshot-boris-tips.mjs             # regenerates boris-tips-content.json
   run-assessment.mjs                  # entry point (npm run assess)
+  run-coverage.mjs                    # entry point (npm run coverage)
   setup.sh                            # first-run bootstrap
   launchd/
     claude-mastery.plist.template     # LaunchAgent template
-    install.sh                        # substitutes placeholders, loads via launchctl
+    coverage.plist.template           # LaunchAgent for the 06:00 coverage run
+    install.sh / install-coverage.sh  # substitutes placeholders, loads via launchctl
 .claude/
   commands/self-assessment.md         # ships the /self-assessment slash command
 assessment.config.example.json        # template for per-user config
@@ -133,6 +202,8 @@ ROUTINE.md                            # scheduling deep dive
 | `assessment.config.example.json` | **committed** | template |
 | `.env.example` | **committed** | documents `SLACK_WEBHOOK_URL` |
 | `app/data/rubric.json` | **committed** | the static rubric everyone shares |
+| `app/data/boris-tip-index.json` | **committed** | section → volume/tab map for the tip viewer |
+| `app/data/boris-tips-content.json` | **committed** | snapshot of boris skill content for `/tips/[n]` |
 | `.claude/commands/self-assessment.md` | **committed** | the slash command |
 | `.claude/settings.local.json` | gitignored | per-user permissions |
 | `assessment.config.json` | gitignored | your display name, webhook channel |

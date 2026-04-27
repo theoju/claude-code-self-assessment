@@ -17,8 +17,20 @@ export const SCORERS = {
     const ev = [];
     const gaps = [];
     if (s.settings.hookTotalCount > 0) {
-      score += Math.min(25, s.settings.hookTotalCount * 8);
-      ev.push(`${s.settings.hookTotalCount} hook(s) configured across: ${s.settings.hookEvents.join(", ")}`);
+      // Configured hooks earn credit, but only if they actually fire when
+      // behavior signals are enabled. Configured-but-silent hooks score 0
+      // for behavioral credit (anti-gaming: "wire 4 empty hooks for +32").
+      const hookFires = s.behavior?.hookFires || 0;
+      const hasBehavior = s.behavior?.transcriptsEnabled;
+      if (hasBehavior && hookFires === 0) {
+        score += 5;
+        ev.push(`${s.settings.hookTotalCount} hook(s) configured across: ${s.settings.hookEvents.join(", ")} (none fired in last 30 days)`);
+        gaps.push("Hooks are configured but never fire — gating active");
+      } else {
+        score += Math.min(25, s.settings.hookTotalCount * 8);
+        ev.push(`${s.settings.hookTotalCount} hook(s) configured across: ${s.settings.hookEvents.join(", ")}`);
+        if (hasBehavior) ev.push(`Hook fires (last 30d): ${hookFires}`);
+      }
     } else {
       gaps.push("settings.json has no hooks block — no PostToolUse, Stop, SessionStart, or PostCompact hooks");
     }
@@ -70,6 +82,20 @@ export const SCORERS = {
       score += 5;
       ev.push(`${s.settings.denyList.length} denylist entries`);
     }
+    if (s.behavior?.transcriptsEnabled) {
+      const auto = s.behavior.autoModeLongSessions || 0;
+      const bypass = s.behavior.bypassPermSessions || 0;
+      if (auto > 0) {
+        score += Math.min(10, auto * 2);
+        ev.push(`Auto mode used in ${auto} long session(s) (last 30d) — Boris tip 42`);
+      } else {
+        gaps.push("No auto-mode sessions of ≥10 turns in last 30 days — habit not yet established");
+      }
+      if (bypass > 0) {
+        score -= Math.min(15, bypass * 3);
+        gaps.push(`bypassPermissions used in ${bypass} session(s) — defeats the auto-mode classifier`);
+      }
+    }
     return { score: clamp(score), evidence: ev, gaps };
   },
 
@@ -119,6 +145,15 @@ export const SCORERS = {
       gaps.push("No personal custom agents tuned to your domain");
     }
     if (s.personalAgents.length === 0) gaps.push("Worktree muscle memory unverified — no personal agents using isolation:worktree");
+    if (s.behavior?.transcriptsEnabled) {
+      const dispatches = s.behavior.agentDispatches || 0;
+      if (dispatches >= 5) {
+        score += 8;
+        ev.push(`Subagents dispatched ${dispatches} time(s) in last 30d — actively parallelizing`);
+      } else {
+        gaps.push(`Subagents dispatched only ${dispatches} time(s) in last 30d — try delegating more`);
+      }
+    }
     return { score: clamp(score), evidence: ev, gaps };
   },
 
@@ -134,6 +169,16 @@ export const SCORERS = {
     if (hasGo) { score += 12; ev.push("/go composite command present"); }
     else gaps.push("No /go composite command in personal or project library");
     if (!s.has.playwright) gaps.push("No browser-automation plugin — frontend verification is incomplete");
+    if (s.behavior?.transcriptsEnabled) {
+      const rate = s.behavior.shipVerifyRate || 0;
+      const ships = s.behavior.shipSessions || 0;
+      if (ships >= 3) {
+        // Behavioral verification rate adds up to +12 (Boris's #1 tip).
+        score += Math.round(rate * 12);
+        if (rate >= 0.8) ev.push(`Verify-before-ship rate: ${Math.round(rate * 100)}% across ${ships} ship session(s)`);
+        else gaps.push(`Verify-before-ship rate only ${Math.round(rate * 100)}% across ${ships} ship session(s) — Boris tip 14`);
+      }
+    }
     return { score: clamp(score), evidence: ev, gaps };
   },
 
@@ -163,7 +208,17 @@ export const SCORERS = {
     if (s.has.karpathy) { score += 8; ev.push("karpathy-guidelines — surgical, verifiable prompts"); }
     if (s.plansCount >= 10) { score += 10; ev.push(`${s.plansCount} saved plans`); }
     if (s.has.featureDev) { score += 5; ev.push("feature-dev: structured feature workflow"); }
-    gaps.push("Behavioral check: does every non-trivial prompt include Goal / Constraints / Acceptance Criteria upfront?");
+    if (s.behavior?.transcriptsEnabled) {
+      const rate = s.behavior.multiFilePlanRate || 0;
+      const multi = s.behavior.multiFileSessions || 0;
+      if (multi >= 2) {
+        score += Math.round(rate * 12);
+        if (rate >= 0.7) ev.push(`Plan-mode utilization on multi-file work: ${Math.round(rate * 100)}% of ${multi} sessions`);
+        else gaps.push(`Plan mode used in only ${Math.round(rate * 100)}% of multi-file sessions — Boris tip 3`);
+      }
+    } else {
+      gaps.push("Behavioral check: does every non-trivial prompt include Goal / Constraints / Acceptance Criteria upfront?");
+    }
     return { score: clamp(score), evidence: ev, gaps };
   },
 
@@ -171,8 +226,24 @@ export const SCORERS = {
     let score = 20;
     const ev = [];
     const gaps = [];
-    score += Math.min(70, s.plugins.length * 3);
-    ev.push(`${s.plugins.length} plugins enabled`);
+    // Gating: when transcripts are enabled we only credit plugins whose tools
+    // actually appeared in the last 30 days. This closes the "spray 25 plugins
+    // for free score" loophole identified in the forensic critique.
+    let effectivePluginCount = s.plugins.length;
+    if (s.behavior?.transcriptsEnabled) {
+      const tools = s.behavior.toolCounts || {};
+      // Per-plugin invocation detection is heuristic at best — we use a coarse
+      // proxy: the count of MCP-prefixed tool names plus generic plugin tools.
+      const usedNames = Object.keys(tools);
+      const usedPluginish = usedNames.filter((n) => /^mcp__|^Skill$/.test(n)).length;
+      // Effective = min(installed, used + 5 baseline always-on plugins).
+      effectivePluginCount = Math.min(s.plugins.length, usedPluginish + 5);
+      if (effectivePluginCount < s.plugins.length) {
+        gaps.push(`${s.plugins.length - effectivePluginCount} plugin(s) installed but no recent tool invocations — gated`);
+      }
+    }
+    score += Math.min(70, effectivePluginCount * 3);
+    ev.push(`${s.plugins.length} plugins enabled${effectivePluginCount !== s.plugins.length ? ` (${effectivePluginCount} active)` : ""}`);
     if (s.has.vercel) ev.push("vercel plugin installed");
     if (s.has.imessage) ev.push("imessage plugin — Boris tip 44 adopted");
     if (!s.plugins.some((p) => p.toLowerCase().includes("slack"))) {
@@ -209,11 +280,23 @@ export const SCORERS = {
   },
 
   remote(s) {
-    let score = 35;
+    let score = 30;
     const ev = [];
     const gaps = [];
     if (s.has.imessage) { score += 20; ev.push("imessage plugin installed"); }
     else gaps.push("No imessage plugin — Boris tip 44");
+    if (s.chromeExtensionConfigured) { score += 15; ev.push("Chrome extension configured — Boris tip 51"); }
+    else gaps.push("No Claude Chrome extension — frontend verification on the go");
+    if ((s.routinesCount || 0) > 0) {
+      score += 15;
+      ev.push(`${s.routinesCount} cloud routine(s) configured — Boris tip 61`);
+    } else {
+      gaps.push("No cloud routines under ~/.claude/routines — laptop-closed work isn't yet a habit");
+    }
+    if (s.behavior?.teleportSessions > 0) {
+      score += 10;
+      ev.push(`Session teleporting used (${s.behavior.teleportSessions} session(s) in last 30 days) — Boris tip 47`);
+    }
     return { score: clamp(score), evidence: ev, gaps };
   },
 
@@ -259,17 +342,50 @@ export function scoreAll(rubric, signals) {
   return { capturedAt: now, overall, targetOverall, scores };
 }
 
-export function computeTrends(current, history) {
+// Per-dimension noise floor for trend detection. Lower = more sensitive.
+// Default 5 means a one-line config edit (which often moves a dimension by 5–8
+// points) doesn't masquerade as a behavioral trend.
+export const DEFAULT_NOISE_FLOOR = 5;
+
+function noiseFloorFor(rubric, dimensionId) {
+  const dim = rubric?.dimensions?.find((d) => d.id === dimensionId);
+  return Math.max(1, dim?.noiseFloor ?? DEFAULT_NOISE_FLOOR);
+}
+
+function evidenceChanged(curEntry, prevEntry) {
+  // Compare evidence + gaps as sets. A pure score wobble without any signal
+  // change is treated as flat — keeps weekend-noise out of the trend feed.
+  const a = new Set([...(curEntry.evidence || []), ...(curEntry.gaps || [])]);
+  const b = new Set([...(prevEntry.evidence || []), ...(prevEntry.gaps || [])]);
+  if (a.size !== b.size) return true;
+  for (const x of a) if (!b.has(x)) return true;
+  return false;
+}
+
+export function computeTrends(current, history, rubric) {
   const prev = history && history.length ? history[history.length - 1] : null;
   const trends = {};
   for (const s of current.scores) {
-    if (!prev) trends[s.id] = "new";
-    else {
-      const prevEntry = prev.scores.find((x) => x.id === s.id);
-      if (!prevEntry) trends[s.id] = "new";
-      else if (s.score > prevEntry.score + 1) trends[s.id] = "improving";
-      else if (s.score < prevEntry.score - 1) trends[s.id] = "slipping";
-      else trends[s.id] = "flat";
+    if (!prev) {
+      trends[s.id] = "new";
+      continue;
+    }
+    const prevEntry = prev.scores.find((x) => x.id === s.id);
+    if (!prevEntry) {
+      trends[s.id] = "new";
+      continue;
+    }
+    const delta = s.score - prevEntry.score;
+    const floor = noiseFloorFor(rubric, s.id);
+    if (Math.abs(delta) < floor) {
+      trends[s.id] = "flat";
+    } else if (!evidenceChanged(s, prevEntry)) {
+      // Score moved enough but no evidence/gap actually changed — likely noise.
+      trends[s.id] = "flat";
+    } else if (delta > 0) {
+      trends[s.id] = "improving";
+    } else {
+      trends[s.id] = "slipping";
     }
   }
   return trends;

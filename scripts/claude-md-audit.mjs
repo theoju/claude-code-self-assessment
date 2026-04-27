@@ -69,6 +69,36 @@ export function gradeFor(score) {
   return "F";
 }
 
+/**
+ * Return the body text under a heading (everything until the next heading of
+ * same or higher level, or EOF). Used to verify that "## Architecture" has
+ * actual content beneath it, not just a bare heading.
+ */
+export function sectionBody(content, headingPattern) {
+  const re = new RegExp(`^(#{1,6})\\s+(${headingPattern})\\b.*$`, "im");
+  const m = content.match(re);
+  if (!m) return null;
+  const startLevel = m[1].length;
+  const startIdx = m.index + m[0].length;
+  const rest = content.slice(startIdx);
+  const next = rest.match(new RegExp(`^#{1,${startLevel}}\\s`, "m"));
+  const body = next ? rest.slice(0, next.index) : rest;
+  return body.trim();
+}
+
+// Stale-version markers — if a CLAUDE.md still references these, it has rotted
+// regardless of how recently the mtime was touched.
+const STALE_VERSION_PATTERNS = [
+  /\bClaude\s*3(\.\d+)?\b/i,
+  /\bSonnet\s*3(\.\d+)?\b/i,
+  /\bOpus\s*3(\.\d+)?\b/i,
+  /\bclaude\.json\b/i, // legacy config file name
+];
+
+// A "specific reference" — backticks, file paths, or fenced code — proves a
+// gotcha/notes entry isn't just generic prose.
+const SPECIFIC_REF = /(`[^`]+`|\b[\w./-]+\.(?:js|ts|tsx|mjs|json|md|sh|py|go|rs)\b|\bnpm\s+\w+|\bgh\s+\w+|\bvitest\b)/;
+
 export function scoreFile(content, mtimeMs, now = Date.now()) {
   const lines = content.split("\n");
   const headings = lines.filter((l) => /^#{1,6}\s/.test(l));
@@ -84,14 +114,38 @@ export function scoreFile(content, mtimeMs, now = Date.now()) {
   const commands = Math.min(20, commandHits * 7);
   if (commands < 10) issues.push("commands: few executable command blocks");
 
-  // architecture (20): explicit architecture/structure heading, otherwise partial credit by heading count
-  const archHeading = /^#{1,6}\s+(architecture|structure|layout|directory|key files?|project structure)/im.test(content);
-  const architecture = archHeading ? 20 : headings.length >= 3 ? 10 : 0;
+  // architecture (20): explicit heading AND substantive body underneath.
+  // An empty "## Architecture" heading no longer earns 20 points — the
+  // forensic critique enumerated this as a top gameable signal.
+  const archHeadingPat = "architecture|structure|layout|directory|key files?|project structure";
+  const archBody = sectionBody(content, archHeadingPat);
+  let architecture;
+  if (archBody && archBody.length >= 80) {
+    architecture = 20;
+  } else if (archBody) {
+    architecture = 10;
+    issues.push("architecture: section is thin (<80 chars of body)");
+  } else if (headings.length >= 3) {
+    architecture = 10;
+  } else {
+    architecture = 0;
+  }
   if (architecture < 15) issues.push("architecture: no Architecture/Structure section");
 
-  // non-obvious patterns (15): gotchas / pitfalls / notes section
-  const gotchaHeading = /^#{1,6}\s+(gotchas?|pitfalls?|caveats?|warnings?|notes?|conventions?)/im.test(content);
-  const patterns = gotchaHeading ? 15 : 5;
+  // non-obvious patterns (15): gotchas section must contain at least one
+  // specific reference (backticks, file paths, or tooling commands). Generic
+  // prose like "don't break things" no longer scores 15/15.
+  const gotchaPat = "gotchas?|pitfalls?|caveats?|warnings?|notes?|conventions?";
+  const gotchaBody = sectionBody(content, gotchaPat);
+  let patterns;
+  if (gotchaBody && SPECIFIC_REF.test(gotchaBody)) {
+    patterns = 15;
+  } else if (gotchaBody) {
+    patterns = 8;
+    issues.push("patterns: Gotchas section has no specific tool/file references");
+  } else {
+    patterns = 5;
+  }
   if (patterns < 10) issues.push("patterns: no Gotchas/Notes section");
 
   // conciseness (15): penalize > VERBOSE_LINES; penalize very thin
@@ -105,7 +159,14 @@ export function scoreFile(content, mtimeMs, now = Date.now()) {
   }
 
   // currency (15): mtime <= 30d -> 15, <= 90d -> 10, > 90d -> 0
-  const currency = ageDays <= FRESH_DAYS ? 15 : ageDays <= STALE_DAYS ? 10 : 0;
+  // Plus: stale version mentions cap currency at 5, regardless of mtime —
+  // a freshly-touched file pointing at "Claude 3.5 Sonnet" is not current.
+  let currency = ageDays <= FRESH_DAYS ? 15 : ageDays <= STALE_DAYS ? 10 : 0;
+  const staleHits = STALE_VERSION_PATTERNS.filter((p) => p.test(content));
+  if (staleHits.length > 0) {
+    currency = Math.min(currency, 5);
+    issues.push(`currency: stale version mentions (${staleHits.length}) — refresh model/config references`);
+  }
   if (currency < 10) issues.push(`currency: last edited ${Math.round(ageDays)}d ago`);
 
   // actionability (15): bullet density relative to headings + imperative verb hits

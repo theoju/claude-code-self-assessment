@@ -88,6 +88,33 @@ describe("scoreFile", () => {
     const r = scoreFile(STRONG_CLAUDE_MD, days(60), NOW);
     expect(r.breakdown.currency).toBe(10);
   });
+
+  it("flags an empty Architecture heading instead of awarding 20 (anti-gaming)", () => {
+    const empty = `# Project\n\n## Architecture\n\n## Commands\n\n\`\`\`bash\nnpm test\n\`\`\`\n## Gotchas\n\n- Avoid \`rm -rf\`\n`;
+    const r = scoreFile(empty, days(7), NOW);
+    expect(r.breakdown.architecture).toBeLessThan(20);
+    expect(r.issues.some((i) => i.startsWith("architecture:"))).toBe(true);
+  });
+
+  it("downgrades Gotchas section that lacks specific tool/file references", () => {
+    const generic = `# Project\n\n## Architecture\n\nThe app/ directory holds the Next.js routes and scripts/ holds the node CLIs powering the daily routine.\n\n## Gotchas\n\n- Be careful\n- Don't break things\n- Avoid mistakes\n\n## Commands\n\n\`\`\`bash\nnpm test\n\`\`\`\n`;
+    const r = scoreFile(generic, days(7), NOW);
+    expect(r.breakdown.patterns).toBeLessThan(15);
+    expect(r.issues.some((i) => /specific tool\/file/.test(i))).toBe(true);
+  });
+
+  it("caps currency at 5 when the file mentions stale model/config versions", () => {
+    const stale = STRONG_CLAUDE_MD + "\n\n## Notes\n\nWe still target Claude 3.5 Sonnet for cost reasons.\n";
+    const r = scoreFile(stale, days(1), NOW);
+    expect(r.breakdown.currency).toBeLessThanOrEqual(5);
+    expect(r.issues.some((i) => /stale version/.test(i))).toBe(true);
+  });
+
+  it("caps currency at 5 when the file mentions claude.json (legacy config)", () => {
+    const stale = STRONG_CLAUDE_MD + "\n\nSee `claude.json` for old config.\n";
+    const r = scoreFile(stale, days(1), NOW);
+    expect(r.breakdown.currency).toBeLessThanOrEqual(5);
+  });
 });
 
 describe("expandHome", () => {

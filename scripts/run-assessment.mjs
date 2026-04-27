@@ -12,6 +12,7 @@ import { gatherSignals } from "./signals.mjs";
 import { scoreAll, computeTrends } from "./score.mjs";
 import { buildSlackMessage, postToSlack } from "./slack.mjs";
 import { auditAll, summarize, CRITERIA, expandHome } from "./claude-md-audit.mjs";
+import { gatherTranscriptSignals } from "./transcript-signals.mjs";
 
 const ROOT = dirname(dirname(fileURLToPath(import.meta.url)));
 const DATA_DIR = join(ROOT, "app", "data");
@@ -70,9 +71,19 @@ async function main() {
     {};
 
   const signals = await gatherSignals(ROOT);
+
+  // Behavioral signals are opt-in (privacy: transcripts contain real prompts).
+  // CLI override: --include-transcripts forces it on for one run.
+  const transcriptsOptIn =
+    config?.scoring?.includeTranscripts === true || flags.has("--include-transcripts");
+  if (transcriptsOptIn) {
+    const behavior = await gatherTranscriptSignals({ days: 30 });
+    signals.behavior = { ...behavior, transcriptsEnabled: true };
+  }
+
   const scored = scoreAll(rubric, signals);
   const history = (await readJson(HISTORY_PATH)) || [];
-  const trends = computeTrends(scored, history);
+  const trends = computeTrends(scored, history, rubric);
 
   const cliTargets = flagValues("--claude-md-target").map(parseTargetSpec);
   const cmConfig = config?.claudeMd || {};
@@ -96,6 +107,18 @@ async function main() {
       skipDangerous: signals.settings.skipDangerousModePermissionPrompt,
       autoCompactWindow: signals.settings.autoCompactWindow,
       projectsWithMemory: signals.memory.length,
+      // Behavioral aggregates (opt-in; null when transcripts not enabled).
+      behavior: signals.behavior
+        ? {
+            sessions: signals.behavior.sessions,
+            agentDispatches: signals.behavior.agentDispatches,
+            planModeRate: signals.behavior.planModeRate,
+            shipVerifyRate: signals.behavior.shipVerifyRate,
+            autoModeLongSessions: signals.behavior.autoModeLongSessions,
+            bypassPermSessions: signals.behavior.bypassPermSessions,
+            hookFires: signals.behavior.hookFires,
+          }
+        : null,
     },
     claudeMd: claudeMdRuns.length
       ? {

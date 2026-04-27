@@ -18,7 +18,8 @@
   },
   "scoring": {
     "includePluginSkillsAsPersonal": false,
-    "comment": "If true, plugin-provided agents/commands count toward Automation score. Default false — Boris's rule is about what YOU built."
+    "includeTranscripts": false,
+    "comment": "includePluginSkillsAsPersonal: if true, plugin-provided agents/commands count toward Automation. Default false — Boris's rule is about what YOU built. includeTranscripts: opt-in to behavioral signals derived from ~/.claude/projects/*/*.jsonl. Aggregates only — never raw prompts. Default false; pass --include-transcripts to override per-run."
   },
   "claudeMd": {
     "enabled": true,

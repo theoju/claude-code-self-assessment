@@ -1,9 +1,19 @@
 import { readFile } from "node:fs/promises";
 import { existsSync } from "node:fs";
 import { join } from "node:path";
+import { buildSummary } from "./dimension-summary";
 
 export type Tier = "not-touched" | "starter" | "developing" | "solid" | "advanced";
 export type Trend = "new" | "flat" | "improving" | "slipping";
+
+export type Effort = "5min" | "15min" | "30min" | "1hr" | "2hr";
+
+export interface NextAction {
+  id: string;
+  action: string;
+  effort: Effort;
+  requires?: string[];
+}
 
 export interface RubricDimension {
   id: string;
@@ -12,8 +22,17 @@ export interface RubricDimension {
   target: number;
   rubricArea: string;
   borisTips: string;
-  nextActions: string[];
+  noiseFloor?: number;
+  nextActions: NextAction[];
 }
+
+export const EFFORT_MINUTES: Record<Effort, number> = {
+  "5min": 5,
+  "15min": 15,
+  "30min": 30,
+  "1hr": 60,
+  "2hr": 120,
+};
 
 export interface ScoredDimension {
   id: string;
@@ -113,32 +132,10 @@ const DATA_DIR = join(process.cwd(), "app", "data");
 const RUBRIC_PATH = join(DATA_DIR, "rubric.json");
 const ASSESSMENT_PATH = join(DATA_DIR, "assessment.json");
 
-const SUMMARIES: Record<string, string> = {
-  automation:
-    "Highest-leverage gap. You have the ecosystem's building blocks but may not have authored your own. Boris's 'if you do it 2×/day, turn it into a skill' rule compounds fastest here.",
-  permissions:
-    "You are trading safety for ergonomics if the dangerous-skip flag is on. Auto mode gives near-identical UX with a classifier backstop — strictly better.",
-  "model-effort":
-    "Settings tuned for 4.6-era defaults cost you reasoning depth on 4.7. Three small edits (xhigh, max-when-hard, compact window) align you with how the model was designed to run.",
-  parallel:
-    "Parallelism depends more on habit than tooling — spinning up multiple sessions by default rather than serializing work.",
-  verification:
-    "Boris calls verification the #1 tip for a reason. Tighten the closing ritual and you'll see measurable quality lift.",
-  memory:
-    "Memory discipline compounds. The knob worth turning is auto-compact window; the habit worth building is converting corrections into CLAUDE.md rules per project.",
-  planning:
-    "Planning infra is advanced when superpowers is installed. The remaining lift is behavioral: trust delegation over line-by-line guidance.",
-  integrations:
-    "Surface-area work is largely done. Close the last mile by installing CLIs the plugins depend on.",
-  customization:
-    "Baseline polish. Treat these as Friday-afternoon work unless parallel sessions make color-coding urgent.",
-  scheduled:
-    "The newest high-leverage features live here. Requires the permissions/auto-mode gap to be fixed first for full value.",
-  remote:
-    "iMessage is a good start. Everything else is optional unless you already work off-laptop.",
-  learning:
-    "Fully dialed in if explanatory mode is active. No action required beyond occasional use.",
-};
+// Editorial summaries are now generated per-dimension from live signals.
+// See app/lib/dimension-summary.ts. Keep this hook here in case a dimension
+// needs a hand-written override later (none today).
+const SUMMARY_OVERRIDES: Record<string, string> = {};
 
 async function readJson<T>(path: string): Promise<T | null> {
   if (!existsSync(path)) return null;
@@ -185,7 +182,17 @@ export async function loadAssessment(): Promise<Assessment> {
         trend: "new",
         evidence: ["No assessment.json yet — run /self-assessment or `node scripts/run-assessment.mjs`."],
         gaps: [],
-        summary: SUMMARIES[d.id] || "",
+        summary:
+          SUMMARY_OVERRIDES[d.id] ||
+          buildSummary({
+            id: d.id,
+            title: d.title,
+            score: 0,
+            target: d.target,
+            tier: "not-touched",
+            evidence: [],
+            gaps: [],
+          }),
       })),
       signalsSummary: {},
       claudeMd: null,
@@ -194,14 +201,28 @@ export async function loadAssessment(): Promise<Assessment> {
 
   const dimensions: Dimension[] = rubric.dimensions.map((d) => {
     const s = scored.scores.find((x) => x.id === d.id);
+    const score = s?.score ?? 0;
+    const tier = s ? tierFor(s.score) : "not-touched";
+    const evidence = s?.evidence ?? [];
+    const gaps = s?.gaps ?? [];
     return {
       ...d,
-      score: s?.score ?? 0,
-      tier: s ? tierFor(s.score) : "not-touched",
+      score,
+      tier,
       trend: scored.trends[d.id] ?? "new",
-      evidence: s?.evidence ?? [],
-      gaps: s?.gaps ?? [],
-      summary: SUMMARIES[d.id] || "",
+      evidence,
+      gaps,
+      summary:
+        SUMMARY_OVERRIDES[d.id] ||
+        buildSummary({
+          id: d.id,
+          title: d.title,
+          score,
+          target: d.target,
+          tier,
+          evidence,
+          gaps,
+        }),
     };
   });
 
@@ -232,15 +253,50 @@ export function gradeColor(grade: Grade | null): string {
   }
 }
 
+export interface PriorityAction {
+  id: string;
+  dimensionId: string;
+  title: string;
+  action: string;
+  weight: number;
+  deficit: number;
+  effort: Effort;
+  effortMinutes: number;
+  requires: string[];
+  /** Score = weight × deficit / effortMinutes. Higher = better leverage. */
+  leverage: number;
+}
+
 export interface OverallStats {
   byTier: Record<Tier, number>;
-  priorityActions: Array<{
-    dimensionId: string;
-    title: string;
-    action: string;
-    weight: number;
-    deficit: number;
-  }>;
+  priorityActions: PriorityAction[];
+}
+
+/**
+ * Order priority actions by leverage (`weight × deficit / effortMinutes`),
+ * then bubble any prerequisite up so it precedes the action that requires it.
+ * "30min auto-mode-on" should land before "loop-babysit" even when the latter
+ * has higher raw leverage.
+ */
+function topoBubblePrereqs(actions: PriorityAction[]): PriorityAction[] {
+  const ordered: PriorityAction[] = [];
+  const placed = new Set<string>();
+  const byId = new Map(actions.map((a) => [a.id, a]));
+  const visit = (a: PriorityAction, stack = new Set<string>()) => {
+    if (placed.has(a.id) || stack.has(a.id)) return;
+    stack.add(a.id);
+    for (const reqId of a.requires) {
+      const req = byId.get(reqId);
+      if (req) visit(req, stack);
+    }
+    stack.delete(a.id);
+    if (!placed.has(a.id)) {
+      ordered.push(a);
+      placed.add(a.id);
+    }
+  };
+  for (const a of actions) visit(a);
+  return ordered;
 }
 
 export function computeStats(dims: Dimension[]): OverallStats {
@@ -253,20 +309,30 @@ export function computeStats(dims: Dimension[]): OverallStats {
   };
   dims.forEach((d) => (byTier[d.tier] += 1));
 
-  const priorityActions = dims
+  const all: PriorityAction[] = dims
     .flatMap((d) =>
-      d.nextActions.map((a) => ({
-        dimensionId: d.id,
-        title: d.title,
-        action: a,
-        weight: d.weight,
-        deficit: d.target - d.score,
-      }))
+      d.nextActions.map((a) => {
+        const effort = (a.effort ?? "30min") as Effort;
+        const minutes = EFFORT_MINUTES[effort] ?? 30;
+        const deficit = Math.max(0, d.target - d.score);
+        return {
+          id: a.id,
+          dimensionId: d.id,
+          title: d.title,
+          action: a.action,
+          weight: d.weight,
+          deficit,
+          effort,
+          effortMinutes: minutes,
+          requires: a.requires ?? [],
+          leverage: deficit > 0 ? (d.weight * deficit) / minutes : 0,
+        };
+      })
     )
     .filter((a) => a.deficit > 0)
-    .sort((a, b) => b.weight * b.deficit - a.weight * a.deficit)
-    .slice(0, 6);
+    .sort((a, b) => b.leverage - a.leverage);
 
+  const priorityActions = topoBubblePrereqs(all).slice(0, 6);
   return { byTier, priorityActions };
 }
 

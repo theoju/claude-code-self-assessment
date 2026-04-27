@@ -115,8 +115,24 @@ export default async function Page() {
                 {String(i + 1).padStart(2, "0")}
               </span>
               <div className="flex-1">
-                <div className="text-xs uppercase tracking-wider text-[color:var(--color-mute)] mb-1">
-                  {a.title} · weight {a.weight} · −{a.deficit} pts gap
+                <div className="text-xs uppercase tracking-wider text-[color:var(--color-mute)] mb-1 flex items-center gap-2">
+                  <span>
+                    {a.title} · weight {a.weight} · −{a.deficit} pts gap
+                  </span>
+                  <span
+                    className="font-mono text-[10px] px-1.5 py-0.5 rounded bg-[color:var(--color-panel-2)] border border-[color:var(--color-line)]"
+                    title={`Estimated effort. Leverage: ${a.leverage.toFixed(2)}`}
+                  >
+                    {a.effort}
+                  </span>
+                  {a.requires.length > 0 ? (
+                    <span
+                      className="text-[10px] text-[color:var(--color-mute)]"
+                      title={`Requires: ${a.requires.join(", ")}`}
+                    >
+                      ↳ requires {a.requires.length === 1 ? "1 step" : `${a.requires.length} steps`}
+                    </span>
+                  ) : null}
                 </div>
                 <div className="text-sm"><LinkifyBoris text={a.action} /></div>
               </div>
@@ -172,9 +188,24 @@ export default async function Page() {
             >
               <header className="flex flex-wrap items-baseline justify-between gap-3 mb-4">
                 <div>
-                  <h3 className="text-xl font-semibold">{d.title}</h3>
+                  <h3 className="text-xl font-semibold">
+                    <Link
+                      href={`/dimensions/${d.id}`}
+                      className="hover:text-[color:var(--color-accent)]"
+                      title="Open dimension explainer"
+                    >
+                      {d.title}
+                    </Link>
+                  </h3>
                   <div className="text-xs text-[color:var(--color-mute)] mt-1">
-                    Rubric: {d.rubricArea} · Boris <BorisTips csv={d.borisTips} />
+                    Rubric: {d.rubricArea} · Boris <BorisTips csv={d.borisTips} />{" "}
+                    ·{" "}
+                    <Link
+                      href={`/dimensions/${d.id}`}
+                      className="underline decoration-dotted underline-offset-2 hover:text-[color:var(--color-accent)]"
+                    >
+                      How is this scored?
+                    </Link>
                   </div>
                 </div>
                 <div className="flex items-baseline gap-4">
@@ -220,8 +251,11 @@ export default async function Page() {
                   ))}
                 </Column>
                 <Column label="Next actions">
-                  {d.nextActions.map((a, i) => (
-                    <li key={i} className="text-[color:var(--color-text)]"><LinkifyBoris text={a} /></li>
+                  {d.nextActions.map((a) => (
+                    <li key={a.id} className="text-[color:var(--color-text)]">
+                      <LinkifyBoris text={a.action} />
+                      <span className="ml-2 font-mono text-[10px] text-[color:var(--color-mute)]">{a.effort}</span>
+                    </li>
                   ))}
                 </Column>
               </div>
