@@ -6,6 +6,8 @@ allowed-tools: Bash(node:*), Bash(npm:*), Read, Write
 
 # /self-assessment
 
+> 📖 Full user guide: [`docs/self-assessment.md`](../../docs/self-assessment.md)
+
 Run the deterministic assessment pipeline. Scoring reads real signals from the current machine — `~/.claude/settings.json`, `~/.claude/agents`, `~/.claude/commands`, `~/.claude/skills`, `~/.claude/projects/*/memory`, installed plugins — and writes a fresh snapshot.
 
 ## Steps

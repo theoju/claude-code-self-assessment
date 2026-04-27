@@ -40,6 +40,8 @@ npm run dev            # open http://localhost:3737
 
 That's the whole loop. Everything else is optional polish.
 
+> 📖 **Full guide:** [`docs/self-assessment.md`](docs/self-assessment.md) covers every flag, the opt-in behavioral signals, the hook-fire journal, the CLAUDE.md rubric, configuration, and troubleshooting.
+
 ## How scoring works
 
 1. **`scripts/signals.mjs`** reads your local Claude Code state:
