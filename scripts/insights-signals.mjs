@@ -4,7 +4,14 @@
 import { existsSync, createReadStream } from "node:fs";
 import { join } from "node:path";
 import { createInterface } from "node:readline";
-import { safeReadJson, safeReaddir } from "./_fs-utils.mjs";
+import {
+  buildTranscriptIndex,
+  cutoffFromLookback,
+  loadFacetsMap,
+  loadSessionMeta,
+  scanTranscriptModes,
+  withinWindow,
+} from "./_usage-data.mjs";
 
 // Matches plugin-namespaced MCP tool names (`mcp__plugin_<name>_<server>__*`).
 // Built-in connectors like `mcp__claude_ai_Gmail__*` are intentionally not
@@ -14,32 +21,6 @@ const PLUGIN_TOOL_RE = /^mcp__plugin_([a-z0-9-]+?)_[a-z0-9-]+__/i;
 function parsePluginName(toolName) {
   const m = toolName.match(PLUGIN_TOOL_RE);
   return m ? m[1].toLowerCase() : null;
-}
-
-function withinWindow(startTime, cutoff) {
-  if (cutoff === null) return true;
-  if (!startTime) return false;
-  const t = Date.parse(startTime);
-  return Number.isFinite(t) && t >= cutoff;
-}
-
-async function readJsonDir(dir) {
-  const files = (await safeReaddir(dir)).filter((f) => f.endsWith(".json"));
-  return Promise.all(files.map((f) => safeReadJson(join(dir, f))));
-}
-
-async function loadSessionMeta(dir) {
-  const docs = await readJsonDir(dir);
-  return docs.filter((d) => d && d.session_id);
-}
-
-async function loadFacetsMap(dir) {
-  const docs = await readJsonDir(dir);
-  const map = new Map();
-  for (const d of docs) {
-    if (d && d.session_id) map.set(d.session_id, d);
-  }
-  return map;
 }
 
 async function readHookFires(claudeHome, cutoff) {
@@ -67,49 +48,6 @@ async function readHookFires(claudeHome, cutoff) {
   return { total, byEvent };
 }
 
-// Build sessionId → transcript path map in a single pass over projects/*.
-// Avoids O(sessions × projects) existsSync calls in the transcript loop.
-// Worktrees can leave the same sessionId under multiple project dirs; sort
-// and first-wins so repeat runs return identical counters.
-async function buildTranscriptIndex(claudeHome) {
-  const projectsDir = join(claudeHome, "projects");
-  const projects = (await safeReaddir(projectsDir)).slice().sort();
-  const entries = await Promise.all(
-    projects.map(async (p) => {
-      const projectPath = join(projectsDir, p);
-      const files = await safeReaddir(projectPath);
-      return files
-        .filter((f) => f.endsWith(".jsonl"))
-        .map((f) => [f.slice(0, -".jsonl".length), join(projectPath, f)]);
-    }),
-  );
-  const index = new Map();
-  for (const projectEntries of entries) {
-    for (const [sessionId, path] of projectEntries) {
-      if (!index.has(sessionId)) index.set(sessionId, path);
-    }
-  }
-  return index;
-}
-
-async function scanTranscript(path) {
-  const modes = new Set();
-  let hasWorktreeState = false;
-  const rl = createInterface({ input: createReadStream(path, { encoding: "utf8" }) });
-  for await (const raw of rl) {
-    if (!raw) continue;
-    let entry;
-    try {
-      entry = JSON.parse(raw);
-    } catch {
-      continue;
-    }
-    if (entry.type === "worktree-state") hasWorktreeState = true;
-    if (typeof entry.permissionMode === "string") modes.add(entry.permissionMode);
-  }
-  return { modes, hasWorktreeState };
-}
-
 export async function gatherInsightsSignals({
   claudeHome,
   now = new Date().toISOString(),
@@ -120,15 +58,11 @@ export async function gatherInsightsSignals({
   const usageDir = join(claudeHome, "usage-data");
   if (!existsSync(usageDir)) return null;
 
-  const nowMs = Date.parse(now);
-  if (!Number.isFinite(nowMs)) {
-    throw new Error(`gatherInsightsSignals: invalid now timestamp ${JSON.stringify(now)}`);
-  }
-  const cutoff = lookbackDays == null ? null : nowMs - lookbackDays * 86_400_000;
+  const cutoff = cutoffFromLookback(now, lookbackDays);
 
   const [allMeta, facets] = await Promise.all([
-    loadSessionMeta(join(usageDir, "session-meta")),
-    loadFacetsMap(join(usageDir, "facets")),
+    loadSessionMeta(claudeHome),
+    loadFacetsMap(claudeHome),
   ]);
   const inWindow = allMeta.filter((m) => withinWindow(m.start_time, cutoff));
 
@@ -203,7 +137,7 @@ export async function gatherInsightsSignals({
     for (const m of inWindow) {
       const path = transcriptIndex.get(m.session_id);
       if (!path) continue;
-      const { modes, hasWorktreeState } = await scanTranscript(path);
+      const { modes, hasWorktreeState } = await scanTranscriptModes(path);
       if (modes.has("auto")) autoModeSessionCount += 1;
       if (modes.has("bypassPermissions")) bypassPermissionsSessionCount += 1;
       if (modes.has("plan")) planModeSessionCount += 1;

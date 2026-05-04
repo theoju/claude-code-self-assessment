@@ -10,6 +10,7 @@ node_modules
 assessment.config.json
 app/data/assessment.json
 app/data/assessment-history.json
+app/data/progression.json
 
 # Installed LaunchAgent's runtime logs
 .launchd.out.log

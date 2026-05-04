@@ -8,8 +8,10 @@ import { readFile, writeFile, mkdir } from "node:fs/promises";
 import { existsSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
+import { homedir } from "node:os";
 import { gatherSignals } from "./signals.mjs";
 import { scoreAll, computeTrends } from "./score.mjs";
+import { detectMilestones } from "./progression.mjs";
 import { buildSlackMessage, postToSlack } from "./slack.mjs";
 import { auditAll, summarize, CRITERIA, expandHome } from "./claude-md-audit.mjs";
 
@@ -20,6 +22,7 @@ const CONFIG_EXAMPLE_PATH = join(ROOT, "assessment.config.example.json");
 const HISTORY_PATH = join(DATA_DIR, "assessment-history.json");
 const ASSESSMENT_PATH = join(DATA_DIR, "assessment.json");
 const RUBRIC_PATH = join(DATA_DIR, "rubric.json");
+const PROGRESSION_PATH = join(DATA_DIR, "progression.json");
 
 const argv = process.argv.slice(2);
 const flags = new Set(argv);
@@ -70,8 +73,14 @@ async function main() {
     {};
 
   const scoringConfig = config?.scoring || {};
+  const claudeHome = process.env.CLAUDE_HOME || join(homedir(), ".claude");
   const signals = await gatherSignals(ROOT, {
     insightsLookbackDays: scoringConfig.insightsLookbackDays ?? 30,
+    includeTranscripts: !!scoringConfig.includeTranscripts,
+  });
+  const progression = await detectMilestones({
+    claudeHome,
+    lookbackDays: scoringConfig.progressionLookbackDays ?? null,
     includeTranscripts: !!scoringConfig.includeTranscripts,
   });
   const scored = scoreAll(rubric, signals);
@@ -126,6 +135,9 @@ async function main() {
       { capturedAt: assessment.capturedAt, overall: assessment.overall, scores: scored.scores },
     ].slice(-90);
     await writeFile(HISTORY_PATH, JSON.stringify(newHistory, null, 2));
+    if (progression) {
+      await writeFile(PROGRESSION_PATH, JSON.stringify(progression, null, 2));
+    }
   }
 
   if (flags.has("--print") || !process.env.CI) {
@@ -139,6 +151,12 @@ async function main() {
         return `  ${s.score.toString().padStart(3)} / ${d.target}  ${trend}  ${d.title}`;
       }),
     ];
+    if (progression && progression.milestones.length > 0) {
+      lines.push("", `Progression — ${progression.milestones.length} milestone(s):`);
+      for (const m of progression.milestones) {
+        lines.push(`  ${m.timestamp.slice(0, 10)}  ${m.milestone}  (${m.dimension}, Boris tip ${m.borisTip})`);
+      }
+    }
     if (claudeMdRuns.length) {
       const sum = assessment.claudeMd.summary;
       lines.push("", "CLAUDE.md health (report-only):");
