@@ -123,27 +123,40 @@ export default function MethodologyPage() {
         </p>
       </Section>
 
-      <Section title="The /insights narrative — opt-in, user-driven">
+      <Section title="The /insights integration — two opt-in paths, both user-driven">
         <p>
           The dashboard&apos;s scoring is independent of <span className="mono">/insights</span>: it reads
           the same raw <span className="mono">~/.claude/usage-data/</span> files but computes its own
-          Workshop and Execution scores. If you also want Claude&apos;s own narrative analysis surfaced
-          here, you can capture the output of <span className="mono">/insights</span> once and drop it
-          in <span className="mono">app/data/insights-narrative.md</span>.
+          Workshop and Execution scores. If you also want Claude&apos;s own analysis surfaced here, there
+          are two paths — both rely on artifacts already on your disk, neither auto-captures anything.
+        </p>
+        <h3 className="text-sm font-semibold text-[color:var(--color-text)] mt-4">
+          1. The full HTML report (one-click button)
+        </h3>
+        <p>
+          When you run <span className="mono">/insights</span> in Claude Code, it writes a full HTML report
+          to <span className="mono">~/.claude/usage-data/report.html</span>. The dashboard detects that file
+          and shows an &quot;Open Claude&apos;s full /insights report&quot; button that streams it through{" "}
+          <span className="mono">/api/insights-report</span>. This is exactly the same posture as reading
+          the JSON telemetry: a static file Claude Code wrote to your machine, served locally for your eyes
+          only. We don&apos;t edit, augment, or redistribute it.
+        </p>
+        <h3 className="text-sm font-semibold text-[color:var(--color-text)] mt-4">
+          2. An inline markdown summary (optional)
+        </h3>
+        <p>
+          If you&apos;d like a condensed narrative rendered inline rather than opened in a new tab, paste a
+          markdown summary into <span className="mono">app/data/insights-narrative.md</span>:
         </p>
         <pre className="bg-[color:var(--color-panel-2)] p-3 rounded text-xs overflow-x-auto">
-{`# In Claude Code:
-/insights
-# Then either:
-pbpaste | npm run import-insights
+{`pbpaste | npm run import-insights
 # or paste manually into app/data/insights-narrative.md`}
         </pre>
         <p>
-          The file is gitignored, never uploaded, never posted to Slack, and rendered locally with the
-          same markdown helper used elsewhere in the dashboard. It&apos;s your output on your machine —
-          this tool just renders it. We don&apos;t auto-capture <span className="mono">/insights</span>{" "}
-          output, don&apos;t reuse Anthropic&apos;s prompt template, and don&apos;t persist anything beyond
-          the file you create.
+          That file is gitignored, never uploaded, never posted to Slack, and rendered locally with the
+          markdown helper used elsewhere in the dashboard. We don&apos;t auto-capture{" "}
+          <span className="mono">/insights</span> output, don&apos;t reuse Anthropic&apos;s prompt template,
+          and don&apos;t persist anything beyond the files you choose to create.
         </p>
       </Section>
 

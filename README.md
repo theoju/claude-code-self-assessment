@@ -200,24 +200,35 @@ The `boris` skill at `~/.claude/skills/boris` (installed with the
 `andrej-karpathy-skills` or `claude-code-workflows` marketplace). The rubric's
 `borisTips` field cross-references section numbers.
 
-## Surfacing Claude's `/insights` narrative
+## Surfacing Claude's `/insights` analysis in the dashboard
 
-The dashboard scores your usage from raw signals on its own. If you'd also like Claude's
-own narrative analysis (the rich text `/insights` produces) rendered alongside the
-scoring, you can capture it manually:
+The dashboard scores your usage from raw signals on its own. Two opt-in paths
+let you also surface Claude's own analysis — both read artifacts already on
+your disk, neither auto-captures anything.
+
+**1. One-click HTML report button.** When you run `/insights`, Claude Code
+writes a full HTML report to `~/.claude/usage-data/report.html`. The
+dashboard detects the file and shows an "Open Claude's full /insights
+report" button that streams it locally through `/api/insights-report`. Same
+posture as reading the JSON telemetry: a static file Claude Code wrote to
+your machine, served locally for your own consumption.
+
+**2. Inline markdown summary** (optional). For a condensed narrative
+rendered inline, paste markdown into `app/data/insights-narrative.md`:
 
 ```bash
 # In Claude Code:
 /insights
-# Copy the output, then either:
+# Then for inline rendering:
 pbpaste | npm run import-insights   # macOS clipboard
-# or paste it into app/data/insights-narrative.md directly
+# or paste into app/data/insights-narrative.md directly
 ```
 
-The file is gitignored, rendered locally, never uploaded, and never posted to Slack.
-Refresh the dashboard and you'll see a "From `/insights`" section with the captured
-text. Re-run `/insights` and re-import to refresh; delete the file to remove the
-section. The dashboard never auto-captures `/insights` output.
+The markdown file is gitignored, rendered locally, never uploaded, and
+never posted to Slack. The HTML report is served only on localhost via the
+local Next route. The dashboard never invokes `/insights` itself, never
+captures API output, and never persists anything beyond the files you
+choose to create.
 
 ## Attribution & relationship to Claude Code
 

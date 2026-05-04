@@ -2,7 +2,7 @@ import Link from "next/link";
 import RadarChart from "@/app/components/RadarChart";
 import ClaudeMdHealth from "@/app/components/ClaudeMdHealth";
 import ProgressionTimeline from "@/app/components/ProgressionTimeline";
-import InsightsNarrativeSection, { InsightsNarrativeEmpty } from "@/app/components/InsightsNarrative";
+import InsightsNarrativeSection from "@/app/components/InsightsNarrative";
 import {
   loadAssessment,
   computeStats,
@@ -12,7 +12,7 @@ import {
   trendGlyph,
 } from "@/app/lib/assessment";
 import { loadProgression } from "@/app/lib/progression";
-import { loadInsightsNarrative } from "@/app/lib/insights-narrative";
+import { loadInsightsNarrative, detectInsightsReportFile } from "@/app/lib/insights-narrative";
 import { borisTipLink, parseBorisTipList } from "@/app/lib/boris-tips";
 
 export const dynamic = "force-dynamic";
@@ -29,6 +29,7 @@ export default async function Page() {
     loadProgression(),
     loadInsightsNarrative(),
   ]);
+  const insightsReportFile = detectInsightsReportFile();
   const dims = assessment.dimensions;
   const stats = computeStats(dims);
   const executionDelta =
@@ -183,11 +184,8 @@ export default async function Page() {
         </ol>
       </section>
 
-      {insightsNarrative ? (
-        <InsightsNarrativeSection narrative={insightsNarrative} />
-      ) : (
-        <InsightsNarrativeEmpty />
-      )}
+      <InsightsNarrativeSection narrative={insightsNarrative} reportFile={insightsReportFile} />
+
 
       {assessment.claudeMd && <ClaudeMdHealth report={assessment.claudeMd} />}
 
