@@ -44,6 +44,20 @@ function flagValues(name) {
   return out;
 }
 
+function singleFlagValue(name) {
+  const all = flagValues(name);
+  return all.length ? all[all.length - 1] : null;
+}
+
+function parseLookbackOverride(raw) {
+  if (raw === "none" || raw === "null" || raw === "full") return null;
+  const n = parseInt(raw, 10);
+  if (!Number.isFinite(n) || n <= 0) {
+    throw new Error(`expected a positive integer or 'none', got: ${JSON.stringify(raw)}`);
+  }
+  return n;
+}
+
 function parseTargetSpec(spec) {
   // Accepts "name=path" or just "path" (name defaults to last path segment).
   const eq = spec.indexOf("=");
@@ -73,15 +87,35 @@ async function main() {
     {};
 
   const scoringConfig = config?.scoring || {};
+  // CLI flags override config so a one-shot deep run doesn't require editing
+  // assessment.config.json. Useful for the weekly transcript scan.
+  const insightsLookbackRaw = singleFlagValue("--insights-lookback");
+  const progressionLookbackRaw = singleFlagValue("--progression-lookback");
+  const insightsLookbackDays =
+    insightsLookbackRaw != null
+      ? parseLookbackOverride(insightsLookbackRaw)
+      : scoringConfig.insightsLookbackDays ?? 30;
+  const progressionLookbackDays =
+    progressionLookbackRaw != null
+      ? parseLookbackOverride(progressionLookbackRaw)
+      : scoringConfig.progressionLookbackDays ?? null;
+  // --no-transcripts > --include-transcripts > config. The explicit "off"
+  // form lets users skip the expensive scan in one run without editing config.
+  const includeTranscripts = flags.has("--no-transcripts")
+    ? false
+    : flags.has("--include-transcripts")
+    ? true
+    : !!scoringConfig.includeTranscripts;
+
   const claudeHome = process.env.CLAUDE_HOME || join(homedir(), ".claude");
   const signals = await gatherSignals(ROOT, {
-    insightsLookbackDays: scoringConfig.insightsLookbackDays ?? 30,
-    includeTranscripts: !!scoringConfig.includeTranscripts,
+    insightsLookbackDays,
+    includeTranscripts,
   });
   const progression = await detectMilestones({
     claudeHome,
-    lookbackDays: scoringConfig.progressionLookbackDays ?? null,
-    includeTranscripts: !!scoringConfig.includeTranscripts,
+    lookbackDays: progressionLookbackDays,
+    includeTranscripts,
   });
   const scored = scoreAll(rubric, signals);
   const history = (await readJson(HISTORY_PATH)) || [];
