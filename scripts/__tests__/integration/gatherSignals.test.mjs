@@ -93,6 +93,43 @@ describe("gatherSignals (integration)", () => {
     expect(signals.plansCount).toBe(12);
   });
 
+  it("returns signals.insights = null when ~/.claude/usage-data is absent", async () => {
+    claudeHome = makeTmpClaudeHome();
+    projectRoot = makeTmpProjectRoot();
+    process.env.CLAUDE_HOME = claudeHome;
+    const signals = await gatherSignals(projectRoot);
+    expect(signals.insights).toBeNull();
+  });
+
+  it("populates signals.insights when usage-data exists", async () => {
+    const recent = new Date(Date.now() - 5 * 86_400_000).toISOString();
+    claudeHome = makeTmpClaudeHome({
+      usageData: {
+        sessions: [
+          {
+            id: "s1",
+            meta: {
+              start_time: recent,
+              uses_task_agent: true,
+              tool_counts: { Bash: 4, TaskCreate: 2 },
+            },
+            facet: { outcome: "fully_achieved", friction_counts: { buggy_code: 1 } },
+          },
+        ],
+      },
+    });
+    projectRoot = makeTmpProjectRoot();
+    process.env.CLAUDE_HOME = claudeHome;
+
+    const signals = await gatherSignals(projectRoot, { insightsLookbackDays: 30 });
+    expect(signals.insights).not.toBeNull();
+    expect(signals.insights.sessionsAnalyzed).toBe(1);
+    expect(signals.insights.subagentSessionCount).toBe(1);
+    expect(signals.insights.taskInvocationsTotal).toBe(2);
+    expect(signals.insights.frictionCounts).toEqual({ buggy_code: 1 });
+    expect(signals.insights.outcomeCounts).toEqual({ fully_achieved: 1 });
+  });
+
   it("does not pollute the real ~/.claude — uses only the tmp dir", async () => {
     claudeHome = makeTmpClaudeHome({ settings: { effortLevel: "max" } });
     projectRoot = makeTmpProjectRoot();

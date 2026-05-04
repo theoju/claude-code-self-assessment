@@ -37,6 +37,31 @@ export function makeTmpClaudeHome(spec = {}) {
     writeFileSync(join(root, "plans", `plan-${i}.md`), "plan");
   }
 
+  if (spec.usageData) {
+    const sessionDir = join(root, "usage-data", "session-meta");
+    const facetsDir = join(root, "usage-data", "facets");
+    mkdirSync(sessionDir, { recursive: true });
+    mkdirSync(facetsDir, { recursive: true });
+    for (const s of spec.usageData.sessions || []) {
+      writeFileSync(
+        join(sessionDir, `${s.id}.json`),
+        JSON.stringify({ session_id: s.id, ...s.meta }),
+      );
+      if (s.facet) {
+        writeFileSync(
+          join(facetsDir, `${s.id}.json`),
+          JSON.stringify({ session_id: s.id, ...s.facet }),
+        );
+      }
+    }
+    if (spec.usageData.hookFires) {
+      writeFileSync(
+        join(root, "hook-fires.jsonl"),
+        spec.usageData.hookFires.map((f) => JSON.stringify(f)).join("\n"),
+      );
+    }
+  }
+
   return root;
 }
 
