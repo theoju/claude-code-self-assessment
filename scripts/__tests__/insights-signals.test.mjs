@@ -37,6 +37,14 @@ const TWENTY_DAYS_AGO = "2026-04-14T12:00:00.000Z";
 const SIXTY_DAYS_AGO = "2026-03-05T12:00:00.000Z";
 
 describe("gatherInsightsSignals", () => {
+  it("throws on unparseable now timestamp", async () => {
+    mkdirSync(join(dir, "usage-data", "session-meta"), { recursive: true });
+    mkdirSync(join(dir, "usage-data", "facets"), { recursive: true });
+    await expect(
+      gatherInsightsSignals({ claudeHome: dir, now: "not a date", lookbackDays: 30 }),
+    ).rejects.toThrow(/invalid now timestamp/);
+  });
+
   it("returns null when ~/.claude/usage-data is absent", async () => {
     const result = await gatherInsightsSignals({ claudeHome: dir, now: NOW });
     expect(result).toBeNull();
@@ -161,7 +169,21 @@ describe("gatherInsightsSignals", () => {
     ]);
     const r = await gatherInsightsSignals({ claudeHome: dir, now: NOW, lookbackDays: 30 });
     expect(r.transcriptsScanned).toBe(false);
-    expect(r.autoModeSessionCount).toBeUndefined();
+    expect(r.autoModeSessionCount).toBeNull();
+    expect(r.bypassPermissionsSessionCount).toBeNull();
+    expect(r.planModeSessionCount).toBeNull();
+    expect(r.worktreeUsageSessionCount).toBeNull();
+  });
+
+  it("does not touch transcripts when includeTranscripts=false (malformed data is fine)", async () => {
+    writeMeta(dir, "s1", { start_time: TWENTY_DAYS_AGO });
+    writeTranscript(dir, "proj", "s1", []);
+    // Hand-write a malformed transcript that would crash a JSON.parse pass.
+    const path = join(dir, "projects", "proj", "s1.jsonl");
+    writeFileSync(path, "{not json at all\n");
+    await expect(
+      gatherInsightsSignals({ claudeHome: dir, now: NOW, lookbackDays: 30 }),
+    ).resolves.toMatchObject({ transcriptsScanned: false });
   });
 
   it("scans transcripts when opted in, attributing permissionMode events to sessions", async () => {

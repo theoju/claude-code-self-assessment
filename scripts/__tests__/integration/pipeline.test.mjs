@@ -88,5 +88,7 @@ describe("pipeline gatherSignals → scoreAll → buildSlackMessage", () => {
     // High-leverage dimensions should have explicit gaps reported
     const automation = scored.scores.find((s) => s.id === "automation");
     expect(automation.gaps.length).toBeGreaterThan(0);
+    // Empty-state contract for fresh users: insights null, dashboard renders.
+    expect(signals.insights).toBeNull();
   });
 });

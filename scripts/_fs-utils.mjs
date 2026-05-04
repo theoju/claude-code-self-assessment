@@ -1,3 +1,6 @@
+// Shared FS helpers — silent on missing dirs/JSON, used everywhere in scripts/
+// where best-effort reads are correct (signals gathering, /insights ingest).
+
 import { readFile, readdir } from "node:fs/promises";
 import { homedir } from "node:os";
 import { join } from "node:path";

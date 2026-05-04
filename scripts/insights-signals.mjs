@@ -6,6 +6,9 @@ import { join } from "node:path";
 import { createInterface } from "node:readline";
 import { safeReadJson, safeReaddir } from "./_fs-utils.mjs";
 
+// Matches plugin-namespaced MCP tool names (`mcp__plugin_<name>_<server>__*`).
+// Built-in connectors like `mcp__claude_ai_Gmail__*` are intentionally not
+// attributed — they're not user-installed plugins.
 const PLUGIN_TOOL_RE = /^mcp__plugin_([a-z0-9-]+?)_[a-z0-9-]+__/i;
 
 function parsePluginName(toolName) {
@@ -66,20 +69,26 @@ async function readHookFires(claudeHome, cutoff) {
 
 // Build sessionId → transcript path map in a single pass over projects/*.
 // Avoids O(sessions × projects) existsSync calls in the transcript loop.
+// Worktrees can leave the same sessionId under multiple project dirs; sort
+// and first-wins so repeat runs return identical counters.
 async function buildTranscriptIndex(claudeHome) {
   const projectsDir = join(claudeHome, "projects");
-  const projects = await safeReaddir(projectsDir);
-  const index = new Map();
-  await Promise.all(
+  const projects = (await safeReaddir(projectsDir)).slice().sort();
+  const entries = await Promise.all(
     projects.map(async (p) => {
       const projectPath = join(projectsDir, p);
-      for (const f of await safeReaddir(projectPath)) {
-        if (!f.endsWith(".jsonl")) continue;
-        const sessionId = f.slice(0, -".jsonl".length);
-        index.set(sessionId, join(projectPath, f));
-      }
+      const files = await safeReaddir(projectPath);
+      return files
+        .filter((f) => f.endsWith(".jsonl"))
+        .map((f) => [f.slice(0, -".jsonl".length), join(projectPath, f)]);
     }),
   );
+  const index = new Map();
+  for (const projectEntries of entries) {
+    for (const [sessionId, path] of projectEntries) {
+      if (!index.has(sessionId)) index.set(sessionId, path);
+    }
+  }
   return index;
 }
 
@@ -111,7 +120,11 @@ export async function gatherInsightsSignals({
   const usageDir = join(claudeHome, "usage-data");
   if (!existsSync(usageDir)) return null;
 
-  const cutoff = lookbackDays == null ? null : Date.parse(now) - lookbackDays * 86_400_000;
+  const nowMs = Date.parse(now);
+  if (!Number.isFinite(nowMs)) {
+    throw new Error(`gatherInsightsSignals: invalid now timestamp ${JSON.stringify(now)}`);
+  }
+  const cutoff = lookbackDays == null ? null : nowMs - lookbackDays * 86_400_000;
 
   const [allMeta, facets] = await Promise.all([
     loadSessionMeta(join(usageDir, "session-meta")),
@@ -138,6 +151,7 @@ export async function gatherInsightsSignals({
     for (const [name, count] of Object.entries(tools)) {
       if (typeof count !== "number") continue;
       toolInvocationsTotal += count;
+      // "TaskCreate" is current; "Task" appears in older session-meta files.
       if (name === "TaskCreate" || name === "Task") taskInvocationsTotal += count;
       const plugin = parsePluginName(name);
       if (plugin) toolInvocationsByPlugin[plugin] = (toolInvocationsByPlugin[plugin] || 0) + count;
@@ -172,6 +186,12 @@ export async function gatherInsightsSignals({
     hookFireCount: hookFires.total,
     hookFiresByEvent: hookFires.byEvent,
     transcriptsScanned: false,
+    // Null (not undefined) when transcripts were skipped: scoring predicates
+    // must distinguish "user doesn't do X" from "we didn't look."
+    autoModeSessionCount: null,
+    bypassPermissionsSessionCount: null,
+    planModeSessionCount: null,
+    worktreeUsageSessionCount: null,
   };
 
   if (includeTranscripts) {
