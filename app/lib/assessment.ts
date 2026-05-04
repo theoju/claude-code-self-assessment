@@ -1,6 +1,5 @@
-import { readFile } from "node:fs/promises";
-import { existsSync } from "node:fs";
 import { join } from "node:path";
+import { readJson } from "./_read-json";
 
 export type Tier = "not-touched" | "starter" | "developing" | "solid" | "advanced";
 export type Trend = "new" | "flat" | "improving" | "slipping";
@@ -145,15 +144,6 @@ const SUMMARIES: Record<string, string> = {
   learning:
     "Fully dialed in if explanatory mode is active. No action required beyond occasional use.",
 };
-
-async function readJson<T>(path: string): Promise<T | null> {
-  if (!existsSync(path)) return null;
-  try {
-    return JSON.parse(await readFile(path, "utf8")) as T;
-  } catch {
-    return null;
-  }
-}
 
 export function tierFor(score: number): Tier {
   if (score >= 85) return "advanced";

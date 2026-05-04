@@ -58,4 +58,41 @@ describe("RadarChart", () => {
     const { container } = render(<RadarChart dimensions={dims} size={300} />);
     expect(container.querySelector("svg")?.getAttribute("viewBox")).toBe("0 0 300 300");
   });
+
+  it("does not draw an execution polygon when showExecution is false (default)", () => {
+    const dims = [
+      { ...dim("a", 60), executionScore: 30 },
+      { ...dim("b", 70), executionScore: 40 },
+      { ...dim("c", 80), executionScore: 50 },
+    ];
+    const { container } = render(<RadarChart dimensions={dims} />);
+    expect(container.querySelectorAll("path").length).toBe(2);
+  });
+
+  it("draws an execution polygon spanning only the dimensions with executionScore set", () => {
+    const dims = [
+      { ...dim("a", 60), executionScore: 30 },
+      { ...dim("b", 70), executionScore: null },
+      { ...dim("c", 80), executionScore: 40 },
+      { ...dim("d", 50), executionScore: 20 },
+    ];
+    const { container } = render(<RadarChart dimensions={dims} showExecution />);
+    expect(container.querySelectorAll("path").length).toBe(3);
+    const execPath = container.querySelectorAll("path")[2];
+    expect(execPath.getAttribute("stroke-dasharray")).toBe("3 3");
+    // 5 rings + 4 score dots + 3 execution dots (only measured vertices)
+    expect(container.querySelectorAll("circle").length).toBe(5 + 4 + 3);
+  });
+
+  it("omits the execution polygon when fewer than 2 dimensions have an execution score", () => {
+    const dims = [
+      { ...dim("a", 60), executionScore: 30 },
+      { ...dim("b", 70), executionScore: null },
+      { ...dim("c", 80), executionScore: null },
+    ];
+    const { container } = render(<RadarChart dimensions={dims} showExecution />);
+    // Only 2 paths (target + score). 1 execution dot still drawn.
+    expect(container.querySelectorAll("path").length).toBe(2);
+    expect(container.querySelectorAll("circle").length).toBe(5 + 3 + 1);
+  });
 });

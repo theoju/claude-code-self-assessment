@@ -1,21 +1,29 @@
 import Link from "next/link";
 import RadarChart from "@/app/components/RadarChart";
 import ClaudeMdHealth from "@/app/components/ClaudeMdHealth";
+import ProgressionTimeline from "@/app/components/ProgressionTimeline";
 import {
   loadAssessment,
   computeStats,
   tierColor,
   tierLabel,
+  tierFor,
   trendGlyph,
 } from "@/app/lib/assessment";
+import { loadProgression } from "@/app/lib/progression";
 import { borisTipLink, parseBorisTipList } from "@/app/lib/boris-tips";
 
 export const dynamic = "force-dynamic";
 
 export default async function Page() {
-  const assessment = await loadAssessment();
+  const [assessment, progression] = await Promise.all([loadAssessment(), loadProgression()]);
   const dims = assessment.dimensions;
   const stats = computeStats(dims);
+  const executionDelta =
+    assessment.executionOverall == null
+      ? null
+      : assessment.overall - assessment.executionOverall;
+  const executionMeasured = dims.filter((d) => d.executionScore != null).length;
   const sorted = [...dims].sort((a, b) => b.weight * (b.target - b.score) - a.weight * (a.target - a.score));
   const strengths = [...dims].filter((d) => d.score >= 80).sort((a, b) => b.score - a.score);
   const needsWork = [...dims].filter((d) => d.target - d.score >= 25).sort((a, b) => b.weight * (b.target - b.score) - a.weight * (a.target - a.score));
@@ -48,11 +56,16 @@ export default async function Page() {
 
       <section className="grid grid-cols-12 gap-10 mb-16">
         <div className="col-span-12 md:col-span-7">
-          <RadarChart dimensions={dims} />
-          <div className="flex items-center gap-6 text-xs text-[color:var(--color-mute)] mt-4 justify-center">
+          <RadarChart dimensions={dims} showExecution={assessment.executionOverall != null} />
+          <div className="flex items-center gap-6 text-xs text-[color:var(--color-mute)] mt-4 justify-center flex-wrap">
             <span className="inline-flex items-center gap-2">
-              <span className="w-3 h-3 rounded-sm bg-[color:var(--color-good)] opacity-70" /> Your score
+              <span className="w-3 h-3 rounded-sm bg-[color:var(--color-good)] opacity-70" /> Workshop
             </span>
+            {assessment.executionOverall != null && (
+              <span className="inline-flex items-center gap-2">
+                <span className="w-3 h-0.5 bg-[color:var(--color-warn)] border-t border-dashed border-[color:var(--color-warn)]" /> Execution
+              </span>
+            )}
             <span className="inline-flex items-center gap-2">
               <span className="w-3 h-0.5 bg-[color:var(--color-accent)]" /> Target
             </span>
@@ -60,19 +73,52 @@ export default async function Page() {
         </div>
 
         <div className="col-span-12 md:col-span-5 flex flex-col justify-center">
-          <div className="mb-8">
-            <div className="text-xs uppercase tracking-wider text-[color:var(--color-mute)] mb-2">
-              Overall weighted score
+          <div className="mb-6">
+            <div className="text-xs uppercase tracking-wider text-[color:var(--color-mute)] mb-3">
+              Mastery snapshot — two axes
             </div>
-            <div className="flex items-baseline gap-4">
-              <span className="text-7xl font-semibold tracking-tight text-[color:var(--color-accent)]">
-                {assessment.overall}
-              </span>
-              <span className="text-xl text-[color:var(--color-mute)]">/ {assessment.targetOverall} target</span>
+            <div className="grid grid-cols-2 gap-4">
+              <SnapshotTile
+                label="Workshop"
+                tone="good"
+                score={assessment.overall}
+                denom={assessment.targetOverall}
+                sublabel="Config + surface area"
+              />
+              <SnapshotTile
+                label="Execution"
+                tone="warn"
+                score={assessment.executionOverall}
+                denom={100}
+                sublabel={
+                  assessment.executionOverall == null
+                    ? "No /insights data yet"
+                    : `Habits across ${executionMeasured}/${dims.length} dims`
+                }
+              />
             </div>
-            <div className="text-sm text-[color:var(--color-mute)] mt-2">
-              {assessment.targetOverall - assessment.overall} points from your target profile · weighted by leverage
-            </div>
+            {executionDelta != null && (
+              <div
+                className={`mt-3 text-xs ${
+                  executionDelta >= 15
+                    ? "text-[color:var(--color-warn)]"
+                    : "text-[color:var(--color-mute)]"
+                }`}
+              >
+                Δ {executionDelta} —{" "}
+                {executionDelta >= 15
+                  ? "your config is ahead of your habits."
+                  : "workshop and execution roughly aligned."}
+                {executionDelta >= 15 && (
+                  <>
+                    {" "}
+                    <Link href="/methodology" className="underline decoration-dotted underline-offset-2">
+                      Why two axes?
+                    </Link>
+                  </>
+                )}
+              </div>
+            )}
           </div>
 
           <div className="grid grid-cols-5 gap-2 mb-8 text-center text-xs">
@@ -225,17 +271,47 @@ export default async function Page() {
                   ))}
                 </Column>
               </div>
+
+              {(d.executionScore != null || d.gapReason) && (
+                <ExecutionAxis
+                  score={d.executionScore}
+                  evidence={d.executionEvidence}
+                  gaps={d.executionGaps}
+                  gapReason={d.gapReason}
+                />
+              )}
             </article>
           ))}
         </div>
       </section>
 
-      <footer className="mt-16 pt-6 border-t border-[color:var(--color-line)] text-xs text-[color:var(--color-mute)]">
+      {progression && (
+        <section className="mb-16">
+          <h2 className="text-lg uppercase tracking-[0.15em] text-[color:var(--color-mute)] mb-6">
+            Progression — milestones from your /insights history
+          </h2>
+          <ProgressionTimeline progression={progression} />
+          {!progression.transcriptsScanned && (
+            <p className="text-xs text-[color:var(--color-mute)] mt-4">
+              Transcript-derived milestones (auto/plan mode adoption, worktrees, skills) are skipped — set{" "}
+              <span className="mono">scoring.includeTranscripts</span> to <span className="mono">true</span> in{" "}
+              <span className="mono">assessment.config.json</span> to enable.
+            </p>
+          )}
+        </section>
+      )}
+
+      <footer className="mt-16 pt-6 border-t border-[color:var(--color-line)] text-xs text-[color:var(--color-mute)] space-y-2">
         <p>
-          Scoring methodology: each dimension is weighted 1–3 by leverage (how much it compounds daily
-          work per Boris's own ranking). Overall score is a weight-normalized mean. Gaps are target − score;
-          priority actions are sorted by weight × gap. Trends marked <span className="mono">✦ new</span> reflect
-          features shipped in April 2026 (Opus 4.7 family).
+          Scoring uses two axes: <strong className="text-[color:var(--color-good)]">Workshop</strong> from{" "}
+          <span className="mono">~/.claude</span> config (settings, plugins, agents, commands, skills, memory)
+          and <strong className="text-[color:var(--color-warn)]">Execution</strong> from{" "}
+          <span className="mono">~/.claude/usage-data</span> behavioral signals (the same files{" "}
+          <span className="mono">/insights</span> reads). Each dimension is weighted 1–3 by leverage. Trends
+          marked <span className="mono">✦ new</span> reflect features shipped in April 2026 (Opus 4.7 family).{" "}
+          <Link href="/methodology" className="underline decoration-dotted underline-offset-2 hover:text-[color:var(--color-accent)]">
+            Full methodology →
+          </Link>
         </p>
       </footer>
     </main>
@@ -354,6 +430,94 @@ function LinkifyBoris({ text }: { text: string }) {
   }
   if (last < text.length) out.push(text.slice(last));
   return <>{out}</>;
+}
+
+function SnapshotTile({
+  label,
+  tone,
+  score,
+  denom,
+  sublabel,
+}: {
+  label: string;
+  tone: "good" | "warn";
+  score: number | null;
+  denom: number;
+  sublabel: string;
+}) {
+  const labelColor =
+    tone === "good" ? "text-[color:var(--color-good)]" : "text-[color:var(--color-warn)]";
+  const scoreColor =
+    score == null
+      ? "text-[color:var(--color-mute)]"
+      : tone === "good"
+      ? "text-[color:var(--color-accent)]"
+      : tierColor(tierFor(score));
+  return (
+    <div className="bg-[color:var(--color-panel)] border border-[color:var(--color-line)] rounded-lg p-4">
+      <div className={`text-[10px] uppercase tracking-wider mb-1 ${labelColor}`}>{label}</div>
+      <div className="flex items-baseline gap-1.5">
+        <span className={`text-4xl font-semibold tracking-tight ${scoreColor}`}>
+          {score == null ? "—" : score}
+        </span>
+        {score != null && (
+          <span className="text-sm text-[color:var(--color-mute)]">/ {denom}</span>
+        )}
+      </div>
+      <div className="text-[11px] text-[color:var(--color-mute)] mt-1">{sublabel}</div>
+    </div>
+  );
+}
+
+function ExecutionAxis({
+  score,
+  evidence,
+  gaps,
+  gapReason,
+}: {
+  score: number | null;
+  evidence: string[];
+  gaps: string[];
+  gapReason: string | null;
+}) {
+  return (
+    <div className="mt-5 pt-5 border-t border-[color:var(--color-line)]">
+      <div className="flex items-baseline justify-between mb-3">
+        <div className="text-xs uppercase tracking-wider text-[color:var(--color-warn)]">
+          Execution axis · habits
+        </div>
+        {score != null ? (
+          <div className="flex items-baseline gap-2 mono">
+            <span className="text-lg font-semibold text-[color:var(--color-warn)]">{score}</span>
+            <span className="text-xs text-[color:var(--color-mute)]">/ 100</span>
+          </div>
+        ) : (
+          <div className="text-xs text-[color:var(--color-mute)]">unmeasured</div>
+        )}
+      </div>
+      {gapReason && (
+        <p className="text-xs text-[color:var(--color-mute)] mb-3 italic">{gapReason}</p>
+      )}
+      {(evidence.length > 0 || gaps.length > 0) && (
+        <div className="grid md:grid-cols-2 gap-5 text-sm">
+          {evidence.length > 0 && (
+            <Column label="Habit evidence">
+              {evidence.map((e, i) => (
+                <li key={i}><LinkifyBoris text={e} /></li>
+              ))}
+            </Column>
+          )}
+          {gaps.length > 0 && (
+            <Column label="Habit gaps">
+              {gaps.map((g, i) => (
+                <li key={i}><LinkifyBoris text={g} /></li>
+              ))}
+            </Column>
+          )}
+        </div>
+      )}
+    </div>
+  );
 }
 
 function Column({

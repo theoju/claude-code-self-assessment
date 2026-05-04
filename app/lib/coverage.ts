@@ -1,6 +1,5 @@
-import { readFile } from "node:fs/promises";
-import { existsSync } from "node:fs";
 import { join } from "node:path";
+import { readJson } from "./_read-json";
 
 export interface CoverageMetrics {
   lines: number;
@@ -78,15 +77,6 @@ export interface HistoryEntry {
 const DATA_DIR = join(process.cwd(), "app", "data");
 const COVERAGE_PATH = join(DATA_DIR, "coverage.json");
 const HISTORY_PATH = join(DATA_DIR, "coverage-history.json");
-
-async function readJson<T>(path: string): Promise<T | null> {
-  if (!existsSync(path)) return null;
-  try {
-    return JSON.parse(await readFile(path, "utf8")) as T;
-  } catch {
-    return null;
-  }
-}
 
 export async function loadCoverage(): Promise<{
   latest: CoverageReport | null;
