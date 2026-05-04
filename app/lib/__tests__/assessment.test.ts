@@ -23,6 +23,10 @@ function dim(overrides: Partial<Dimension> = {}): Dimension {
     evidence: [],
     gaps: [],
     summary: "",
+    executionScore: null,
+    executionEvidence: [],
+    executionGaps: [],
+    gapReason: null,
     ...overrides,
   };
 }

@@ -19,6 +19,10 @@ function dim(id: string, score: number, target = 90): Dimension {
     evidence: [],
     gaps: [],
     summary: "",
+    executionScore: null,
+    executionEvidence: [],
+    executionGaps: [],
+    gapReason: null,
   };
 }
 

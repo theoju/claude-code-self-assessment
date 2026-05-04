@@ -21,11 +21,19 @@ export interface ScoredDimension {
   tier: Tier;
   evidence: string[];
   gaps: string[];
+  executionScore: number | null;
+  executionEvidence: string[];
+  executionGaps: string[];
+  gapReason: string | null;
 }
 
 export interface Dimension extends RubricDimension, ScoredDimension {
   trend: Trend;
   summary: string;
+  executionScore: number | null;
+  executionEvidence: string[];
+  executionGaps: string[];
+  gapReason: string | null;
 }
 
 export type Grade = "A" | "B" | "C" | "D" | "F";
@@ -103,6 +111,7 @@ export interface Assessment {
   capturedAt: string;
   overall: number;
   targetOverall: number;
+  executionOverall: number | null;
   user: string | null;
   dimensions: Dimension[];
   signalsSummary: Record<string, unknown>;
@@ -161,10 +170,13 @@ export async function loadAssessment(): Promise<Assessment> {
   const rubric = (await readJson<{ dimensions: RubricDimension[] }>(RUBRIC_PATH)) || {
     dimensions: [],
   };
+  // Older assessment.json files may not have executionOverall; loader
+  // backfills via ?? null below to satisfy the strict in-memory type.
   const scored = await readJson<{
     capturedAt: string;
     overall: number;
     targetOverall: number;
+    executionOverall?: number | null;
     user: string | null;
     scores: ScoredDimension[];
     trends: Record<string, Trend>;
@@ -177,6 +189,7 @@ export async function loadAssessment(): Promise<Assessment> {
       capturedAt: new Date().toISOString(),
       overall: 0,
       targetOverall: 0,
+      executionOverall: null,
       user: null,
       dimensions: rubric.dimensions.map((d) => ({
         ...d,
@@ -185,6 +198,10 @@ export async function loadAssessment(): Promise<Assessment> {
         trend: "new",
         evidence: ["No assessment.json yet — run /self-assessment or `node scripts/run-assessment.mjs`."],
         gaps: [],
+        executionScore: null,
+        executionEvidence: [],
+        executionGaps: [],
+        gapReason: null,
         summary: SUMMARIES[d.id] || "",
       })),
       signalsSummary: {},
@@ -201,6 +218,10 @@ export async function loadAssessment(): Promise<Assessment> {
       trend: scored.trends[d.id] ?? "new",
       evidence: s?.evidence ?? [],
       gaps: s?.gaps ?? [],
+      executionScore: s?.executionScore ?? null,
+      executionEvidence: s?.executionEvidence ?? [],
+      executionGaps: s?.executionGaps ?? [],
+      gapReason: s?.gapReason ?? null,
       summary: SUMMARIES[d.id] || "",
     };
   });
@@ -209,6 +230,7 @@ export async function loadAssessment(): Promise<Assessment> {
     capturedAt: scored.capturedAt,
     overall: scored.overall,
     targetOverall: scored.targetOverall,
+    executionOverall: scored.executionOverall ?? null,
     user: scored.user,
     dimensions,
     signalsSummary: scored.signalsSummary,

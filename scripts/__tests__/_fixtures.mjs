@@ -44,6 +44,32 @@ export function makeSignals(overrides = {}) {
       claudeCodeSetup: false,
       frontendDesign: false,
     },
+    insights: null,
+  };
+  return deepMerge(base, overrides);
+}
+
+export function makeInsights(overrides = {}) {
+  const base = {
+    capturedAt: "2026-04-25T07:15:00.000Z",
+    lookbackDays: 30,
+    sessionsAnalyzed: 100,
+    subagentSessionCount: 0,
+    mcpSessionCount: 0,
+    multiTaskSessionCount: 0,
+    taskInvocationsTotal: 0,
+    toolInvocationsTotal: 0,
+    toolInvocationsByPlugin: {},
+    gitCommitsTotal: 0,
+    frictionCounts: {},
+    outcomeCounts: {},
+    hookFireCount: 0,
+    hookFiresByEvent: {},
+    transcriptsScanned: false,
+    autoModeSessionCount: null,
+    bypassPermissionsSessionCount: null,
+    planModeSessionCount: null,
+    worktreeUsageSessionCount: null,
   };
   return deepMerge(base, overrides);
 }
