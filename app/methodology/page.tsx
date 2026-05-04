@@ -121,6 +121,39 @@ export default function MethodologyPage() {
         </p>
       </Section>
 
+      <Section title="Attribution &amp; relationship to Claude Code">
+        <p>
+          This is an <strong>independent, open-source community tool</strong>. It is{" "}
+          <strong>not affiliated with, endorsed by, or sponsored by Anthropic</strong>.
+        </p>
+        <p>
+          The dashboard analyzes files that Claude Code writes to your local{" "}
+          <span className="mono">~/.claude/</span> directory during normal use — settings,
+          installed plugins, project memory, and the per-session telemetry under{" "}
+          <span className="mono">~/.claude/usage-data/</span>. Those are <em>your</em> files
+          on <em>your</em> machine; the dashboard just reads them and computes its own scores.
+        </p>
+        <p>
+          References to <span className="mono">/insights</span> describe the Claude Code
+          built-in command that reads the same local data files. We don&apos;t reuse{" "}
+          <span className="mono">/insights</span> output, replicate its UI, or call any
+          Anthropic API. <em>&quot;Claude&quot;</em>, <em>&quot;Claude Code&quot;</em>, and{" "}
+          <em>&quot;/insights&quot;</em> are trademarks of Anthropic, used here only to identify
+          the platform this tool complements — not to imply endorsement.
+        </p>
+        <p>
+          Workflow tip ranking and the underlying methodology come from Boris Cherny&apos;s{" "}
+          <a className="underline" href="https://howborisusesclaudecode.com" target="_blank" rel="noreferrer">
+            howborisusesclaudecode.com
+          </a>
+          , reproduced under fair use as cross-references; tip content is fetched at install
+          time from a snapshot of the public site.
+        </p>
+        <p>
+          License: MIT. Issues, PRs, and rubric improvements welcome on GitHub.
+        </p>
+      </Section>
+
       <div className="mt-12 text-xs text-[color:var(--color-mute)]">
         <Link href="/" className="underline decoration-dotted underline-offset-2 hover:text-[color:var(--color-accent)]">
           ← Back to dashboard

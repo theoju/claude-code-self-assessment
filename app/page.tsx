@@ -312,12 +312,22 @@ export default async function Page() {
           Scoring uses two axes: <strong className="text-[color:var(--color-good)]">Workshop</strong> from{" "}
           <span className="mono">~/.claude</span> config (settings, plugins, agents, commands, skills, memory)
           and <strong className="text-[color:var(--color-warn)]">Execution</strong> from{" "}
-          <span className="mono">~/.claude/usage-data</span> behavioral signals (the same files{" "}
+          <span className="mono">~/.claude/usage-data</span> behavioral signals (the same local files{" "}
           <span className="mono">/insights</span> reads). Each dimension is weighted 1–3 by leverage. Trends
           marked <span className="mono">✦ new</span> reflect features shipped in April 2026 (Opus 4.7 family).{" "}
           <Link href="/methodology" className="underline decoration-dotted underline-offset-2 hover:text-[color:var(--color-accent)]">
             Full methodology →
           </Link>
+        </p>
+        <p className="opacity-75">
+          Independent open-source dashboard. Not affiliated with, endorsed by, or sponsored by Anthropic.
+          &quot;Claude&quot;, &quot;Claude Code&quot;, and <span className="mono">/insights</span> are
+          trademarks of Anthropic, used here only to identify the platform whose locally-stored data this
+          tool analyzes. Workflow tip ranking by{" "}
+          <a href="https://howborisusesclaudecode.com" target="_blank" rel="noreferrer" className="underline decoration-dotted underline-offset-2">
+            Boris Cherny
+          </a>
+          .
         </p>
       </footer>
     </main>
