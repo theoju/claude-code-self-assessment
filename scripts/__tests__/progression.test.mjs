@@ -170,6 +170,45 @@ describe("detectMilestones", () => {
     expect(r.milestones.find((m) => m.milestone === "Stopped using bypass")).toBeUndefined();
   });
 
+  it("emits 'stopped using bypass' even when lookbackDays excludes the bypass sessions", async () => {
+    // Bypass sessions are all >100 days ago, well outside a 30-day window.
+    for (let i = 0; i < 3; i++) {
+      const id = `bypass-${i}`;
+      writeMeta(dir, id, { start_time: daysAgo(110 + i) });
+      writeTranscript(dir, "p", id, [
+        { type: "user", permissionMode: "bypassPermissions", timestamp: daysAgo(110 + i) },
+      ]);
+    }
+    writeMeta(dir, "recent", { start_time: daysAgo(2) });
+    writeTranscript(dir, "p", "recent", [
+      { type: "user", permissionMode: "auto", timestamp: daysAgo(2) },
+    ]);
+
+    const r = await detectMilestones({
+      claudeHome: dir,
+      now: NOW,
+      lookbackDays: 30,
+      includeTranscripts: true,
+    });
+    const stopped = r.milestones.find((m) => m.milestone === "Stopped using bypass");
+    expect(stopped).toBeDefined();
+    expect(stopped.evidence).toMatch(/3 bypassPermissions sessions/);
+  });
+
+  it("does NOT emit 'stopped using bypass' when the user has been inactive overall", async () => {
+    // Three old bypass sessions and NO recent activity: "stopped" would be a
+    // false positive — the user simply stopped using Claude.
+    for (let i = 0; i < 3; i++) {
+      const id = `bypass-${i}`;
+      writeMeta(dir, id, { start_time: daysAgo(80 + i) });
+      writeTranscript(dir, "p", id, [
+        { type: "user", permissionMode: "bypassPermissions", timestamp: daysAgo(80 + i) },
+      ]);
+    }
+    const r = await detectMilestones({ claudeHome: dir, now: NOW, includeTranscripts: true });
+    expect(r.milestones.find((m) => m.milestone === "Stopped using bypass")).toBeUndefined();
+  });
+
   it("does NOT emit 'stopped using bypass' when fewer than 3 bypass sessions historically", async () => {
     writeMeta(dir, "b1", { start_time: daysAgo(50) });
     writeMeta(dir, "b2", { start_time: daysAgo(45) });

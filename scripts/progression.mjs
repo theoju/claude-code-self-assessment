@@ -146,14 +146,23 @@ const DETECTORS = [
   },
   {
     transcriptsRequired: true,
-    detect(sessions, _facets, transcripts, ctx) {
-      const bypassSessions = sessions.filter((m) =>
+    // "Stopped" is a long-arc signal: scoped to full history (ctx.allSessions),
+    // not the lookback window, so a short lookbackDays doesn't silently
+    // disable detection. Also requires recent activity overall — otherwise
+    // "stopped using bypass" fires for users who stopped using Claude entirely.
+    detect(_sessions, _facets, transcripts, ctx) {
+      const bypassSessions = ctx.allSessions.filter((m) =>
         transcripts.get(m.session_id)?.modes.has("bypassPermissions"),
       );
       if (bypassSessions.length < STOPPED_USING_MIN_OCCURRENCES) return null;
       const last = bypassSessions[bypassSessions.length - 1];
       const ageDays = (ctx.nowMs - Date.parse(last.start_time)) / 86_400_000;
       if (ageDays < STOPPED_USING_THRESHOLD_DAYS) return null;
+      const latestAny = ctx.allSessions[ctx.allSessions.length - 1];
+      const inactivityDays = latestAny
+        ? (ctx.nowMs - Date.parse(latestAny.start_time)) / 86_400_000
+        : Infinity;
+      if (inactivityDays >= STOPPED_USING_THRESHOLD_DAYS) return null;
       return {
         timestamp: last.start_time,
         dimension: "permissions",
@@ -185,18 +194,21 @@ export async function detectMilestones({
   const allMeta = await loadSessionMeta(claudeHome);
   // Stable secondary sort by session_id so ties on start_time produce
   // deterministic "first" detection across runs.
-  const inWindow = allMeta
+  const sortByTime = (a, b) => {
+    const dt = Date.parse(a.start_time) - Date.parse(b.start_time);
+    if (dt !== 0) return dt;
+    return a.session_id < b.session_id ? -1 : a.session_id > b.session_id ? 1 : 0;
+  };
+  const allSessions = allMeta
     .filter((m) => m.start_time && Number.isFinite(Date.parse(m.start_time)))
-    .filter((m) => withinWindow(m.start_time, cutoff))
-    .sort((a, b) => {
-      const dt = Date.parse(a.start_time) - Date.parse(b.start_time);
-      if (dt !== 0) return dt;
-      return a.session_id < b.session_id ? -1 : a.session_id > b.session_id ? 1 : 0;
-    });
+    .sort(sortByTime);
+  const inWindow = allSessions.filter((m) => withinWindow(m.start_time, cutoff));
 
   const facets = await loadFacetsMap(claudeHome);
-  const transcripts = includeTranscripts ? await buildTranscriptScans(claudeHome, inWindow) : null;
-  const ctx = { nowMs };
+  // "Stopped using" detectors need full history; "first" detectors only need
+  // the window. Scan all sessions once so transcripts cover both.
+  const transcripts = includeTranscripts ? await buildTranscriptScans(claudeHome, allSessions) : null;
+  const ctx = { nowMs, allSessions };
 
   const milestones = [];
   for (const detector of DETECTORS) {
