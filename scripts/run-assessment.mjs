@@ -141,14 +141,21 @@ async function main() {
   }
 
   if (flags.has("--print") || !process.env.CI) {
+    const exHeader = scored.executionOverall == null
+      ? "Execution    n/a (run /insights to populate)"
+      : `Execution ${scored.executionOverall} (observed practice)`;
     const lines = [
       `Claude Code Mastery — ${assessment.user || "you"}`,
-      `Overall ${assessment.overall} / ${assessment.targetOverall}`,
+      `Workshop  ${assessment.overall} / ${assessment.targetOverall}`,
+      exHeader,
       ``,
       ...scored.scores.map((s) => {
         const d = rubric.dimensions.find((x) => x.id === s.id);
         const trend = { improving: "↗", slipping: "↘", flat: "→", new: "✦" }[trends[s.id]] || "?";
-        return `  ${s.score.toString().padStart(3)} / ${d.target}  ${trend}  ${d.title}`;
+        const ex = typeof s.executionScore === "number"
+          ? ` · ex ${s.executionScore.toString().padStart(3)}`
+          : "";
+        return `  ${s.score.toString().padStart(3)} / ${d.target}  ${trend}  ${d.title}${ex}`;
       }),
     ];
     if (progression && progression.milestones.length > 0) {

@@ -17,8 +17,17 @@ export const SCORERS = {
     const ev = [];
     const gaps = [];
     if (s.settings.hookTotalCount > 0) {
-      score += Math.min(25, s.settings.hookTotalCount * 8);
-      ev.push(`${s.settings.hookTotalCount} hook(s) configured across: ${s.settings.hookEvents.join(", ")}`);
+      // Configured hooks that haven't fired in the lookback window get
+      // ≤30% credit — Boris's rule is "fires regularly," not "exists in JSON."
+      const fireCount = s.insights?.hookFireCount;
+      const cold = typeof fireCount === "number" && fireCount === 0;
+      const credit = cold
+        ? Math.min(7, s.settings.hookTotalCount * 2)
+        : Math.min(25, s.settings.hookTotalCount * 8);
+      score += credit;
+      const note = cold ? " (no fires in window — gated)" : "";
+      ev.push(`${s.settings.hookTotalCount} hook(s) configured across: ${s.settings.hookEvents.join(", ")}${note}`);
+      if (cold) gaps.push("Hooks are configured but none fired in the recent window — wire them to actual events");
     } else {
       gaps.push("settings.json has no hooks block — no PostToolUse, Stop, SessionStart, or PostCompact hooks");
     }
@@ -69,6 +78,14 @@ export const SCORERS = {
     if (s.settings.denyList.length > 0) {
       score += 5;
       ev.push(`${s.settings.denyList.length} denylist entries`);
+    }
+    // Amplify the bypass penalty when transcripts confirm interactive bypass use
+    // — a config-clean user can still toggle bypassPermissions per session.
+    const bypassUse = s.insights?.bypassPermissionsSessionCount;
+    if (typeof bypassUse === "number" && bypassUse > 0) {
+      const penalty = Math.min(25, bypassUse);
+      score -= penalty;
+      gaps.push(`bypassPermissions used in ${bypassUse} recent session(s) — −${penalty}`);
     }
     return { score: clamp(score), evidence: ev, gaps };
   },
@@ -228,35 +245,207 @@ export const SCORERS = {
   },
 };
 
+// Workshop scorers measure "do you have the infrastructure"; execution
+// scorers measure "do you actually use it." Both axes ship side-by-side.
+
+export const GAP_REASONS = {
+  NO_INSIGHTS: "Run /insights to populate execution data",
+  NO_TRANSCRIPTS: "Set scoring.includeTranscripts: true to score this dimension's execution",
+  NO_SESSIONS: "No sessions in lookback window",
+  NO_MULTI_TASK: "No multi-task sessions in lookback window",
+  NO_PLUGINS: "No plugins installed",
+};
+
+function unavailable(reason) {
+  return { score: null, evidence: [], gaps: [], gapReason: reason };
+}
+
+function pct(n) {
+  return Math.round(n * 100) / 100;
+}
+
+// Wraps an execution scorer with the standard insights/transcripts/sessions
+// gates so each scorer body only deals with the math, not data availability.
+function withGates(opts, fn) {
+  return (s) => {
+    if (!s.insights) return unavailable(GAP_REASONS.NO_INSIGHTS);
+    if (opts.transcripts && !s.insights.transcriptsScanned) {
+      return unavailable(GAP_REASONS.NO_TRANSCRIPTS);
+    }
+    if (opts.requireSessions !== false && s.insights.sessionsAnalyzed === 0) {
+      return unavailable(GAP_REASONS.NO_SESSIONS);
+    }
+    return fn(s);
+  };
+}
+
+// Coefficients chosen so a typical "good" practice rate maps to ~70-90.
+// e.g. 80% auto mode + 0% bypass → 80; 5% bypass on otherwise-clean → 70.
+// 5×=verification miss-rate amplifier: 10% combined miss rate → 50 score.
+// 200×=bypass penalty: any bypass usage drops Permissions sharply.
+// 50×=worktree bonus: half the weight of the primary subagent signal.
+const COEFFS = {
+  permissionsAutoWeight: 100,
+  permissionsBypassPenalty: 200,
+  verificationMissAmplifier: 500,
+  parallelSubagentWeight: 100,
+  parallelWorktreeBonus: 50,
+  planningRatioWeight: 100,
+  automationHookWeight: 50,
+  automationOwnAgentBonus: 20,
+  integrationsRatioWeight: 100,
+  integrationsGapThreshold: 3,
+};
+
+export const EXECUTION_SCORERS = {
+  permissions: withGates({ transcripts: true }, (s) => {
+    const { autoModeSessionCount, bypassPermissionsSessionCount, sessionsAnalyzed } = s.insights;
+    // transcriptsScanned implies these are numbers upstream — guard anyway so a
+    // future ingest path that sets the flag without filling counts can't quietly
+    // produce score: 0 with "null/100" evidence.
+    if (autoModeSessionCount == null || bypassPermissionsSessionCount == null) {
+      return unavailable(GAP_REASONS.NO_TRANSCRIPTS);
+    }
+    const autoRatio = autoModeSessionCount / sessionsAnalyzed;
+    const bypassRatio = bypassPermissionsSessionCount / sessionsAnalyzed;
+    const score = clamp(
+      Math.round(autoRatio * COEFFS.permissionsAutoWeight - bypassRatio * COEFFS.permissionsBypassPenalty),
+    );
+    const evidence = [
+      `Auto mode: ${autoModeSessionCount}/${sessionsAnalyzed} sessions (${pct(autoRatio * 100)}%)`,
+    ];
+    const gaps = [];
+    if (bypassPermissionsSessionCount > 0) {
+      gaps.push(
+        `bypassPermissions: ${bypassPermissionsSessionCount}/${sessionsAnalyzed} sessions — auto mode preferred`,
+      );
+    }
+    return { score, evidence, gaps, gapReason: null };
+  }),
+
+  verification: withGates({}, (s) => {
+    const { frictionCounts, sessionsAnalyzed } = s.insights;
+    const buggy = frictionCounts.buggy_code || 0;
+    const wrong = frictionCounts.wrong_approach || 0;
+    const missRate = (buggy + wrong) / sessionsAnalyzed;
+    const score = clamp(Math.round(100 - missRate * COEFFS.verificationMissAmplifier));
+    const evidence = [
+      `Verification miss rate: ${buggy} buggy_code + ${wrong} wrong_approach across ${sessionsAnalyzed} sessions (${pct(missRate * 100)}%)`,
+    ];
+    const gaps = [];
+    if (buggy > 0) gaps.push(`${buggy} first-pass-bug events — Verification's whole point is catching these`);
+    return { score, evidence, gaps, gapReason: null };
+  }),
+
+  parallel: withGates({}, (s) => {
+    const { subagentSessionCount, worktreeUsageSessionCount, sessionsAnalyzed, transcriptsScanned } = s.insights;
+    const subagentRatio = subagentSessionCount / sessionsAnalyzed;
+    let score = subagentRatio * COEFFS.parallelSubagentWeight;
+    const evidence = [`Subagent dispatch: ${subagentSessionCount}/${sessionsAnalyzed} sessions (${pct(subagentRatio * 100)}%)`];
+    const gaps = [];
+    if (transcriptsScanned) {
+      const wtRatio = worktreeUsageSessionCount / sessionsAnalyzed;
+      score += wtRatio * COEFFS.parallelWorktreeBonus;
+      evidence.push(`Worktree isolation: ${worktreeUsageSessionCount}/${sessionsAnalyzed} (${pct(wtRatio * 100)}%)`);
+    }
+    if (subagentRatio < 0.2) gaps.push("Subagent dispatch in fewer than 20% of sessions — Boris tip 1");
+    return { score: clamp(Math.round(score)), evidence, gaps, gapReason: null };
+  }),
+
+  // requireSessions: false — gates internally on multiTaskSessionCount instead.
+  planning: withGates({ transcripts: true, requireSessions: false }, (s) => {
+    const { planModeSessionCount, multiTaskSessionCount } = s.insights;
+    if (multiTaskSessionCount === 0) return unavailable(GAP_REASONS.NO_MULTI_TASK);
+    const ratio = planModeSessionCount / multiTaskSessionCount;
+    const score = clamp(Math.round(ratio * COEFFS.planningRatioWeight));
+    const evidence = [
+      `Plan mode: ${planModeSessionCount}/${multiTaskSessionCount} multi-task sessions (${pct(ratio * 100)}%)`,
+    ];
+    const gaps = [];
+    if (ratio < 0.5) gaps.push("Plan mode in fewer than half of multi-task sessions — Boris tip 65");
+    return { score, evidence, gaps, gapReason: null };
+  }),
+
+  automation: withGates({}, (s) => {
+    const { hookFireCount, sessionsAnalyzed, subagentSessionCount } = s.insights;
+    let score = Math.round((hookFireCount / sessionsAnalyzed) * COEFFS.automationHookWeight);
+    if (s.personalAgents.length > 0 && subagentSessionCount > 0) score += COEFFS.automationOwnAgentBonus;
+    const evidence = [`Hook fires: ${hookFireCount} across ${sessionsAnalyzed} sessions`];
+    const gaps = [];
+    if (hookFireCount === 0) gaps.push("Zero hook fires in window — automation is dormant");
+    return { score: clamp(score), evidence, gaps, gapReason: null };
+  }),
+
+  integrations: withGates({ requireSessions: false }, (s) => {
+    const toolInvocationsByPlugin = s.insights.toolInvocationsByPlugin || {};
+    const pluginsUsed = Object.keys(toolInvocationsByPlugin).length;
+    const pluginsInstalled = s.plugins.length;
+    if (pluginsInstalled === 0) return unavailable(GAP_REASONS.NO_PLUGINS);
+    const ratio = pluginsUsed / pluginsInstalled;
+    const score = clamp(Math.round(ratio * COEFFS.integrationsRatioWeight));
+    const evidence = [
+      `Plugin tool usage: ${pluginsUsed}/${pluginsInstalled} installed plugins fired tool calls`,
+    ];
+    const gaps = [];
+    if (pluginsInstalled - pluginsUsed > COEFFS.integrationsGapThreshold) {
+      gaps.push(`${pluginsInstalled - pluginsUsed} plugins installed but no recent tool invocations — gated`);
+    }
+    return { score, evidence, gaps, gapReason: null };
+  }),
+};
+
 export function scoreAll(rubric, signals) {
   const now = new Date().toISOString();
   const scores = rubric.dimensions.map((d) => {
     const fn = SCORERS[d.id];
-    if (!fn) return { id: d.id, score: 0, tier: "not-touched", evidence: [], gaps: [] };
+    const exFn = EXECUTION_SCORERS[d.id];
+    if (!fn) {
+      return {
+        id: d.id,
+        score: 0,
+        tier: "not-touched",
+        evidence: [],
+        gaps: [],
+        executionScore: null,
+        gapReason: null,
+      };
+    }
     const { score, evidence, gaps } = fn(signals);
+    const ex = exFn ? exFn(signals) : { score: null, gapReason: null, evidence: [], gaps: [] };
     return {
       id: d.id,
       score,
       tier: tierFor(score),
       evidence,
       gaps,
+      executionScore: ex.score,
+      executionEvidence: ex.evidence,
+      executionGaps: ex.gaps,
+      gapReason: ex.gapReason,
       target: d.target,
       weight: d.weight,
     };
   });
 
-  const totalW = rubric.dimensions.reduce((s, d) => s + d.weight, 0);
+  const totalW = scores.reduce((sum, r) => sum + r.weight, 0);
   const overall = Math.round(
-    scores.reduce((s, r) => {
-      const d = rubric.dimensions.find((x) => x.id === r.id);
-      return s + r.score * d.weight;
-    }, 0) / totalW
+    scores.reduce((sum, r) => sum + r.score * r.weight, 0) / totalW,
   );
   const targetOverall = Math.round(
-    rubric.dimensions.reduce((s, d) => s + d.target * d.weight, 0) / totalW
+    scores.reduce((sum, r) => sum + r.target * r.weight, 0) / totalW,
   );
 
-  return { capturedAt: now, overall, targetOverall, scores };
+  // Execution overall is weight-normalized over dimensions that produced a
+  // score; null when no execution data exists at all.
+  const exScored = scores.filter((r) => typeof r.executionScore === "number");
+  const exTotalW = exScored.reduce((sum, r) => sum + r.weight, 0);
+  const executionOverall = exScored.length === 0
+    ? null
+    : Math.round(
+        exScored.reduce((sum, r) => sum + r.executionScore * r.weight, 0) / exTotalW,
+      );
+
+  return { capturedAt: now, overall, targetOverall, executionOverall, scores };
 }
 
 export function computeTrends(current, history) {
