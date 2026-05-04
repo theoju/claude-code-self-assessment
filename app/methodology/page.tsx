@@ -46,12 +46,12 @@ export default function MethodologyPage() {
           the six where session-level evidence exists in <span className="mono">/insights</span>:
         </p>
         <ul>
-          <li><strong>Permissions &amp; Safety</strong> — auto-mode adoption, bypass usage</li>
-          <li><strong>Parallel Execution &amp; Subagents</strong> — TaskCreate dispatches, worktree usage</li>
-          <li><strong>Planning &amp; Delegation</strong> — multi-task sessions, plan-mode adoption</li>
-          <li><strong>Integrations</strong> — sessions that fired MCP tool calls</li>
-          <li><strong>Verification</strong> — session-end facets and friction counts</li>
-          <li><strong>Memory &amp; Context</strong> — auto-compact behavior, memory writes</li>
+          <li><strong>Permissions &amp; Safety</strong> — auto-mode ratio, bypass penalty</li>
+          <li><strong>Parallel Execution &amp; Subagents</strong> — subagent dispatch ratio, worktree usage (when transcripts opted in)</li>
+          <li><strong>Planning &amp; Delegation</strong> — plan mode adoption within multi-task sessions</li>
+          <li><strong>Integrations</strong> — share of installed plugins that actually fired tool calls</li>
+          <li><strong>Verification</strong> — friction-event miss rate (buggy_code + wrong_approach per session)</li>
+          <li><strong>Automation &amp; Hooks</strong> — hook fires per session plus a bonus when personal agents are in use</li>
         </ul>
         <p>
           The radar leaves the other six dimensions visually blank on the Execution polygon —{" "}

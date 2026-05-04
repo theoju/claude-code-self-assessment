@@ -15,6 +15,12 @@ import { borisTipLink, parseBorisTipList } from "@/app/lib/boris-tips";
 
 export const dynamic = "force-dynamic";
 
+// Δ ≥ 15 surfaces the diagnostic case (config ahead of habits) without firing
+// for normal scoring noise. Both axes are 0–100, so 15 ≈ a tier-and-a-half gap
+// in the rubric — small enough to catch genuine misalignment, large enough to
+// stay quiet when scores are within natural variance.
+const EXECUTION_DELTA_HIGHLIGHT = 15;
+
 export default async function Page() {
   const [assessment, progression] = await Promise.all([loadAssessment(), loadProgression()]);
   const dims = assessment.dimensions;
@@ -28,7 +34,7 @@ export default async function Page() {
   const strengths = [...dims].filter((d) => d.score >= 80).sort((a, b) => b.score - a.score);
   const needsWork = [...dims].filter((d) => d.target - d.score >= 25).sort((a, b) => b.weight * (b.target - b.score) - a.weight * (a.target - a.score));
   const notTouched = dims.filter((d) => d.score < 50);
-  const capturedDate = new Date(assessment.capturedAt).toISOString().slice(0, 10);
+  const capturedDate = assessment.capturedAt.slice(0, 10);
   const headerName = assessment.user ? `${assessment.user}'s` : "Your";
 
   return (
@@ -100,16 +106,16 @@ export default async function Page() {
             {executionDelta != null && (
               <div
                 className={`mt-3 text-xs ${
-                  executionDelta >= 15
+                  executionDelta >= EXECUTION_DELTA_HIGHLIGHT
                     ? "text-[color:var(--color-warn)]"
                     : "text-[color:var(--color-mute)]"
                 }`}
               >
                 Δ {executionDelta} —{" "}
-                {executionDelta >= 15
+                {executionDelta >= EXECUTION_DELTA_HIGHLIGHT
                   ? "your config is ahead of your habits."
                   : "workshop and execution roughly aligned."}
-                {executionDelta >= 15 && (
+                {executionDelta >= EXECUTION_DELTA_HIGHLIGHT && (
                   <>
                     {" "}
                     <Link href="/methodology" className="underline decoration-dotted underline-offset-2">

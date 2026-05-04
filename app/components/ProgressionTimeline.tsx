@@ -6,6 +6,8 @@ interface Props {
   progression: Progression;
 }
 
+// Keep in sync with DETECTORS in scripts/progression.mjs — every dimension
+// that can emit a milestone needs a glyph here, otherwise it falls back to •.
 const DIMENSION_GLYPH: Record<string, string> = {
   parallel: "‖",
   planning: "△",
@@ -30,7 +32,7 @@ export default function ProgressionTimeline({ progression }: Props) {
   return (
     <ol className="relative ml-3 border-l border-[color:var(--color-line)]">
       {sorted.map((m) => (
-        <Row key={`${m.timestamp}-${m.milestone}`} milestone={m} />
+        <Row key={`${m.sessionId}:${m.milestone}`} milestone={m} />
       ))}
     </ol>
   );
