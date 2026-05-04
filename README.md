@@ -200,6 +200,25 @@ The `boris` skill at `~/.claude/skills/boris` (installed with the
 `andrej-karpathy-skills` or `claude-code-workflows` marketplace). The rubric's
 `borisTips` field cross-references section numbers.
 
+## Surfacing Claude's `/insights` narrative
+
+The dashboard scores your usage from raw signals on its own. If you'd also like Claude's
+own narrative analysis (the rich text `/insights` produces) rendered alongside the
+scoring, you can capture it manually:
+
+```bash
+# In Claude Code:
+/insights
+# Copy the output, then either:
+pbpaste | npm run import-insights   # macOS clipboard
+# or paste it into app/data/insights-narrative.md directly
+```
+
+The file is gitignored, rendered locally, never uploaded, and never posted to Slack.
+Refresh the dashboard and you'll see a "From `/insights`" section with the captured
+text. Re-run `/insights` and re-import to refresh; delete the file to remove the
+section. The dashboard never auto-captures `/insights` output.
+
 ## Attribution & relationship to Claude Code
 
 This is an **independent, open-source community tool**. It is **not affiliated

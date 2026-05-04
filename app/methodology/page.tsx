@@ -115,9 +115,35 @@ export default function MethodologyPage() {
       <Section title="Privacy">
         <p>
           All reads are local. No data leaves the machine unless you explicitly enable Slack posting.
-          The dashboard renders from <span className="mono">app/data/assessment.json</span> and{" "}
-          <span className="mono">app/data/progression.json</span>, both produced by{" "}
-          <span className="mono">scripts/run-assessment.mjs</span>.
+          The dashboard renders from <span className="mono">app/data/assessment.json</span>,{" "}
+          <span className="mono">app/data/progression.json</span>, and (optionally){" "}
+          <span className="mono">app/data/insights-narrative.md</span>. The first two are produced by{" "}
+          <span className="mono">scripts/run-assessment.mjs</span>; the third is something you put there
+          explicitly (see below).
+        </p>
+      </Section>
+
+      <Section title="The /insights narrative — opt-in, user-driven">
+        <p>
+          The dashboard&apos;s scoring is independent of <span className="mono">/insights</span>: it reads
+          the same raw <span className="mono">~/.claude/usage-data/</span> files but computes its own
+          Workshop and Execution scores. If you also want Claude&apos;s own narrative analysis surfaced
+          here, you can capture the output of <span className="mono">/insights</span> once and drop it
+          in <span className="mono">app/data/insights-narrative.md</span>.
+        </p>
+        <pre className="bg-[color:var(--color-panel-2)] p-3 rounded text-xs overflow-x-auto">
+{`# In Claude Code:
+/insights
+# Then either:
+pbpaste | npm run import-insights
+# or paste manually into app/data/insights-narrative.md`}
+        </pre>
+        <p>
+          The file is gitignored, never uploaded, never posted to Slack, and rendered locally with the
+          same markdown helper used elsewhere in the dashboard. It&apos;s your output on your machine —
+          this tool just renders it. We don&apos;t auto-capture <span className="mono">/insights</span>{" "}
+          output, don&apos;t reuse Anthropic&apos;s prompt template, and don&apos;t persist anything beyond
+          the file you create.
         </p>
       </Section>
 
