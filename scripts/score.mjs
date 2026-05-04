@@ -300,6 +300,12 @@ const COEFFS = {
 export const EXECUTION_SCORERS = {
   permissions: withGates({ transcripts: true }, (s) => {
     const { autoModeSessionCount, bypassPermissionsSessionCount, sessionsAnalyzed } = s.insights;
+    // transcriptsScanned implies these are numbers upstream — guard anyway so a
+    // future ingest path that sets the flag without filling counts can't quietly
+    // produce score: 0 with "null/100" evidence.
+    if (autoModeSessionCount == null || bypassPermissionsSessionCount == null) {
+      return unavailable(GAP_REASONS.NO_TRANSCRIPTS);
+    }
     const autoRatio = autoModeSessionCount / sessionsAnalyzed;
     const bypassRatio = bypassPermissionsSessionCount / sessionsAnalyzed;
     const score = clamp(
@@ -346,6 +352,7 @@ export const EXECUTION_SCORERS = {
     return { score: clamp(Math.round(score)), evidence, gaps, gapReason: null };
   }),
 
+  // requireSessions: false — gates internally on multiTaskSessionCount instead.
   planning: withGates({ transcripts: true, requireSessions: false }, (s) => {
     const { planModeSessionCount, multiTaskSessionCount } = s.insights;
     if (multiTaskSessionCount === 0) return unavailable(GAP_REASONS.NO_MULTI_TASK);
@@ -361,7 +368,7 @@ export const EXECUTION_SCORERS = {
 
   automation: withGates({}, (s) => {
     const { hookFireCount, sessionsAnalyzed, subagentSessionCount } = s.insights;
-    let score = clamp(Math.round((hookFireCount / sessionsAnalyzed) * COEFFS.automationHookWeight));
+    let score = Math.round((hookFireCount / sessionsAnalyzed) * COEFFS.automationHookWeight);
     if (s.personalAgents.length > 0 && subagentSessionCount > 0) score += COEFFS.automationOwnAgentBonus;
     const evidence = [`Hook fires: ${hookFireCount} across ${sessionsAnalyzed} sessions`];
     const gaps = [];

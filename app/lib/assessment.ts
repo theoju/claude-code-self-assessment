@@ -30,10 +30,6 @@ export interface ScoredDimension {
 export interface Dimension extends RubricDimension, ScoredDimension {
   trend: Trend;
   summary: string;
-  executionScore: number | null;
-  executionEvidence: string[];
-  executionGaps: string[];
-  gapReason: string | null;
 }
 
 export type Grade = "A" | "B" | "C" | "D" | "F";
@@ -115,6 +111,7 @@ export interface Assessment {
   user: string | null;
   dimensions: Dimension[];
   signalsSummary: Record<string, unknown>;
+  insights: Record<string, unknown> | null;
   claudeMd: ClaudeMdReport | null;
 }
 
@@ -170,8 +167,8 @@ export async function loadAssessment(): Promise<Assessment> {
   const rubric = (await readJson<{ dimensions: RubricDimension[] }>(RUBRIC_PATH)) || {
     dimensions: [],
   };
-  // Older assessment.json files may not have executionOverall; loader
-  // backfills via ?? null below to satisfy the strict in-memory type.
+  // Older assessment.json files may not have executionOverall or insights;
+  // loader backfills via ?? null below to satisfy the strict in-memory type.
   const scored = await readJson<{
     capturedAt: string;
     overall: number;
@@ -181,6 +178,7 @@ export async function loadAssessment(): Promise<Assessment> {
     scores: ScoredDimension[];
     trends: Record<string, Trend>;
     signalsSummary: Record<string, unknown>;
+    insights?: Record<string, unknown> | null;
     claudeMd?: ClaudeMdReport | null;
   }>(ASSESSMENT_PATH);
 
@@ -190,6 +188,7 @@ export async function loadAssessment(): Promise<Assessment> {
       overall: 0,
       targetOverall: 0,
       executionOverall: null,
+      insights: null,
       user: null,
       dimensions: rubric.dimensions.map((d) => ({
         ...d,
@@ -234,6 +233,7 @@ export async function loadAssessment(): Promise<Assessment> {
     user: scored.user,
     dimensions,
     signalsSummary: scored.signalsSummary,
+    insights: scored.insights ?? null,
     claudeMd: scored.claudeMd ?? null,
   };
 }
