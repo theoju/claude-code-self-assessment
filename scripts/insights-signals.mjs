@@ -142,6 +142,8 @@ export async function gatherInsightsSignals({
     bypassPermissionsSessionCount: null,
     planModeSessionCount: null,
     worktreeUsageSessionCount: null,
+    learningModeSessionCount: null,
+    learningModeMatchesTotal: null,
   };
 
   if (includeTranscripts) {
@@ -150,20 +152,26 @@ export async function gatherInsightsSignals({
     let bypassPermissionsSessionCount = 0;
     let planModeSessionCount = 0;
     let worktreeUsageSessionCount = 0;
+    let learningModeSessionCount = 0;
+    let learningModeMatchesTotal = 0;
     for (const m of inWindow) {
       const path = transcriptIndex.get(m.session_id);
       if (!path) continue;
-      const { modes, hasWorktreeState } = await scanTranscriptModes(path);
+      const { modes, hasWorktreeState, learningModeMatches } = await scanTranscriptModes(path);
       if (modes.has("auto")) autoModeSessionCount += 1;
       if (modes.has("bypassPermissions")) bypassPermissionsSessionCount += 1;
       if (modes.has("plan")) planModeSessionCount += 1;
       if (hasWorktreeState) worktreeUsageSessionCount += 1;
+      if (learningModeMatches > 0) learningModeSessionCount += 1;
+      learningModeMatchesTotal += learningModeMatches;
     }
     result.transcriptsScanned = true;
     result.autoModeSessionCount = autoModeSessionCount;
     result.bypassPermissionsSessionCount = bypassPermissionsSessionCount;
     result.planModeSessionCount = planModeSessionCount;
     result.worktreeUsageSessionCount = worktreeUsageSessionCount;
+    result.learningModeSessionCount = learningModeSessionCount;
+    result.learningModeMatchesTotal = learningModeMatchesTotal;
   }
 
   return result;

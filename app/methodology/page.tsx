@@ -40,9 +40,9 @@ export default function MethodologyPage() {
         </p>
       </Section>
 
-      <Section title="What each Execution scorer measures (8 of 12 dimensions)">
+      <Section title="What each Execution scorer measures (9 of 12 dimensions)">
         <p>
-          Eight dimensions currently have execution scorers. Each formula is a deterministic
+          Nine dimensions currently have execution scorers. Each formula is a deterministic
           function over the signals named below — open <span className="mono">scripts/score.mjs</span>{" "}
           to read the source.
         </p>
@@ -85,12 +85,19 @@ export default function MethodologyPage() {
             <strong>Remote &amp; Mobile</strong> — same presence-and-intensity curve over RemoteTrigger /
             PushNotification / SendMessage invocations.
           </li>
+          <li>
+            <strong>Learning &amp; Explanatory Mode</strong> — <span className="mono">learningModeSessionRatio × 100</span>.
+            Counts sessions where Claude emitted the <span className="mono">★ Insight</span> banner
+            from the explanatory-output-style plugin. Workshop credits installation; this scorer
+            credits actual use. Caveat: the substring match depends on the plugin&apos;s banner
+            string, so a future plugin upgrade could regress this signal silently.
+          </li>
         </ul>
       </Section>
 
-      <Section title="Why the remaining 4 dimensions are unmeasured">
+      <Section title="Why the remaining 3 dimensions are unmeasured">
         <p>
-          The other four dimensions render with no Execution vertex. Each has an explicit{" "}
+          Three dimensions render with no Execution vertex. Each has an explicit{" "}
           <span className="mono">gapReason</span> visible on the per-dimension card so users can
           tell <em>which</em> kind of unmeasured it is:
         </p>
@@ -102,12 +109,6 @@ export default function MethodologyPage() {
             <span className="mono">session-meta</span>; memory-related tools do not appear in{" "}
             <span className="mono">tool_counts</span>; terminal/IDE customization (statusline, theme,
             keybindings) is purely client-side configuration. Workshop-only is the honest position.
-          </li>
-          <li>
-            <strong>Learning &amp; Explanatory Mode</strong> — <em>scorer requires transcript scan; not
-            yet implemented</em>. The output style is detectable by extending{" "}
-            <span className="mono">scanTranscriptModes()</span> to capture the{" "}
-            <span className="mono">outputStyle</span> field per turn. Future iteration.
           </li>
         </ul>
         <p>

@@ -262,9 +262,6 @@ export const GAP_REASONS = {
   // tool_counts; terminal/IDE customization is purely client-side config).
   // These render as "unmeasured" with a clear rationale instead of blank.
   NO_TELEMETRY_FOR_DIMENSION: "no /insights telemetry exists for this dimension — workshop-only by nature",
-  // For dimensions where a signal exists in raw transcripts but no scorer is
-  // wired up yet (e.g. learning/explanatory output style).
-  TRANSCRIPT_SCORER_NOT_IMPLEMENTED: "scorer requires transcript scan; not yet implemented",
 };
 
 function unavailable(reason) {
@@ -495,10 +492,25 @@ export const EXECUTION_SCORERS = {
   memory: () => unavailable(GAP_REASONS.NO_TELEMETRY_FOR_DIMENSION),
   customization: () => unavailable(GAP_REASONS.NO_TELEMETRY_FOR_DIMENSION),
 
-  // Could be measured by extending scanTranscriptModes() to capture the
-  // outputStyle field from transcript entries. Future iteration; for now
-  // surface the reason explicitly.
-  learning: () => unavailable(GAP_REASONS.TRANSCRIPT_SCORER_NOT_IMPLEMENTED),
+  // Linear ratio of sessions emitting the `★ Insight ` banner — the rendered
+  // signature of the explanatory-output-style plugin. Workshop already credits
+  // plugin installation (signals.mjs hasPlugin check); this scorer credits
+  // actual use. Honest caveat: if the plugin's banner string changes upstream,
+  // this scorer goes silent (returns 0). Documented in methodology.
+  learning: withGates({ transcripts: true }, (s) => {
+    const { learningModeSessionCount, learningModeMatchesTotal, sessionsAnalyzed } = s.insights;
+    if (learningModeSessionCount == null) return unavailable(GAP_REASONS.NO_TRANSCRIPTS);
+    const ratio = learningModeSessionCount / sessionsAnalyzed;
+    const score = clamp(Math.round(ratio * 100));
+    const evidence = [
+      `Explanatory-mode active in ${learningModeSessionCount}/${sessionsAnalyzed} sessions (${pct(ratio * 100)}%) — ${learningModeMatchesTotal} ★ Insight banners total`,
+    ];
+    const gaps = [];
+    if (ratio < 0.3) {
+      gaps.push("Explanatory mode active in <30% of sessions — try /output-style explanatory for learning work");
+    }
+    return { score, evidence, gaps, gapReason: null };
+  }),
 };
 
 export function scoreAll(rubric, signals) {

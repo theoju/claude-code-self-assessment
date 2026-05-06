@@ -72,6 +72,8 @@ export function makeInsights(overrides = {}) {
     bypassPermissionsSessionCount: null,
     planModeSessionCount: null,
     worktreeUsageSessionCount: null,
+    learningModeSessionCount: null,
+    learningModeMatchesTotal: null,
   };
   return deepMerge(base, overrides);
 }

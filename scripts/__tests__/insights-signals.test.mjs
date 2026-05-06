@@ -260,6 +260,45 @@ describe("gatherInsightsSignals", () => {
     expect(r.planModeSessionCount).toBe(1);
   });
 
+  it("counts ★ Insight banners as learning-mode adoption when scanning transcripts", async () => {
+    writeMeta(dir, "active", { start_time: TWENTY_DAYS_AGO });
+    writeMeta(dir, "quiet", { start_time: TWENTY_DAYS_AGO });
+    writeMeta(dir, "user-quote", { start_time: TWENTY_DAYS_AGO });
+    // Two assistant turns in this session contain the banner -> session counts once.
+    writeTranscript(dir, "proj-a", "active", [
+      { type: "assistant", message: { content: "★ Insight ───\nfoo\n───" }, timestamp: TWENTY_DAYS_AGO },
+      { type: "assistant", message: { content: "★ Insight ───\nbar\n───" }, timestamp: TWENTY_DAYS_AGO },
+    ]);
+    // No banners.
+    writeTranscript(dir, "proj-a", "quiet", [
+      { type: "assistant", message: { content: "regular reply" }, timestamp: TWENTY_DAYS_AGO },
+    ]);
+    // User quotes the pattern in their own message — must NOT count.
+    writeTranscript(dir, "proj-b", "user-quote", [
+      { type: "user", message: { content: "what is ★ Insight ?" }, timestamp: TWENTY_DAYS_AGO },
+    ]);
+    const r = await gatherInsightsSignals({
+      claudeHome: dir,
+      now: NOW,
+      lookbackDays: 30,
+      includeTranscripts: true,
+    });
+    expect(r.learningModeSessionCount).toBe(1);
+    expect(r.learningModeMatchesTotal).toBe(2);
+  });
+
+  it("leaves learningModeSessionCount null when transcripts not scanned", async () => {
+    writeMeta(dir, "s1", { start_time: TWENTY_DAYS_AGO });
+    const r = await gatherInsightsSignals({
+      claudeHome: dir,
+      now: NOW,
+      lookbackDays: 30,
+      includeTranscripts: false,
+    });
+    expect(r.learningModeSessionCount).toBeNull();
+    expect(r.learningModeMatchesTotal).toBeNull();
+  });
+
   it("counts worktree-state events as worktree usage when scanning transcripts", async () => {
     writeMeta(dir, "wt-session", { start_time: TWENTY_DAYS_AGO });
     writeMeta(dir, "no-wt", { start_time: TWENTY_DAYS_AGO });

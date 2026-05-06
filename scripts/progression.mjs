@@ -128,6 +128,21 @@ const DETECTORS = [
   {
     transcriptsRequired: true,
     detect(sessions, _facets, transcripts) {
+      const m = sessions.find((s) => (transcripts.get(s.session_id)?.learningModeMatches ?? 0) > 0);
+      if (!m) return null;
+      return {
+        timestamp: m.start_time,
+        dimension: "learning",
+        milestone: "First explanatory-mode session",
+        borisTip: 51,
+        evidence: "First session emitting the ★ Insight banner from explanatory-output-style",
+        sessionId: m.session_id,
+      };
+    },
+  },
+  {
+    transcriptsRequired: true,
+    detect(sessions, _facets, transcripts) {
       const m = sessions.find((s) => {
         const skills = transcripts.get(s.session_id)?.skills;
         return skills && skills.size > 0;

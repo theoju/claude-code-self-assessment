@@ -75,6 +75,12 @@ export async function scanTranscriptModes(path) {
   const modes = new Set();
   const skills = new Set();
   let hasWorktreeState = false;
+  // Detect explanatory-output-style adoption via its rendered banner. The
+  // transcript schema has no outputStyle field (verified empirically across
+  // 60+ sample transcripts); the plugin's instruction to emit `★ Insight `
+  // is the only reliable behavioral signature. Substring on raw line text
+  // is intentional — avoids stringifying nested message.content per turn.
+  let learningModeMatches = 0;
   const rl = createInterface({ input: createReadStream(path, { encoding: "utf8" }) });
   for await (const raw of rl) {
     if (!raw) continue;
@@ -87,6 +93,9 @@ export async function scanTranscriptModes(path) {
     if (entry.type === "worktree-state") hasWorktreeState = true;
     if (typeof entry.permissionMode === "string") modes.add(entry.permissionMode);
     if (typeof entry.attributionSkill === "string") skills.add(entry.attributionSkill);
+    if (entry.type === "assistant" && raw.includes("★ Insight ")) {
+      learningModeMatches += 1;
+    }
   }
-  return { modes, hasWorktreeState, skills };
+  return { modes, hasWorktreeState, skills, learningModeMatches };
 }

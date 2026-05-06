@@ -577,10 +577,44 @@ describe("EXECUTION_SCORERS", () => {
         expect(r.gapReason).toMatch(/no \/insights telemetry/);
       },
     );
-    it("learning returns null with TRANSCRIPT_SCORER_NOT_IMPLEMENTED reason", () => {
-      const r = EXECUTION_SCORERS.learning(makeSignals({ insights: makeInsights() }));
+  });
+
+  describe("learning", () => {
+    it("returns NO_TRANSCRIPTS when transcripts not scanned", () => {
+      const r = EXECUTION_SCORERS.learning(
+        makeSignals({ insights: makeInsights({ transcriptsScanned: false }) }),
+      );
       expect(r.score).toBeNull();
-      expect(r.gapReason).toMatch(/transcript scan/);
+      expect(r.gapReason).toMatch(/includeTranscripts/);
+    });
+    it("scores linear ratio of sessions emitting ★ Insight banners", () => {
+      const r = EXECUTION_SCORERS.learning(
+        makeSignals({
+          insights: makeInsights({
+            transcriptsScanned: true,
+            sessionsAnalyzed: 100,
+            learningModeSessionCount: 30,
+            learningModeMatchesTotal: 90,
+          }),
+        }),
+      );
+      expect(r.score).toBe(30);
+      expect(r.evidence.join(" ")).toMatch(/30\/100/);
+      expect(r.evidence.join(" ")).toMatch(/90 ★ Insight banners/);
+    });
+    it("flags low adoption (<30%) with a gap message", () => {
+      const r = EXECUTION_SCORERS.learning(
+        makeSignals({
+          insights: makeInsights({
+            transcriptsScanned: true,
+            sessionsAnalyzed: 100,
+            learningModeSessionCount: 10,
+            learningModeMatchesTotal: 12,
+          }),
+        }),
+      );
+      expect(r.score).toBe(10);
+      expect(r.gaps.join(" ")).toMatch(/<30%/);
     });
   });
 });
