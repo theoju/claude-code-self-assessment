@@ -18,6 +18,12 @@ import {
 // attributed — they're not user-installed plugins.
 const PLUGIN_TOOL_RE = /^mcp__plugin_([a-z0-9-]+?)_[a-z0-9-]+__/i;
 
+// Tool name groups for dimension scorers that key off specific built-in tools.
+// Categorization lives here (signal shape) rather than in score.mjs (scoring
+// policy) so a future tool rename only changes one file.
+const SCHEDULED_TOOL_NAMES = new Set(["CronCreate", "CronDelete", "CronList", "ScheduleWakeup"]);
+const REMOTE_TOOL_NAMES = new Set(["RemoteTrigger", "PushNotification", "SendMessage"]);
+
 function parsePluginName(toolName) {
   const m = toolName.match(PLUGIN_TOOL_RE);
   return m ? m[1].toLowerCase() : null;
@@ -75,6 +81,8 @@ export async function gatherInsightsSignals({
   let multiTaskSessionCount = 0;
   let taskInvocationsTotal = 0;
   let toolInvocationsTotal = 0;
+  let scheduledInvocationsTotal = 0;
+  let remoteInvocationsTotal = 0;
   let gitCommitsTotal = 0;
   const toolInvocationsByPlugin = {};
   const frictionCounts = {};
@@ -91,6 +99,8 @@ export async function gatherInsightsSignals({
       toolInvocationsTotal += count;
       // "TaskCreate" is current; "Task" appears in older session-meta files.
       if (name === "TaskCreate" || name === "Task") taskInvocationsTotal += count;
+      if (SCHEDULED_TOOL_NAMES.has(name)) scheduledInvocationsTotal += count;
+      if (REMOTE_TOOL_NAMES.has(name)) remoteInvocationsTotal += count;
       const plugin = parsePluginName(name);
       if (plugin) toolInvocationsByPlugin[plugin] = (toolInvocationsByPlugin[plugin] || 0) + count;
     }
@@ -117,6 +127,8 @@ export async function gatherInsightsSignals({
     multiTaskSessionCount,
     taskInvocationsTotal,
     toolInvocationsTotal,
+    scheduledInvocationsTotal,
+    remoteInvocationsTotal,
     toolInvocationsByPlugin,
     gitCommitsTotal,
     frictionCounts,

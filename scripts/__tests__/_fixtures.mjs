@@ -59,6 +59,8 @@ export function makeInsights(overrides = {}) {
     multiTaskSessionCount: 0,
     taskInvocationsTotal: 0,
     toolInvocationsTotal: 0,
+    scheduledInvocationsTotal: 0,
+    remoteInvocationsTotal: 0,
     toolInvocationsByPlugin: {},
     gitCommitsTotal: 0,
     frictionCounts: {},

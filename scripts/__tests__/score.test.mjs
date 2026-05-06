@@ -522,6 +522,67 @@ describe("EXECUTION_SCORERS", () => {
       expect(r.gaps.join(" ")).toMatch(/informational/);
     });
   });
+
+  describe("scheduled", () => {
+    it("scores 0 with dormant gap when no scheduled-tool invocations", () => {
+      const r = EXECUTION_SCORERS.scheduled(
+        makeSignals({ insights: makeInsights({ scheduledInvocationsTotal: 0 }) }),
+      );
+      expect(r.score).toBe(0);
+      expect(r.gaps.join(" ")).toMatch(/dormant/);
+      expect(r.gapReason).toBeNull();
+    });
+    it("uses presence-and-intensity: 1=50, 2=75, 3+=100", () => {
+      const one = EXECUTION_SCORERS.scheduled(
+        makeSignals({ insights: makeInsights({ scheduledInvocationsTotal: 1 }) }),
+      );
+      const two = EXECUTION_SCORERS.scheduled(
+        makeSignals({ insights: makeInsights({ scheduledInvocationsTotal: 2 }) }),
+      );
+      const five = EXECUTION_SCORERS.scheduled(
+        makeSignals({ insights: makeInsights({ scheduledInvocationsTotal: 5 }) }),
+      );
+      expect(one.score).toBe(50);
+      expect(two.score).toBe(75);
+      expect(five.score).toBe(100);
+    });
+  });
+
+  describe("remote", () => {
+    it("scores 0 with dormant gap when no remote-tool invocations", () => {
+      const r = EXECUTION_SCORERS.remote(
+        makeSignals({ insights: makeInsights({ remoteInvocationsTotal: 0 }) }),
+      );
+      expect(r.score).toBe(0);
+      expect(r.gaps.join(" ")).toMatch(/dormant/);
+    });
+    it("scores 75 for two remote invocations and 100 for three+", () => {
+      const two = EXECUTION_SCORERS.remote(
+        makeSignals({ insights: makeInsights({ remoteInvocationsTotal: 2 }) }),
+      );
+      const four = EXECUTION_SCORERS.remote(
+        makeSignals({ insights: makeInsights({ remoteInvocationsTotal: 4 }) }),
+      );
+      expect(two.score).toBe(75);
+      expect(four.score).toBe(100);
+    });
+  });
+
+  describe("workshop-only-by-nature dimensions", () => {
+    it.each(["model-effort", "memory", "customization"])(
+      "%s returns null with NO_TELEMETRY_FOR_DIMENSION reason",
+      (id) => {
+        const r = EXECUTION_SCORERS[id](makeSignals({ insights: makeInsights() }));
+        expect(r.score).toBeNull();
+        expect(r.gapReason).toMatch(/no \/insights telemetry/);
+      },
+    );
+    it("learning returns null with TRANSCRIPT_SCORER_NOT_IMPLEMENTED reason", () => {
+      const r = EXECUTION_SCORERS.learning(makeSignals({ insights: makeInsights() }));
+      expect(r.score).toBeNull();
+      expect(r.gapReason).toMatch(/transcript scan/);
+    });
+  });
 });
 
 describe("scoreAll", () => {

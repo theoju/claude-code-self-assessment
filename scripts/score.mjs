@@ -257,6 +257,14 @@ export const GAP_REASONS = {
   NO_MULTI_TASK: "No multi-task sessions in lookback window",
   NO_PLUGINS: "No plugins installed",
   NO_HOOK_FIRE_DATA: "~/.claude/hook-fires.jsonl absent — automation execution unmeasured (Claude Code does not emit this telemetry by default)",
+  // For dimensions where /insights data structurally cannot carry the signal
+  // (effort/model never logged to session-meta; memory tools never appear in
+  // tool_counts; terminal/IDE customization is purely client-side config).
+  // These render as "unmeasured" with a clear rationale instead of blank.
+  NO_TELEMETRY_FOR_DIMENSION: "no /insights telemetry exists for this dimension — workshop-only by nature",
+  // For dimensions where a signal exists in raw transcripts but no scorer is
+  // wired up yet (e.g. learning/explanatory output style).
+  TRANSCRIPT_SCORER_NOT_IMPLEMENTED: "scorer requires transcript scan; not yet implemented",
 };
 
 function unavailable(reason) {
@@ -428,6 +436,69 @@ export const EXECUTION_SCORERS = {
     }
     return { score, evidence, gaps, gapReason: null };
   }),
+
+  // Scheduled & remote work fires rarely (cron creation is one-time; remote
+  // pings are sporadic). Volume-per-session would wash the signal out — most
+  // users have ~0.005 invocations/session even when actively using these
+  // features. Use presence-and-intensity: 1 invocation in window = 50, ≥3 = 100.
+  scheduled: withGates({ requireSessions: false }, (s) => {
+    const { scheduledInvocationsTotal, sessionsAnalyzed } = s.insights;
+    if (sessionsAnalyzed === 0) return unavailable(GAP_REASONS.NO_SESSIONS);
+    if (scheduledInvocationsTotal === 0) {
+      return {
+        score: 0,
+        evidence: [`No scheduled-tool invocations in ${sessionsAnalyzed} sessions`],
+        gaps: ["No CronCreate/CronDelete/CronList/ScheduleWakeup invocations — recurring/autonomous workflows dormant"],
+        gapReason: null,
+      };
+    }
+    const score = clamp(Math.round(50 + Math.min(scheduledInvocationsTotal - 1, 2) * 25));
+    return {
+      score,
+      evidence: [
+        `Scheduled-tool invocations: ${scheduledInvocationsTotal} (CronCreate/CronDelete/CronList/ScheduleWakeup) across ${sessionsAnalyzed} sessions`,
+      ],
+      gaps: [],
+      gapReason: null,
+    };
+  }),
+
+  remote: withGates({ requireSessions: false }, (s) => {
+    const { remoteInvocationsTotal, sessionsAnalyzed } = s.insights;
+    if (sessionsAnalyzed === 0) return unavailable(GAP_REASONS.NO_SESSIONS);
+    if (remoteInvocationsTotal === 0) {
+      return {
+        score: 0,
+        evidence: [`No remote-tool invocations in ${sessionsAnalyzed} sessions`],
+        gaps: ["No RemoteTrigger/PushNotification/SendMessage invocations — mobile/remote workflows dormant"],
+        gapReason: null,
+      };
+    }
+    const score = clamp(Math.round(50 + Math.min(remoteInvocationsTotal - 1, 2) * 25));
+    return {
+      score,
+      evidence: [
+        `Remote-tool invocations: ${remoteInvocationsTotal} (RemoteTrigger/PushNotification/SendMessage) across ${sessionsAnalyzed} sessions`,
+      ],
+      gaps: [],
+      gapReason: null,
+    };
+  }),
+
+  // Workshop-only-by-nature dimensions. /insights data does not carry the
+  // relevant signal: model/effort are never written to session-meta;
+  // memory-related tools never appear in tool_counts; terminal/IDE
+  // customization (statusline, keybindings, themes) is pure client config.
+  // Surface the rationale per dimension so users see "unmeasured because X"
+  // instead of a blank radar vertex that looks identical to a forgotten scorer.
+  "model-effort": () => unavailable(GAP_REASONS.NO_TELEMETRY_FOR_DIMENSION),
+  memory: () => unavailable(GAP_REASONS.NO_TELEMETRY_FOR_DIMENSION),
+  customization: () => unavailable(GAP_REASONS.NO_TELEMETRY_FOR_DIMENSION),
+
+  // Could be measured by extending scanTranscriptModes() to capture the
+  // outputStyle field from transcript entries. Future iteration; for now
+  // surface the reason explicitly.
+  learning: () => unavailable(GAP_REASONS.TRANSCRIPT_SCORER_NOT_IMPLEMENTED),
 };
 
 export function scoreAll(rubric, signals) {

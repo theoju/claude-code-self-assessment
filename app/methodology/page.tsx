@@ -40,10 +40,11 @@ export default function MethodologyPage() {
         </p>
       </Section>
 
-      <Section title="Why Execution is sparse (6 of 12 dimensions)">
+      <Section title="What each Execution scorer measures (8 of 12 dimensions)">
         <p>
-          Not every dimension has a behavioral signal we can measure cheaply. The first wave covers
-          the six where session-level evidence exists in <span className="mono">/insights</span>:
+          Eight dimensions currently have execution scorers. Each formula is a deterministic
+          function over the signals named below — open <span className="mono">scripts/score.mjs</span>{" "}
+          to read the source.
         </p>
         <ul>
           <li>
@@ -75,11 +76,43 @@ export default function MethodologyPage() {
             <span className="mono">~/.claude/hook-fires.jsonl</span> is absent (Claude Code does not
             emit this telemetry by default).
           </li>
+          <li>
+            <strong>Scheduled &amp; Autonomous Workflows</strong> — presence-and-intensity over
+            CronCreate / CronDelete / CronList / ScheduleWakeup invocations. 1 invocation in window = 50,
+            ≥3 = 100. Volume-per-session would wash the signal out — these tools fire too rarely.
+          </li>
+          <li>
+            <strong>Remote &amp; Mobile</strong> — same presence-and-intensity curve over RemoteTrigger /
+            PushNotification / SendMessage invocations.
+          </li>
+        </ul>
+      </Section>
+
+      <Section title="Why the remaining 4 dimensions are unmeasured">
+        <p>
+          The other four dimensions render with no Execution vertex. Each has an explicit{" "}
+          <span className="mono">gapReason</span> visible on the per-dimension card so users can
+          tell <em>which</em> kind of unmeasured it is:
+        </p>
+        <ul>
+          <li>
+            <strong>Model &amp; Effort Tuning</strong>, <strong>Memory &amp; Context Management</strong>,
+            <strong> Terminal &amp; Customization</strong> — <em>not feasible from /insights</em>. The
+            relevant signals never reach the cooked telemetry: model/effort are not written to{" "}
+            <span className="mono">session-meta</span>; memory-related tools do not appear in{" "}
+            <span className="mono">tool_counts</span>; terminal/IDE customization (statusline, theme,
+            keybindings) is purely client-side configuration. Workshop-only is the honest position.
+          </li>
+          <li>
+            <strong>Learning &amp; Explanatory Mode</strong> — <em>scorer requires transcript scan; not
+            yet implemented</em>. The output style is detectable by extending{" "}
+            <span className="mono">scanTranscriptModes()</span> to capture the{" "}
+            <span className="mono">outputStyle</span> field per turn. Future iteration.
+          </li>
         </ul>
         <p>
-          The radar leaves the other six dimensions visually blank on the Execution polygon —{" "}
-          <em>unmeasured</em>, not <em>scored zero</em>. Filling them in is a future iteration once
-          the signal is reliable.
+          The radar shows what is honestly measured. <em>Unmeasured</em> is not <em>scored zero</em>,
+          and the per-dimension card always tells you which is which.
         </p>
       </Section>
 

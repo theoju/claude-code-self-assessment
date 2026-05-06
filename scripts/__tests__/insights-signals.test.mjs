@@ -120,6 +120,32 @@ describe("gatherInsightsSignals", () => {
     expect(r.multiTaskSessionCount).toBe(2);
   });
 
+  it("aggregates scheduled and remote tool invocations from tool_counts", async () => {
+    writeMeta(dir, "s1", {
+      start_time: TWENTY_DAYS_AGO,
+      tool_counts: {
+        Bash: 10,
+        CronCreate: 1,
+        ScheduleWakeup: 2,
+        RemoteTrigger: 3,
+        SendMessage: 1,
+      },
+    });
+    writeMeta(dir, "s2", {
+      start_time: TWENTY_DAYS_AGO,
+      tool_counts: {
+        CronDelete: 1,
+        CronList: 4,
+        PushNotification: 2,
+      },
+    });
+    const r = await gatherInsightsSignals({ claudeHome: dir, now: NOW, lookbackDays: 30 });
+    // Scheduled: 1 (CronCreate) + 2 (ScheduleWakeup) + 1 (CronDelete) + 4 (CronList) = 8
+    expect(r.scheduledInvocationsTotal).toBe(8);
+    // Remote: 3 (RemoteTrigger) + 1 (SendMessage) + 2 (PushNotification) = 6
+    expect(r.remoteInvocationsTotal).toBe(6);
+  });
+
   it("attributes plugin tool invocations from mcp__plugin_<name>__* prefix", async () => {
     writeMeta(dir, "s1", {
       start_time: TWENTY_DAYS_AGO,
