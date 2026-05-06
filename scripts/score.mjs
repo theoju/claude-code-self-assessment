@@ -513,6 +513,17 @@ export const EXECUTION_SCORERS = {
   }),
 };
 
+// Per-dim score is normalized to its target so hitting target = 100. Both
+// axes (Workshop and Execution) use the same per-dim target from the rubric,
+// making the radar's two polygons semantically comparable: a vertex at 100
+// means "you've hit the rubric's target for this dimension," regardless of
+// whether the target was 75 or 95 raw. Raw values are preserved as
+// `rawScore`/`executionRawScore` for transparency.
+function normalize(rawScore, target) {
+  if (typeof rawScore !== "number" || target <= 0) return null;
+  return clamp(Math.round((rawScore / target) * 100));
+}
+
 export function scoreAll(rubric, signals) {
   const now = new Date().toISOString();
   const scores = rubric.dimensions.map((d) => {
@@ -522,26 +533,36 @@ export function scoreAll(rubric, signals) {
       return {
         id: d.id,
         score: 0,
+        rawScore: 0,
         tier: "not-touched",
         evidence: [],
         gaps: [],
         executionScore: null,
+        executionRawScore: null,
         gapReason: null,
+        target: 100,
+        rawTarget: d.target,
+        weight: d.weight,
       };
     }
-    const { score, evidence, gaps } = fn(signals);
+    const { score: rawScore, evidence, gaps } = fn(signals);
     const ex = exFn ? exFn(signals) : { score: null, gapReason: null, evidence: [], gaps: [] };
+    const normScore = normalize(rawScore, d.target);
+    const normExScore = normalize(ex.score, d.target);
     return {
       id: d.id,
-      score,
-      tier: tierFor(score),
+      score: normScore,
+      rawScore,
+      tier: tierFor(normScore),
       evidence,
       gaps,
-      executionScore: ex.score,
+      executionScore: normExScore,
+      executionRawScore: ex.score,
       executionEvidence: ex.evidence,
       executionGaps: ex.gaps,
       gapReason: ex.gapReason,
-      target: d.target,
+      target: 100,
+      rawTarget: d.target,
       weight: d.weight,
     };
   });
@@ -550,12 +571,12 @@ export function scoreAll(rubric, signals) {
   const overall = Math.round(
     scores.reduce((sum, r) => sum + r.score * r.weight, 0) / totalW,
   );
-  const targetOverall = Math.round(
-    scores.reduce((sum, r) => sum + r.target * r.weight, 0) / totalW,
-  );
+  // Always 100 after normalization — kept in the output for backward-compat
+  // with consumers that look for the field.
+  const targetOverall = 100;
 
   // Execution overall is weight-normalized over dimensions that produced a
-  // score; null when no execution data exists at all.
+  // (normalized) score; null when no execution data exists at all.
   const exScored = scores.filter((r) => typeof r.executionScore === "number");
   const exTotalW = exScored.reduce((sum, r) => sum + r.weight, 0);
   const executionOverall = exScored.length === 0

@@ -16,19 +16,27 @@ export interface RubricDimension {
 
 export interface ScoredDimension {
   id: string;
+  // Normalized to per-dim target (rawScore / rawTarget × 100, clamped 0-100).
+  // 100 = "you've hit the rubric's target for this dimension."
   score: number;
+  rawScore: number;
   tier: Tier;
   evidence: string[];
   gaps: string[];
   executionScore: number | null;
+  executionRawScore: number | null;
   executionEvidence: string[];
   executionGaps: string[];
   gapReason: string | null;
 }
 
-export interface Dimension extends RubricDimension, ScoredDimension {
+export interface Dimension extends Omit<RubricDimension, "target">, ScoredDimension {
   trend: Trend;
   summary: string;
+  // After normalization, each dimension's effective target is 100. The raw
+  // rubric target is preserved as `rawTarget` for display annotation.
+  target: number;
+  rawTarget: number;
 }
 
 export type Grade = "A" | "B" | "C" | "D" | "F";
@@ -176,18 +184,22 @@ export async function loadAssessment(): Promise<Assessment> {
     return {
       capturedAt: new Date().toISOString(),
       overall: 0,
-      targetOverall: 0,
+      targetOverall: 100,
       executionOverall: null,
       insights: null,
       user: null,
       dimensions: rubric.dimensions.map((d) => ({
         ...d,
         score: 0,
+        rawScore: 0,
+        target: 100,
+        rawTarget: d.target,
         tier: "not-touched",
         trend: "new",
         evidence: ["No assessment.json yet — run /self-assessment or `node scripts/run-assessment.mjs`."],
         gaps: [],
         executionScore: null,
+        executionRawScore: null,
         executionEvidence: [],
         executionGaps: [],
         gapReason: null,
@@ -203,11 +215,15 @@ export async function loadAssessment(): Promise<Assessment> {
     return {
       ...d,
       score: s?.score ?? 0,
+      rawScore: s?.rawScore ?? 0,
+      target: 100,
+      rawTarget: d.target,
       tier: s ? tierFor(s.score) : "not-touched",
       trend: scored.trends[d.id] ?? "new",
       evidence: s?.evidence ?? [],
       gaps: s?.gaps ?? [],
       executionScore: s?.executionScore ?? null,
+      executionRawScore: s?.executionRawScore ?? null,
       executionEvidence: s?.executionEvidence ?? [],
       executionGaps: s?.executionGaps ?? [],
       gapReason: s?.gapReason ?? null,

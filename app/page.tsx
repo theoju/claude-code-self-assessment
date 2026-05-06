@@ -95,7 +95,7 @@ export default async function Page() {
                 label="Workshop"
                 tone="good"
                 score={assessment.overall}
-                denom={assessment.targetOverall}
+                denom={100}
                 sublabel="Config + surface area"
               />
               <SnapshotTile
@@ -250,7 +250,9 @@ export default async function Page() {
                   <span className="mono text-2xl font-semibold text-[color:var(--color-accent)]">
                     {d.score}
                   </span>
-                  <span className="text-sm text-[color:var(--color-mute)]">/ {d.target}</span>
+                  <span className="text-sm text-[color:var(--color-mute)]">
+                    / 100 <span className="text-xs">(raw {d.rawScore} of {d.rawTarget})</span>
+                  </span>
                 </div>
               </header>
 

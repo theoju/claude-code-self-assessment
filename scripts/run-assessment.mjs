@@ -176,11 +176,11 @@ async function main() {
 
   if (flags.has("--print") || !process.env.CI) {
     const exHeader = scored.executionOverall == null
-      ? "Execution    n/a (run /insights to populate)"
-      : `Execution ${scored.executionOverall} (observed practice)`;
+      ? "Execution    n/a / 100 (run /insights to populate)"
+      : `Execution ${scored.executionOverall} / 100 (observed practice)`;
     const lines = [
       `Claude Code Mastery — ${assessment.user || "you"}`,
-      `Workshop  ${assessment.overall} / ${assessment.targetOverall}`,
+      `Workshop  ${assessment.overall} / 100`,
       exHeader,
       ``,
       ...scored.scores.map((s) => {
@@ -189,7 +189,9 @@ async function main() {
         const ex = typeof s.executionScore === "number"
           ? ` · ex ${s.executionScore.toString().padStart(3)}`
           : "";
-        return `  ${s.score.toString().padStart(3)} / ${d.target}  ${trend}  ${d.title}${ex}`;
+        // Show normalized score with raw value as a small hint so the formula
+        // (raw / d.target × 100) is auditable from the CLI output.
+        return `  ${s.score.toString().padStart(3)} / 100  ${trend}  ${d.title} (raw ${s.rawScore}/${d.target})${ex}`;
       }),
     ];
     if (progression && progression.milestones.length > 0) {

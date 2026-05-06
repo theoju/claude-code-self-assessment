@@ -7,8 +7,10 @@ export function buildSlackMessage(assessment, rubric, config) {
   const { overall, targetOverall, scores, capturedAt } = assessment;
   const byId = Object.fromEntries(rubric.dimensions.map((d) => [d.id, d]));
 
+  // Scores are normalized to per-dim target (target effectively 100 after
+  // normalization). Gap is "distance to a perfect normalized 100."
   const topGaps = [...scores]
-    .map((s) => ({ ...s, title: byId[s.id].title, gap: byId[s.id].target - s.score, weight: byId[s.id].weight }))
+    .map((s) => ({ ...s, title: byId[s.id].title, gap: 100 - s.score, weight: byId[s.id].weight }))
     .filter((s) => s.gap >= 20)
     .sort((a, b) => b.weight * b.gap - a.weight * a.gap)
     .slice(0, 3);
@@ -27,7 +29,7 @@ export function buildSlackMessage(assessment, rubric, config) {
     channel: config?.slack?.channel,
     username: config?.slack?.username || "Claude Code Mastery",
     icon_emoji: config?.slack?.iconEmoji || ":chart_with_upwards_trend:",
-    text: `${name}'s Claude Code Mastery — ${overall}/${targetOverall} (${date})`,
+    text: `${name}'s Claude Code Mastery — ${overall}/100 (${date})`,
     blocks: [
       {
         type: "header",
@@ -36,7 +38,7 @@ export function buildSlackMessage(assessment, rubric, config) {
       {
         type: "section",
         fields: [
-          { type: "mrkdwn", text: `*Overall*\n${overall} / ${targetOverall}` },
+          { type: "mrkdwn", text: `*Overall*\n${overall} / 100` },
           { type: "mrkdwn", text: `*Date*\n${date}` },
         ],
       },
@@ -62,7 +64,7 @@ export function buildSlackMessage(assessment, rubric, config) {
                   .map((s) => {
                     const tipLinks = formatTipsForSlack(byId[s.id].borisTips, url);
                     const tail = tipLinks ? ` · Boris ${tipLinks}` : "";
-                    return `• ${s.title} — ${s.score}/${byId[s.id].target} (w×${s.weight})${tail}`;
+                    return `• ${s.title} — ${s.score}/100 _(raw target ${byId[s.id].target}, w×${s.weight})_${tail}`;
                   })
                   .join("\n"),
             },
