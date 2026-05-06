@@ -27,7 +27,7 @@ export function buildSlackMessage(assessment, rubric, config) {
     channel: config?.slack?.channel,
     username: config?.slack?.username || "Claude Code Mastery",
     icon_emoji: config?.slack?.iconEmoji || ":chart_with_upwards_trend:",
-    text: `${name}'s Claude Code Mastery — ${overall}/${targetOverall} (${date})`,
+    text: `${name}'s Claude Code Mastery — ${overall}/100 (${date})`,
     blocks: [
       {
         type: "header",
@@ -36,7 +36,7 @@ export function buildSlackMessage(assessment, rubric, config) {
       {
         type: "section",
         fields: [
-          { type: "mrkdwn", text: `*Overall*\n${overall} / ${targetOverall}` },
+          { type: "mrkdwn", text: `*Overall*\n${overall} / 100  _(target avg ${targetOverall})_` },
           { type: "mrkdwn", text: `*Date*\n${date}` },
         ],
       },
@@ -62,7 +62,7 @@ export function buildSlackMessage(assessment, rubric, config) {
                   .map((s) => {
                     const tipLinks = formatTipsForSlack(byId[s.id].borisTips, url);
                     const tail = tipLinks ? ` · Boris ${tipLinks}` : "";
-                    return `• ${s.title} — ${s.score}/${byId[s.id].target} (w×${s.weight})${tail}`;
+                    return `• ${s.title} — ${s.score}/100 _(target ${byId[s.id].target}, w×${s.weight})_${tail}`;
                   })
                   .join("\n"),
             },
