@@ -17,8 +17,10 @@ export const SCORERS = {
     const ev = [];
     const gaps = [];
     if (s.settings.hookTotalCount > 0) {
-      // Configured hooks that haven't fired in the lookback window get
-      // ≤30% credit — Boris's rule is "fires regularly," not "exists in JSON."
+      // Three-state hookFireCount: number > 0 → warm (full credit); 0 → cold
+      // (capped credit); null → telemetry absent (trust the config). The null
+      // path matters: Claude Code does not emit hook-fires.jsonl by default,
+      // so most users would otherwise be falsely cold-gated.
       const fireCount = s.insights?.hookFireCount;
       const cold = typeof fireCount === "number" && fireCount === 0;
       const credit = cold
@@ -254,6 +256,7 @@ export const GAP_REASONS = {
   NO_SESSIONS: "No sessions in lookback window",
   NO_MULTI_TASK: "No multi-task sessions in lookback window",
   NO_PLUGINS: "No plugins installed",
+  NO_HOOK_FIRE_DATA: "~/.claude/hook-fires.jsonl absent — automation execution unmeasured (Claude Code does not emit this telemetry by default)",
 };
 
 function unavailable(reason) {
@@ -279,22 +282,31 @@ function withGates(opts, fn) {
   };
 }
 
-// Coefficients chosen so a typical "good" practice rate maps to ~70-90.
-// e.g. 80% auto mode + 0% bypass → 80; 5% bypass on otherwise-clean → 70.
-// 5×=verification miss-rate amplifier: 10% combined miss rate → 50 score.
-// 200×=bypass penalty: any bypass usage drops Permissions sharply.
-// 50×=worktree bonus: half the weight of the primary subagent signal.
+// Coefficients calibrated so a typical "good" practice rate maps to ~70-90 and
+// a poor one tapers smoothly rather than crashing to zero. Audit notes:
+// - permissionsBypassPenalty=120 (was 200): soft asymmetry, bypass still
+//   weighted 1.2× auto. The earlier 2× ratio crushed mixed-adoption users
+//   (50% auto + 25% bypass → 0) which read as "complete failure" for someone
+//   actually mostly on auto.
+// - verificationDecayRate=8: replaces the linear miss-rate amplifier.
+//   score = 100 * exp(-missRate * 8) — smooth, asymptotes to 0, never
+//   negative pre-clamp. 10% miss → 45, 15% → 30, 20% → 20, 30% → 9.
+// - integrationsTargetCallsPerSession=2: replaces coverage formula
+//   (pluginsUsed/pluginsInstalled) which punished breadth. Volume-per-session
+//   instead — heavy contextual use of a few specialty plugins now scores
+//   high; installing 30 unused plugins no longer sinks the score.
+// - parallelWorktreeBonus=50: half the weight of the primary subagent signal.
 const COEFFS = {
   permissionsAutoWeight: 100,
-  permissionsBypassPenalty: 200,
-  verificationMissAmplifier: 500,
+  permissionsBypassPenalty: 120,
+  verificationDecayRate: 8,
   parallelSubagentWeight: 100,
   parallelWorktreeBonus: 50,
   planningRatioWeight: 100,
   automationHookWeight: 50,
   automationOwnAgentBonus: 20,
-  integrationsRatioWeight: 100,
-  integrationsGapThreshold: 3,
+  integrationsTargetCallsPerSession: 2,
+  integrationsCoverageGapThreshold: 3,
 };
 
 export const EXECUTION_SCORERS = {
@@ -328,9 +340,12 @@ export const EXECUTION_SCORERS = {
     const buggy = frictionCounts.buggy_code || 0;
     const wrong = frictionCounts.wrong_approach || 0;
     const missRate = (buggy + wrong) / sessionsAnalyzed;
-    const score = clamp(Math.round(100 - missRate * COEFFS.verificationMissAmplifier));
+    // Exponential decay: graceful taper, no negative pre-clamp. A 15% friction
+    // rate is normal sustained work; the prior 500× linear amplifier crushed
+    // it to 25, treating productive engineering as failure.
+    const score = clamp(Math.round(100 * Math.exp(-missRate * COEFFS.verificationDecayRate)));
     const evidence = [
-      `Verification miss rate: ${buggy} buggy_code + ${wrong} wrong_approach across ${sessionsAnalyzed} sessions (${pct(missRate * 100)}%)`,
+      `Verification friction rate: ${buggy} buggy_code + ${wrong} wrong_approach across ${sessionsAnalyzed} sessions (${pct(missRate * 100)}%)`,
     ];
     const gaps = [];
     if (buggy > 0) gaps.push(`${buggy} first-pass-bug events — Verification's whole point is catching these`);
@@ -368,6 +383,11 @@ export const EXECUTION_SCORERS = {
 
   automation: withGates({}, (s) => {
     const { hookFireCount, sessionsAnalyzed, subagentSessionCount } = s.insights;
+    // Null hookFireCount means ~/.claude/hook-fires.jsonl was absent — Claude
+    // Code does not emit this telemetry by default. Distinguish from a real
+    // zero (file present, no fires in window) so users without the logging
+    // hook see "unmeasured" rather than a hard zero.
+    if (hookFireCount === null) return unavailable(GAP_REASONS.NO_HOOK_FIRE_DATA);
     let score = Math.round((hookFireCount / sessionsAnalyzed) * COEFFS.automationHookWeight);
     if (s.personalAgents.length > 0 && subagentSessionCount > 0) score += COEFFS.automationOwnAgentBonus;
     const evidence = [`Hook fires: ${hookFireCount} across ${sessionsAnalyzed} sessions`];
@@ -381,14 +401,30 @@ export const EXECUTION_SCORERS = {
     const pluginsUsed = Object.keys(toolInvocationsByPlugin).length;
     const pluginsInstalled = s.plugins.length;
     if (pluginsInstalled === 0) return unavailable(GAP_REASONS.NO_PLUGINS);
-    const ratio = pluginsUsed / pluginsInstalled;
-    const score = clamp(Math.round(ratio * COEFFS.integrationsRatioWeight));
+    const { sessionsAnalyzed } = s.insights;
+    if (sessionsAnalyzed === 0) return unavailable(GAP_REASONS.NO_SESSIONS);
+    // Volume per session, not coverage. Specialty plugins (terraform, postman,
+    // figma, supabase) only fire in their context — penalizing the user for
+    // having installed them is geometrically wrong. Heavy contextual use of a
+    // few plugins is the engaged pattern; rate against a calibration target
+    // of 2 calls/session caps it linearly to 100.
+    const totalPluginCalls = Object.values(toolInvocationsByPlugin).reduce(
+      (sum, n) => sum + (typeof n === "number" ? n : 0),
+      0,
+    );
+    const callsPerSession = totalPluginCalls / sessionsAnalyzed;
+    const score = clamp(
+      Math.round(Math.min(callsPerSession / COEFFS.integrationsTargetCallsPerSession, 1) * 100),
+    );
     const evidence = [
-      `Plugin tool usage: ${pluginsUsed}/${pluginsInstalled} installed plugins fired tool calls`,
+      `Plugin tool calls: ${totalPluginCalls} across ${sessionsAnalyzed} sessions (${pct(callsPerSession)} per session, target ${COEFFS.integrationsTargetCallsPerSession})`,
+      `${pluginsUsed}/${pluginsInstalled} installed plugins fired calls in window`,
     ];
     const gaps = [];
-    if (pluginsInstalled - pluginsUsed > COEFFS.integrationsGapThreshold) {
-      gaps.push(`${pluginsInstalled - pluginsUsed} plugins installed but no recent tool invocations — gated`);
+    if (pluginsInstalled - pluginsUsed > COEFFS.integrationsCoverageGapThreshold) {
+      gaps.push(
+        `${pluginsInstalled - pluginsUsed} plugins installed but idle in window — review whether some are deadweight (informational; doesn't reduce score)`,
+      );
     }
     return { score, evidence, gaps, gapReason: null };
   }),

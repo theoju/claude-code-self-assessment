@@ -310,6 +310,23 @@ describe("EXECUTION_SCORERS", () => {
       expect(bad.score).toBeLessThan(r.score);
       expect(bad.gaps.join(" ")).toMatch(/bypassPermissions/);
     });
+    it("uses soft 1.2× asymmetry — majority-auto users with some bypass don't score zero", () => {
+      // A user at 50% auto + 25% bypass scored 0 under the old 2× asymmetry.
+      // The new 1.2× ratio surfaces the trend honestly: still well below the
+      // 90/0 score (=90) but no longer reads as complete failure.
+      const mixed = EXECUTION_SCORERS.permissions(
+        makeSignals({
+          insights: makeInsights({
+            transcriptsScanned: true,
+            sessionsAnalyzed: 100,
+            autoModeSessionCount: 50,
+            bypassPermissionsSessionCount: 25,
+          }),
+        }),
+      );
+      // 50/100*100 - 25/100*120 = 50 - 30 = 20
+      expect(mixed.score).toBe(20);
+    });
   });
 
   describe("verification", () => {
@@ -332,6 +349,32 @@ describe("EXECUTION_SCORERS", () => {
       expect(clean.score).toBe(100);
       expect(messy.score).toBeLessThan(clean.score);
       expect(messy.gaps.join(" ")).toMatch(/20 first-pass-bug/);
+    });
+    it("uses exponential decay — never goes negative pre-clamp, even at high friction rates", () => {
+      // Old linear amplifier produced negative scores at >20% miss rate, then
+      // clamped to 0. New exponential curve asymptotes to 0 smoothly — a 30%
+      // miss rate scores ~9, not clamped 0, so the radar still distinguishes
+      // "really bad" from "completely off the rails."
+      const moderate = EXECUTION_SCORERS.verification(
+        makeSignals({
+          insights: makeInsights({
+            sessionsAnalyzed: 100,
+            frictionCounts: { buggy_code: 10, wrong_approach: 5 }, // 15%
+          }),
+        }),
+      );
+      const heavy = EXECUTION_SCORERS.verification(
+        makeSignals({
+          insights: makeInsights({
+            sessionsAnalyzed: 100,
+            frictionCounts: { buggy_code: 20, wrong_approach: 10 }, // 30%
+          }),
+        }),
+      );
+      // exp(-0.15*8)*100 = 30; exp(-0.30*8)*100 = 9
+      expect(moderate.score).toBe(30);
+      expect(heavy.score).toBe(9);
+      expect(heavy.score).toBeGreaterThan(0);
     });
   });
 
@@ -414,6 +457,18 @@ describe("EXECUTION_SCORERS", () => {
       );
       expect(r.score).toBe(20);
     });
+    it("returns unavailable when hookFireCount is null (file missing, not zero fires)", () => {
+      // Distinguishes "Claude Code didn't write hook-fires.jsonl" (null) from
+      // "the file exists but no fires happened in window" (0). The latter is a
+      // legitimate score of 0; the former must surface as unmeasured.
+      const r = EXECUTION_SCORERS.automation(
+        makeSignals({
+          insights: makeInsights({ sessionsAnalyzed: 100, hookFireCount: null }),
+        }),
+      );
+      expect(r.score).toBeNull();
+      expect(r.gapReason).toMatch(/hook-fires\.jsonl absent/);
+    });
   });
 
   describe("integrations", () => {
@@ -423,15 +478,48 @@ describe("EXECUTION_SCORERS", () => {
       );
       expect(r.score).toBeNull();
     });
-    it("scores ratio of installed-to-actually-used plugins", () => {
-      const r = EXECUTION_SCORERS.integrations(
+    it("scores volume per session, not coverage of installed plugins", () => {
+      // 4 plugins installed, only 2 fired but with heavy use: 200 calls/100
+      // sessions = 2/session → exactly the calibration target → score 100.
+      const heavyContextual = EXECUTION_SCORERS.integrations(
         makeSignals({
           plugins: ["a@1", "b@1", "c@1", "d@1"],
-          insights: makeInsights({ toolInvocationsByPlugin: { a: 10, b: 5 } }),
+          insights: makeInsights({
+            sessionsAnalyzed: 100,
+            toolInvocationsByPlugin: { a: 150, b: 50 },
+          }),
         }),
       );
-      expect(r.score).toBe(50);
-      expect(r.evidence.join(" ")).toMatch(/2\/4 installed plugins/);
+      expect(heavyContextual.score).toBe(100);
+      // Same coverage (2/4) but only 20 calls total — score reflects low volume.
+      const lightCoverage = EXECUTION_SCORERS.integrations(
+        makeSignals({
+          plugins: ["a@1", "b@1", "c@1", "d@1"],
+          insights: makeInsights({
+            sessionsAnalyzed: 100,
+            toolInvocationsByPlugin: { a: 15, b: 5 },
+          }),
+        }),
+      );
+      expect(lightCoverage.score).toBe(10); // 20/100/2 = 0.10 → 10
+      expect(lightCoverage.evidence.join(" ")).toMatch(/0\.2 per session/);
+    });
+    it("treats idle plugins as informational, not score-reducing", () => {
+      // 30 plugins installed, 1 fires heavily — under the old coverage formula
+      // this would score 3 (1/30); new formula focuses on volume, no penalty
+      // for breadth of installed-but-idle.
+      const r = EXECUTION_SCORERS.integrations(
+        makeSignals({
+          plugins: Array.from({ length: 30 }, (_, i) => `p${i}@1`),
+          insights: makeInsights({
+            sessionsAnalyzed: 100,
+            toolInvocationsByPlugin: { atlassian: 200 },
+          }),
+        }),
+      );
+      expect(r.score).toBe(100);
+      expect(r.gaps.join(" ")).toMatch(/29 plugins installed but idle/);
+      expect(r.gaps.join(" ")).toMatch(/informational/);
     });
   });
 });

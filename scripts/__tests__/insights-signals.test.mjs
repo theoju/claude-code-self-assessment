@@ -155,8 +155,22 @@ describe("gatherInsightsSignals", () => {
     expect(r.hookFiresByEvent).toEqual({ PostToolUse: 1, Stop: 1 });
   });
 
-  it("returns hookFireCount=0 when hook-fires.jsonl absent", async () => {
+  it("returns hookFireCount=null when hook-fires.jsonl absent (distinguish from empty file)", async () => {
+    // Claude Code does not emit hook-fires.jsonl by default. Returning null
+    // (not 0) lets downstream scorers route to "unmeasured" instead of
+    // collapsing to a hard zero on every user without the logging hook.
     writeMeta(dir, "s1", { start_time: TWENTY_DAYS_AGO });
+    const r = await gatherInsightsSignals({ claudeHome: dir, now: NOW, lookbackDays: 30 });
+    expect(r.hookFireCount).toBeNull();
+    expect(r.hookFiresByEvent).toEqual({});
+  });
+
+  it("returns hookFireCount=0 when hook-fires.jsonl exists but has no in-window entries", async () => {
+    // Distinct from null above: file exists, telemetry is wired, but nothing
+    // fired in the lookback. This is a real zero — automation execution
+    // legitimately scores 0, not "unmeasured".
+    writeMeta(dir, "s1", { start_time: TWENTY_DAYS_AGO });
+    writeFileSync(join(dir, "hook-fires.jsonl"), ""); // empty file
     const r = await gatherInsightsSignals({ claudeHome: dir, now: NOW, lookbackDays: 30 });
     expect(r.hookFireCount).toBe(0);
     expect(r.hookFiresByEvent).toEqual({});

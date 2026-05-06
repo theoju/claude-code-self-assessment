@@ -23,9 +23,13 @@ function parsePluginName(toolName) {
   return m ? m[1].toLowerCase() : null;
 }
 
+// Returns total: null when the file is absent (no telemetry source), 0 when
+// the file exists but is empty (telemetry available, no fires in window).
+// Downstream scorers must treat null as "unmeasured" — not "scored zero" —
+// so users without hook-fire logging don't get a hard zero on automation.
 async function readHookFires(claudeHome, cutoff) {
   const path = join(claudeHome, "hook-fires.jsonl");
-  if (!existsSync(path)) return { total: 0, byEvent: {} };
+  if (!existsSync(path)) return { total: null, byEvent: {} };
   let total = 0;
   const byEvent = {};
   const rl = createInterface({ input: createReadStream(path, { encoding: "utf8" }) });

@@ -46,17 +46,77 @@ export default function MethodologyPage() {
           the six where session-level evidence exists in <span className="mono">/insights</span>:
         </p>
         <ul>
-          <li><strong>Permissions &amp; Safety</strong> — auto-mode ratio, bypass penalty</li>
-          <li><strong>Parallel Execution &amp; Subagents</strong> — subagent dispatch ratio, worktree usage (when transcripts opted in)</li>
-          <li><strong>Planning &amp; Delegation</strong> — plan mode adoption within multi-task sessions</li>
-          <li><strong>Integrations</strong> — share of installed plugins that actually fired tool calls</li>
-          <li><strong>Verification</strong> — friction-event miss rate (buggy_code + wrong_approach per session)</li>
-          <li><strong>Automation &amp; Hooks</strong> — hook fires per session plus a bonus when personal agents are in use</li>
+          <li>
+            <strong>Permissions &amp; Safety</strong> — <span className="mono">autoRatio × 100 − bypassRatio × 120</span>.
+            Soft 1.2× asymmetry: auto is preferred, but occasional bypass doesn&apos;t crush a
+            mostly-auto workflow.
+          </li>
+          <li>
+            <strong>Parallel Execution &amp; Subagents</strong> — subagent dispatch ratio (weighted 2×)
+            plus worktree usage when transcripts are opted in.
+          </li>
+          <li>
+            <strong>Planning &amp; Delegation</strong> — plan mode adoption within multi-task sessions
+            (linear; gated when no multi-task sessions exist).
+          </li>
+          <li>
+            <strong>Integrations</strong> — <span className="mono">min(plugin_calls / sessions / 2, 1) × 100</span>.
+            Volume-per-session, not coverage. Specialty plugins that only fire in their context aren&apos;t
+            penalized; idle plugins surface as informational evidence instead of dragging the score.
+          </li>
+          <li>
+            <strong>Verification</strong> — <span className="mono">100 × exp(−missRate × 8)</span>.
+            Smooth exponential decay over friction events (buggy_code + wrong_approach) per session.
+            Never goes negative; a 15% miss rate ≈ 30, 30% ≈ 9.
+          </li>
+          <li>
+            <strong>Automation &amp; Hooks</strong> — hook fires per session plus a bonus when personal
+            agents are in use. Routes to <em>unmeasured</em> when{" "}
+            <span className="mono">~/.claude/hook-fires.jsonl</span> is absent (Claude Code does not
+            emit this telemetry by default).
+          </li>
         </ul>
         <p>
           The radar leaves the other six dimensions visually blank on the Execution polygon —{" "}
           <em>unmeasured</em>, not <em>scored zero</em>. Filling them in is a future iteration once
           the signal is reliable.
+        </p>
+      </Section>
+
+      <Section title="Calibration philosophy">
+        <p>
+          Execution scoring rewards <em>directional progress</em>, not perfection. Earlier iterations
+          used linear amplifiers and coverage ratios that produced near-zero scores for engineers
+          who were actively improving — discouraging the very behavior the dashboard is meant to
+          encourage. The current formulas follow three principles:
+        </p>
+        <ul>
+          <li>
+            <strong>Smooth decay over linear amplification.</strong> Verification uses{" "}
+            <span className="mono">exp(−missRate × 8)</span> instead of{" "}
+            <span className="mono">100 − missRate × 500</span>. A productive engineer with a 15%
+            friction rate now scores 30 instead of 25, and the curve never drops below 0 pre-clamp.
+            Friction events are partly &quot;Claude caught a bug&quot; — not pure failures — so the
+            penalty saturates.
+          </li>
+          <li>
+            <strong>Soft asymmetry over crushing penalties.</strong> Permissions weights bypass at
+            1.2× auto rather than 2×. The asymmetry is preserved (auto strictly preferred) but a
+            50/50 mix scores ~10 instead of −10, so incremental progress moves the needle.
+          </li>
+          <li>
+            <strong>Volume over coverage.</strong> Integrations measures plugin calls per session,
+            not the share of installed plugins that fired. Hoarding specialty plugins doesn&apos;t
+            inflate the score; using your installed plugins regularly does. Idle plugins are reported
+            as informational evidence, not as a denominator that punishes breadth.
+          </li>
+        </ul>
+        <p>
+          The goal is honest scoring that defends itself for any user — not just the developer who
+          tuned it. If a formula produces a degenerate score because a data source is structurally
+          absent (rather than because behavior is low), the scorer routes to{" "}
+          <em>unmeasured</em> via <span className="mono">gapReason</span> instead of returning a
+          numeric zero.
         </p>
       </Section>
 
@@ -96,6 +156,7 @@ export default function MethodologyPage() {
           <li><em>No /insights data yet</em> — <span className="mono">~/.claude/usage-data</span> is absent (fresh install)</li>
           <li><em>Insufficient session count</em> — fewer sessions in the lookback window than the dimension requires</li>
           <li><em>Transcript opt-in required</em> — the dimension needs raw transcripts and the flag is off</li>
+          <li><em>Hook-fire telemetry absent</em> — <span className="mono">~/.claude/hook-fires.jsonl</span> is not emitted by Claude Code by default; Automation execution is unmeasured rather than scored 0</li>
         </ul>
       </Section>
 
