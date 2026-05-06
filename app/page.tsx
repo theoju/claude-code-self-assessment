@@ -83,6 +83,27 @@ export default async function Page() {
               <span className="w-3 h-0.5 bg-[color:var(--color-accent)]" /> Target
             </span>
           </div>
+          {assessment.executionOverall != null && (() => {
+            const unmeasured = dims.filter((d) => d.executionScore == null);
+            if (unmeasured.length === 0) return null;
+            const labels = unmeasured
+              .map((d) => d.title.split(" — ")[0].split("&")[0].trim())
+              .join(" · ");
+            return (
+              <div className="text-[11px] italic text-[color:var(--color-mute)] mt-2 text-center max-w-2xl mx-auto opacity-75">
+                <sup className="not-italic mr-1">1</sup>
+                Execution unmeasured ({unmeasured.length} dim{unmeasured.length === 1 ? "" : "s"}):{" "}
+                {labels}
+                {" "}—{" "}
+                <Link
+                  href="/methodology"
+                  className="underline decoration-dotted underline-offset-2 hover:text-[color:var(--color-accent)]"
+                >
+                  why?
+                </Link>
+              </div>
+            );
+          })()}
         </div>
 
         <div className="col-span-12 md:col-span-5 flex flex-col justify-center">

@@ -84,6 +84,31 @@ describe("RadarChart", () => {
     expect(container.querySelectorAll("circle").length).toBe(5 + 4 + 3);
   });
 
+  it("italicizes labels and appends a footnote marker for unmeasured-execution dims", () => {
+    const dims = [
+      { ...dim("a", 60), executionScore: 30 },
+      { ...dim("b", 70), executionScore: null }, // unmeasured
+      { ...dim("c", 80), executionScore: 40 },
+      { ...dim("d", 50), executionScore: null }, // unmeasured
+    ];
+    const { container } = render(<RadarChart dimensions={dims} showExecution />);
+    const italicLabels = Array.from(container.querySelectorAll("text")).filter(
+      (t) => t.getAttribute("font-style") === "italic",
+    );
+    expect(italicLabels.length).toBe(2);
+    // Each italic label should contain the ¹ marker as a tspan.
+    for (const t of italicLabels) {
+      expect(t.querySelector("tspan")?.textContent).toBe("¹");
+    }
+    // Without showExecution, no italic markers regardless of executionScore.
+    const { container: c2 } = render(<RadarChart dimensions={dims} />);
+    expect(
+      Array.from(c2.querySelectorAll("text")).filter(
+        (t) => t.getAttribute("font-style") === "italic",
+      ).length,
+    ).toBe(0);
+  });
+
   it("omits the execution polygon when fewer than 2 dimensions have an execution score", () => {
     const dims = [
       { ...dim("a", 60), executionScore: 30 },

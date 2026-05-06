@@ -114,6 +114,10 @@ export default function RadarChart({ dimensions, size = 480, showExecution = fal
         const anchor =
           Math.abs(Math.cos(angle)) < 0.2 ? "middle" : Math.cos(angle) > 0 ? "start" : "end";
         const label = d.title.split(" — ")[0].split("&")[0].trim();
+        // When showExecution is on but this dim has no measurement, mark the
+        // label as unmeasured (italic + dimmed) and append a ¹ superscript
+        // pointing at the footnote rendered next to the radar legend.
+        const unmeasured = showExecution && d.executionScore == null;
         return (
           <text
             key={`lbl-${d.id}`}
@@ -121,10 +125,17 @@ export default function RadarChart({ dimensions, size = 480, showExecution = fal
             y={ly}
             fontSize={11}
             fill="var(--color-mute)"
+            fontStyle={unmeasured ? "italic" : undefined}
+            opacity={unmeasured ? 0.65 : 1}
             textAnchor={anchor}
             dominantBaseline="middle"
           >
             {label}
+            {unmeasured ? (
+              <tspan dx={2} dy={-3} fontSize={9}>
+                ¹
+              </tspan>
+            ) : null}
           </text>
         );
       })}
