@@ -6,6 +6,8 @@ mastery rubric. Reads signals directly from `~/.claude/` — no telemetry, no
 external service, nothing leaves your machine unless you enable the Slack
 notifier.
 
+![Dashboard overview — two-axis scoring (Platform Setup vs Execution), 12-dimension radar, milestone progression, and the headline read.](docs/images/mastery-dashboard.png)
+
 - **Two axes, not one composite**: **Platform Setup** (how `~/.claude/` is
   configured) and **Execution** (whether you actually use it, derived from
   `~/.claude/usage-data/`). The diagnostic case is a high Δ — every tool
