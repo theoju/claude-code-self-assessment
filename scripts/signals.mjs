@@ -56,30 +56,25 @@ async function filterSubstantive(dir, names) {
   return out;
 }
 
+async function isSubstantiveSkill(skillPath) {
+  let entries = [];
+  try {
+    const st = await stat(skillPath);
+    if (st.isFile()) return isSubstantive(skillPath);
+    entries = await readdir(skillPath);
+  } catch {
+    return false;
+  }
+  for (const e of entries) {
+    if (e.endsWith(".md") && (await isSubstantive(join(skillPath, e)))) return true;
+  }
+  return false;
+}
+
 async function filterSubstantiveSkillDirs(dir, names) {
   const out = [];
   for (const n of names) {
-    const skillDir = join(dir, n);
-    let entries = [];
-    try {
-      const st = await stat(skillDir);
-      if (st.isFile()) {
-        if (await isSubstantive(skillDir)) out.push(n);
-        continue;
-      }
-      entries = await readdir(skillDir);
-    } catch {
-      continue;
-    }
-    let any = false;
-    for (const e of entries) {
-      if (!e.endsWith(".md")) continue;
-      if (await isSubstantive(join(skillDir, e))) {
-        any = true;
-        break;
-      }
-    }
-    if (any) out.push(n);
+    if (await isSubstantiveSkill(join(dir, n))) out.push(n);
   }
   return out;
 }
