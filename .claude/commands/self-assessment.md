@@ -17,9 +17,9 @@ Run the deterministic assessment pipeline. Scoring reads real signals from the c
    This writes `app/data/assessment.json` (current) and appends to `app/data/assessment-history.json` (trend series, gitignored). If the Slack webhook is configured and `slack.enabled: true`, it also posts a summary.
 
 2. Report back to the user with:
-   - The overall score and target.
+   - **Platform Setup** and **Execution** scores (each out of 100) and the Δ between them. The diagnostic case is a high Δ — every tool installed, none of them fired.
    - Which dimensions improved (↗) or slipped (↘) since the previous snapshot.
-   - The top 3 priority actions (weight × deficit).
+   - The top 3 priority actions (weight × deficit). Note which side of the deficit they fall on (Platform Setup vs Execution).
    - CLAUDE.md health summary (if any `claudeMd` targets are configured): aggregate stats only — total targets, files scanned, average score/grade, and grade distribution. **No project names, paths, or per-file issues** are included so the report is safe to share.
    - The dashboard URL from `assessment.config.json#publish.publicUrl` — or note that the local dev server is running at http://localhost:3737 if they started it with `npm run dev`.
 
@@ -49,9 +49,11 @@ These flags override `scoring.*` in `assessment.config.json` for a single run, s
 If you also want the rich narrative output of the built-in `/insights` command rendered alongside the dashboard's scoring:
 
 1. Run `/insights` in Claude Code.
-2. Copy the output text.
-3. Either paste it into `app/data/insights-narrative.md` (created if missing) or pipe it via `pbpaste | npm run import-insights`.
-4. Refresh the dashboard.
+2. File the markdown summary using whichever path you prefer:
+   - `/refresh-insights` — slash command that writes the summary verbatim from the current session's output (thin wrapper, never auto-runs `/insights`).
+   - `pbpaste | npm run import-insights` — pipe the macOS clipboard.
+   - Paste manually into `app/data/insights-narrative.md`.
+3. Refresh the dashboard.
 
 The file is gitignored, never uploaded, never posted to Slack, never auto-captured. The dashboard renders it locally in a clearly-attributed section. To remove it, delete the file.
 

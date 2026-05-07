@@ -6,12 +6,18 @@ mastery rubric. Reads signals directly from `~/.claude/` — no telemetry, no
 external service, nothing leaves your machine unless you enable the Slack
 notifier.
 
+- **Two axes, not one composite**: **Platform Setup** (how `~/.claude/` is
+  configured) and **Execution** (whether you actually use it, derived from
+  `~/.claude/usage-data/`). The diagnostic case is a high Δ — every tool
+  installed, none of them fired.
 - **12 dimensions**: automation, permissions, model/effort tuning, parallelism,
   verification, memory, planning, integrations, customization, scheduled work,
-  remote/mobile, and learning.
-- **Deterministic scoring**: signals → rules → number. The same config always
-  produces the same score, so trend arrows (↗/↘/→) reflect real changes rather
-  than vibes.
+  remote/mobile, and learning. Each scored independently on each axis where
+  data exists; the radar marks honestly-unmeasured Execution dims with italic
+  labels and a footnote so they're not silently zero.
+- **Deterministic scoring**: signals → rules → number, normalized per-dimension
+  to a 100-point scale (`raw / target × 100`). Trend arrows (↗/↘/→) reflect
+  real config changes, not vibes.
 - **Trend history**: each run appends to `app/data/assessment-history.json`
   (gitignored). After two runs you get meaningful directionality.
 - **Optional Slack ping** at 07:15 daily via macOS `launchd`. The dashboard
@@ -19,11 +25,12 @@ notifier.
 
 ```
 Claude Code Mastery — Engineer
-Overall 66 / 89
+Platform Setup  78 / 100
+Execution       63 / 100 (observed practice)
 
-   33 / 90  ↗  Automation — Hooks, Commands, Agents
-   40 / 85  →  Permissions & Safety
-   70 / 90  →  Model & Effort Tuning
+   46 / 100  →  Automation — Hooks, Commands, Agents (raw 41/90)
+   65 / 100  →  Permissions & Safety (raw 55/85) · ex  24
+   78 / 100  →  Model & Effort Tuning (raw 70/90)
    …
 ```
 
@@ -42,31 +49,44 @@ That's the whole loop. Everything else is optional polish.
 
 ## How scoring works
 
-1. **`scripts/signals.mjs`** reads your local Claude Code state:
-   `~/.claude/settings.json` (effort level, hooks, permissions, enabled
-   plugins), the contents of `~/.claude/agents`, `~/.claude/commands`,
-   `~/.claude/skills`, `~/.claude/plans`, and MEMORY.md files under
-   `~/.claude/projects/*/memory`.
-2. **`scripts/score.mjs`** applies deterministic rules per dimension. Each rule
-   is a small function that returns `{score, evidence, gaps}`. Open the file —
-   every number is traceable to a signal.
-3. **`scripts/run-assessment.mjs`** orchestrates: signals → score → write
+1. **`scripts/signals.mjs`** reads your local Claude Code state for the
+   *Platform Setup* axis: `~/.claude/settings.json` (effort level, hooks,
+   permissions, enabled plugins), the contents of `~/.claude/agents`,
+   `~/.claude/commands`, `~/.claude/skills`, `~/.claude/plans`, and MEMORY.md
+   files under `~/.claude/projects/*/memory`.
+2. **`scripts/insights-signals.mjs`** + **`scripts/_usage-data.mjs`** read the
+   *Execution* axis from `~/.claude/usage-data/{facets,session-meta}/*.json`
+   (the same cooked telemetry `/insights` reads). Optionally scans transcripts
+   under `~/.claude/projects/*/*.jsonl` for the `★ Insight` banner (learning
+   mode), worktree usage, and skill attribution.
+3. **`scripts/score.mjs`** applies deterministic rules per dimension and
+   normalizes each to 100 (`raw / target × 100`). Nine of twelve dims have
+   Execution scorers; the remaining three are routed to *unmeasured* via
+   `gapReason` rather than scored zero. Every number is traceable to a signal.
+4. **`scripts/run-assessment.mjs`** orchestrates: signals → score → write
    `app/data/assessment.json`, append `app/data/assessment-history.json`, post
    to Slack if configured.
-4. The Next.js app reads `app/data/rubric.json` (static metadata) + the
-   generated `assessment.json` and renders the dashboard.
+5. The Next.js app reads `app/data/rubric.json` (static metadata) + the
+   generated `assessment.json` and renders the dashboard. See
+   [`/methodology`](http://localhost:3737/methodology) for the formula
+   breakdown of every scorer.
 
 To retune targets or add a dimension, edit `app/data/rubric.json` and add a
 matching scorer in `scripts/score.mjs`. Frontend picks it up automatically.
 
-## `/self-assessment` slash command
+## Slash commands
 
-Ships in `.claude/commands/self-assessment.md`, so `/self-assessment` is
-available in any Claude Code session inside this repo. It calls
-`npm run assess` and reports back the overall score, trend deltas, and the top
-three weight×deficit priority actions.
+Two slash commands ship in `.claude/commands/`:
 
-Treat it like a morning standup with your toolchain.
+- **`/self-assessment`** — calls `npm run assess` and reports back the
+  Platform Setup + Execution scores, trend deltas, and the top three
+  weight×deficit priority actions. Accepts the same flags as the script
+  (`--include-transcripts`, `--insights-lookback N`, `--no-slack`, etc).
+  Treat it like a morning standup with your toolchain.
+- **`/refresh-insights`** — files the markdown summary from a `/insights`
+  run in the current session into `app/data/insights-narrative.md`. Thin
+  convenience wrapper around `pbpaste | npm run import-insights`; never
+  invokes `/insights` itself, never paraphrases.
 
 ## Slack notifier (optional)
 
@@ -214,21 +234,25 @@ posture as reading the JSON telemetry: a static file Claude Code wrote to
 your machine, served locally for your own consumption.
 
 **2. Inline markdown summary** (optional). For a condensed narrative
-rendered inline, paste markdown into `app/data/insights-narrative.md`:
+rendered inline, file it into `app/data/insights-narrative.md` via any of
+three user-driven paths:
 
 ```bash
 # In Claude Code:
 /insights
-# Then for inline rendering:
-pbpaste | npm run import-insights   # macOS clipboard
+# Then pick one:
+/refresh-insights                   # slash command — Claude files the markdown verbatim
+pbpaste | npm run import-insights   # pipe the macOS clipboard
 # or paste into app/data/insights-narrative.md directly
 ```
 
 The markdown file is gitignored, rendered locally, never uploaded, and
-never posted to Slack. The HTML report is served only on localhost via the
-local Next route. The dashboard never invokes `/insights` itself, never
-captures API output, and never persists anything beyond the files you
-choose to create.
+never posted to Slack. `/refresh-insights` is a thin convenience wrapper —
+it only files output that `/insights` already produced in your session,
+never invokes `/insights` on its own, and won't paraphrase or augment the
+text. The HTML report is served only on localhost via the local Next
+route. The dashboard never invokes `/insights` itself, never captures API
+output, and never persists anything beyond the files you choose to create.
 
 ## Attribution & relationship to Claude Code
 
