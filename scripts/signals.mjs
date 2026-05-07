@@ -1,7 +1,52 @@
 import { existsSync } from "node:fs";
+import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { claudeHome, safeReadJson, safeReaddir } from "./_fs-utils.mjs";
 import { gatherInsightsSignals } from "./insights-signals.mjs";
+
+// Action verbs that indicate the file actually tells Claude what to DO.
+// A skill/command/agent that doesn't say "run", "use", "prefer", etc. is just
+// decoration — anti-gaming defense against "spray empty stubs to inflate score".
+const ACTION_VERBS =
+  /\b(run|use|prefer|avoid|never|always|don'?t|do not|invoke|trigger|check|verify|build|create|skip|stop|launch|delegate|read|write|edit|fetch|search|generate|format|test|deploy|commit|push|review|update|remove)\b/i;
+const MIN_SUBSTANTIVE_CHARS = 50;
+
+/**
+ * Strip frontmatter, headings, code-fence markers, and bullet markers so we
+ * can measure how much *body* prose a file actually has. Empty stubs and
+ * heading-only files collapse to near-zero characters here.
+ */
+function stripBoilerplate(content) {
+  return content
+    .replace(/^---[\s\S]*?---\s*/m, "")
+    .replace(/^\+\+\+[\s\S]*?\+\+\+\s*/m, "")
+    .replace(/^#{1,6}\s.*$/gm, "")
+    .replace(/^\s*[-*]\s+/gm, "")
+    .replace(/^\s*\d+\.\s+/gm, "")
+    .replace(/^```.*$/gm, "")
+    .replace(/\bTODO\b.*$/gim, "")
+    .replace(/\bFIXME\b.*$/gim, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+/**
+ * True if the file at `path` has ≥50 chars of non-boilerplate body AND at
+ * least one action verb. Used to count only substantive skills/commands/
+ * agents/plans — empty stubs no longer inflate the score.
+ */
+export async function isSubstantive(path) {
+  let content;
+  try {
+    content = await readFile(path, "utf8");
+  } catch {
+    return false;
+  }
+  const body = stripBoilerplate(content);
+  if (body.length < MIN_SUBSTANTIVE_CHARS) return false;
+  if (!ACTION_VERBS.test(body)) return false;
+  return true;
+}
 
 async function listProjectMemoryFiles() {
   const base = join(claudeHome(), "projects");
