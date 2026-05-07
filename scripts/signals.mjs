@@ -1,27 +1,7 @@
-import { readFile, readdir, stat } from "node:fs/promises";
 import { existsSync } from "node:fs";
-import { homedir } from "node:os";
 import { join } from "node:path";
-
-function claudeHome() {
-  return process.env.CLAUDE_HOME || join(homedir(), ".claude");
-}
-
-async function safeReadJson(path) {
-  try {
-    return JSON.parse(await readFile(path, "utf8"));
-  } catch {
-    return null;
-  }
-}
-
-async function safeReaddir(path) {
-  try {
-    return await readdir(path);
-  } catch {
-    return [];
-  }
-}
+import { claudeHome, safeReadJson, safeReaddir } from "./_fs-utils.mjs";
+import { gatherInsightsSignals } from "./insights-signals.mjs";
 
 async function listProjectMemoryFiles() {
   const base = join(claudeHome(), "projects");
@@ -42,7 +22,8 @@ async function dirSize(path) {
   return entries.length;
 }
 
-export async function gatherSignals(projectRoot = process.cwd()) {
+export async function gatherSignals(projectRoot = process.cwd(), options = {}) {
+  const { insightsLookbackDays = 30, includeTranscripts = false } = options;
   const settings = (await safeReadJson(join(claudeHome(), "settings.json"))) || {};
   const projectSettings =
     (await safeReadJson(join(projectRoot, ".claude", "settings.local.json"))) || {};
@@ -82,6 +63,12 @@ export async function gatherSignals(projectRoot = process.cwd()) {
   const keybindingsConfigured = existsSync(join(claudeHome(), "keybindings.json"));
 
   const hasPlugin = (prefix) => plugins.some((p) => p.startsWith(prefix));
+
+  const insights = await gatherInsightsSignals({
+    claudeHome: claudeHome(),
+    lookbackDays: insightsLookbackDays,
+    includeTranscripts,
+  });
 
   return {
     capturedAt: new Date().toISOString(),
@@ -130,5 +117,6 @@ export async function gatherSignals(projectRoot = process.cwd()) {
       claudeCodeSetup: hasPlugin("claude-code-setup@"),
       frontendDesign: hasPlugin("frontend-design@"),
     },
+    insights,
   };
 }

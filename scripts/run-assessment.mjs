@@ -69,7 +69,11 @@ async function main() {
     (await readJson(CONFIG_EXAMPLE_PATH)) ||
     {};
 
-  const signals = await gatherSignals(ROOT);
+  const scoringConfig = config?.scoring || {};
+  const signals = await gatherSignals(ROOT, {
+    insightsLookbackDays: scoringConfig.insightsLookbackDays ?? 30,
+    includeTranscripts: !!scoringConfig.includeTranscripts,
+  });
   const scored = scoreAll(rubric, signals);
   const history = (await readJson(HISTORY_PATH)) || [];
   const trends = computeTrends(scored, history);
@@ -96,7 +100,13 @@ async function main() {
       skipDangerous: signals.settings.skipDangerousModePermissionPrompt,
       autoCompactWindow: signals.settings.autoCompactWindow,
       projectsWithMemory: signals.memory.length,
+      insightsAvailable: !!signals.insights,
+      insightsSessionsAnalyzed: signals.insights?.sessionsAnalyzed ?? 0,
+      insightsLookbackDays: signals.insights?.lookbackDays ?? null,
+      insightsTranscriptsScanned: signals.insights?.transcriptsScanned ?? false,
+      insightsHookFireCount: signals.insights?.hookFireCount ?? 0,
     },
+    insights: signals.insights,
     claudeMd: claudeMdRuns.length
       ? {
           mode: "report-only",

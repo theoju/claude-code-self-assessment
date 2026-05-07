@@ -18,7 +18,10 @@
   },
   "scoring": {
     "includePluginSkillsAsPersonal": false,
-    "comment": "If true, plugin-provided agents/commands count toward Automation score. Default false — Boris's rule is about what YOU built."
+    "insightsLookbackDays": 30,
+    "progressionLookbackDays": null,
+    "includeTranscripts": false,
+    "comment": "includePluginSkillsAsPersonal — count plugin-provided agents/commands toward Automation. Default false. insightsLookbackDays — window for /insights-derived counters (auto-mode use, friction counts, etc.). Default 30. progressionLookbackDays — window for the milestone timeline; null = use full session history. includeTranscripts — opt in to scanning ~/.claude/projects/*.jsonl for permission-mode and worktree usage. Expensive — scans full transcript history. Off by default."
   },
   "claudeMd": {
     "enabled": true,
