@@ -588,17 +588,49 @@ export function scoreAll(rubric, signals) {
   return { capturedAt: now, overall, targetOverall, executionOverall, scores };
 }
 
-export function computeTrends(current, history) {
+// Per-dimension noise floor for trend detection. Lower = more sensitive.
+// Default 5 means a one-line config edit (often a 5–8 point swing) doesn't
+// masquerade as a behavioral trend.
+export const DEFAULT_NOISE_FLOOR = 5;
+
+function noiseFloorFor(rubric, dimensionId) {
+  const dim = rubric?.dimensions?.find((d) => d.id === dimensionId);
+  return Math.max(1, dim?.noiseFloor ?? DEFAULT_NOISE_FLOOR);
+}
+
+function evidenceChanged(curEntry, prevEntry) {
+  // Compare evidence + gaps as sets. A pure score wobble without any signal
+  // change is treated as flat — keeps weekend-noise out of the trend feed.
+  const a = new Set([...(curEntry.evidence || []), ...(curEntry.gaps || [])]);
+  const b = new Set([...(prevEntry.evidence || []), ...(prevEntry.gaps || [])]);
+  if (a.size !== b.size) return true;
+  for (const x of a) if (!b.has(x)) return true;
+  return false;
+}
+
+export function computeTrends(current, history, rubric) {
   const prev = history && history.length ? history[history.length - 1] : null;
   const trends = {};
   for (const s of current.scores) {
-    if (!prev) trends[s.id] = "new";
-    else {
-      const prevEntry = prev.scores.find((x) => x.id === s.id);
-      if (!prevEntry) trends[s.id] = "new";
-      else if (s.score > prevEntry.score + 1) trends[s.id] = "improving";
-      else if (s.score < prevEntry.score - 1) trends[s.id] = "slipping";
-      else trends[s.id] = "flat";
+    if (!prev) {
+      trends[s.id] = "new";
+      continue;
+    }
+    const prevEntry = prev.scores.find((x) => x.id === s.id);
+    if (!prevEntry) {
+      trends[s.id] = "new";
+      continue;
+    }
+    const delta = s.score - prevEntry.score;
+    const floor = noiseFloorFor(rubric, s.id);
+    if (Math.abs(delta) < floor) {
+      trends[s.id] = "flat";
+    } else if (!evidenceChanged(s, prevEntry)) {
+      trends[s.id] = "flat";
+    } else if (delta > 0) {
+      trends[s.id] = "improving";
+    } else {
+      trends[s.id] = "slipping";
     }
   }
   return trends;

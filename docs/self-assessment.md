@@ -72,8 +72,7 @@ npm run assess -- --print
 - `~/.claude/sessions/*` — recent sessions (count only)
 - `~/.claude/projects/*/memory/*` — project memory files
 - `~/.claude/statusline.sh`, `~/.claude/keybindings.json` — presence checks
-- `~/.claude/usage-data/session-meta/`, `~/.claude/usage-data/facets/` — session telemetry
-- `~/.claude/hook-fires.jsonl` — hook fire telemetry (optional; absent on most setups)
+- `~/.claude/usage-data/session-meta/`, `~/.claude/usage-data/facets/` — session telemetry (seeded by running `/insights` in Claude Code)
 - `~/.claude/CLAUDE.md` — global personality memo
 - This project's `.claude/settings.local.json`, `.claude/agents`, `.claude/commands`, `CLAUDE.md`
 - Configured CLAUDE.md targets (`assessment.config.json#claudeMd.targets`)
@@ -160,7 +159,7 @@ window and deriving aggregates per session:
 | Worktree usage                               | Worktree state events                 |
 | Learning-mode session count and matches      | Learning-mode markers                 |
 | Subagent dispatch and tool counts            | session-meta `tool_counts`            |
-| Hook fires from `~/.claude/hook-fires.jsonl` | Hook journal (optional, see below)    |
+| Hook fires                                   | `~/.claude/usage-data/session-meta/*.json` (seeded by `/insights`) |
 
 This scan is expensive — full transcript history each run. Off by default;
 turn it on once you have a baseline.
@@ -172,13 +171,15 @@ turn it on once you have a baseline.
 - Off by default — set `scoring.includeTranscripts: true` in
   `assessment.config.json`, or pass `--include-transcripts` per run.
 
-### Hook fire telemetry (optional)
+### Hook fire telemetry
 
-`~/.claude/hook-fires.jsonl` is **not emitted by Claude Code by default**.
-The scorer treats its absence as "no telemetry" (null) rather than "no
-fires" (zero), so missing telemetry doesn't hard-zero your hook-execution
-score. If you want execution-grade credit for hooks, configure a hook in
-`~/.claude/settings.json` that appends to `~/.claude/hook-fires.jsonl`.
+Hook-fire counts are read from `~/.claude/usage-data/session-meta/*.json`,
+which Claude Code's `/insights` command populates automatically. If
+`usage-data/` is empty (i.e., `/insights` hasn't been run yet), the scorer
+treats the absence as "no telemetry" (null) rather than "no fires" (zero),
+so a fresh setup doesn't hard-zero your hook-execution score. Run
+`/insights` once in Claude Code to seed the data, then re-run
+`/self-assessment`.
 
 ---
 
@@ -186,7 +187,16 @@ score. If you want execution-grade credit for hooks, configure a hook in
 
 If you pass `--claude-md-target <name=path>` (or list targets in
 `assessment.config.json#claudeMd.targets`), each target's `CLAUDE.md` files
-are scored on a 6-criterion 100-point rubric.
+are scored on a 6-criterion 100-point rubric:
+
+| Criterion            | Max | What earns it                                                                                                               |
+| -------------------- | --- | --------------------------------------------------------------------------------------------------------------------------- |
+| Commands/workflows   | 20  | Fenced code blocks containing real tooling invocations                                                                      |
+| Architecture clarity | 20  | An `## Architecture`/`## Structure` heading with ≥80 chars of body                                                          |
+| Non-obvious patterns | 15  | A `## Gotchas`/`## Notes` section with specific tool/file references (not generic prose)                                    |
+| Conciseness          | 15  | Between 15 and 400 lines                                                                                                    |
+| Currency             | 15  | mtime ≤ 30d (15) / ≤ 90d (10). Capped at 5 if stale version mentions like `Claude 3`/`Sonnet 3.5`/`claude.json` are present |
+| Actionability        | 15  | Bullet density × heading count + imperative-verb hits (`run`, `use`, `prefer`, `avoid`, …)                                  |
 
 Output is **report-only** (`mode: "report-only"` is the only mode shipped) —
 the auditor never edits CLAUDE.md. Only aggregate stats land in the Slack
@@ -221,8 +231,9 @@ both read from this file at runtime — no rebuild needed.
 
 To add a new dimension:
 
-1. Add a `{ id, title, weight, target, rubricArea, borisTips, nextActions }` entry.
-2. Add a matching scorer function in `scripts/score.mjs`.
+1. Add a `{ id, title, weight, target, rubricArea, borisTips, noiseFloor, nextActions }` entry.
+2. Add a matching `SCORERS[id]` function in `scripts/score.mjs`.
+3. Add an entry to `EXPLAINERS[id]` in `app/lib/dimension-explainer.ts` so the explainer page renders.
 
 Tests in `scripts/__tests__/score.test.mjs` (74 unit tests) and
 `scripts/__tests__/integration/` (gatherSignals + pipeline) catch most
@@ -236,7 +247,7 @@ regressions.
 | ---------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------- |
 | `Slack post skipped: SLACK_WEBHOOK_URL not set`                  | `.env.local` missing the webhook                                                                 | Add `SLACK_WEBHOOK_URL=…` to `.env.local`.                                                                          |
 | All dimensions show `→ flat` even after a real change            | History didn't pick up the change yet, or the change wasn't substantive enough to move the score | Re-run after the change settles; check the dimension's `evidence`/`gaps` lists.                                     |
-| `automation` score didn't go up after adding hooks               | `~/.claude/hook-fires.jsonl` doesn't exist yet                                                   | Configure a hook in `~/.claude/settings.json` that appends to the journal, or accept the configuration-only credit. |
+| `automation` score didn't go up after adding hooks               | `~/.claude/usage-data/session-meta/` not seeded yet                                              | Run `/insights` once in Claude Code, then re-run `/self-assessment`. |
 | Dashboard shows stale data                                       | The page is statically rendered against the last `assessment.json`                               | Re-run `npm run assess` and reload the page.                                                                        |
 | `--include-transcripts` is slow on a large `~/.claude/projects/` | Full transcript history scan                                                                     | Lower `--insights-lookback` to narrow the window, or accept the wait.                                               |
 
@@ -259,3 +270,4 @@ each morning and post the result to Slack. See `ROUTINE.md` for setup.
 - `ROUTINE.md` — cloud / launchd scheduled run
 - `.claude/commands/self-assessment.md` — the slash-command shim
 - `scripts/score.mjs` — every scoring rule, transparent and editable
+- `app/lib/dimension-explainer.ts` — formula descriptions rendered on `/dimensions/<id>`

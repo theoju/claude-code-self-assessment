@@ -14,15 +14,26 @@ export function makeTmpClaudeHome(spec = {}) {
   if (spec.settings !== undefined) {
     writeFileSync(join(root, "settings.json"), JSON.stringify(spec.settings, null, 2));
   }
+  // Substantive fixture bodies: signals.mjs filters out files <50 chars or
+  // without an action verb. Each body below clears both bars so the fixture
+  // matches what real personal agents/commands/skills/plans look like.
+  const AGENT_BODY =
+    "Use this agent to verify the application before ship. Run tests and check the result.";
+  const COMMAND_BODY =
+    "Run the deploy pipeline. Verify outputs and review the diff before pushing.";
+  const SKILL_BODY =
+    "Use this skill to generate the daily summary. Read inputs, write the report, and commit.";
+  const PLAN_BODY =
+    "Run migration on staging first. Verify results, then deploy to prod and update the runbook.";
   for (const file of spec.agents || []) {
-    writeFileSync(join(root, "agents", file), "agent");
+    writeFileSync(join(root, "agents", file), AGENT_BODY);
   }
   for (const file of spec.commands || []) {
-    writeFileSync(join(root, "commands", file), "command");
+    writeFileSync(join(root, "commands", file), COMMAND_BODY);
   }
   for (const skill of spec.skills || []) {
     mkdirSync(join(root, "skills", skill), { recursive: true });
-    writeFileSync(join(root, "skills", skill, "SKILL.md"), "skill");
+    writeFileSync(join(root, "skills", skill, "SKILL.md"), SKILL_BODY);
   }
   for (const project of spec.projectsWithMemory || []) {
     const memDir = join(root, "projects", project, "memory");
@@ -34,7 +45,7 @@ export function makeTmpClaudeHome(spec = {}) {
   if (spec.claudeMd) writeFileSync(join(root, "CLAUDE.md"), "# global rules");
 
   for (let i = 0; i < (spec.plans || 0); i++) {
-    writeFileSync(join(root, "plans", `plan-${i}.md`), "plan");
+    writeFileSync(join(root, "plans", `plan-${i}.md`), PLAN_BODY);
   }
 
   if (spec.usageData) {
@@ -75,13 +86,17 @@ export function makeTmpProjectRoot(spec = {}) {
       JSON.stringify(spec.projectSettings, null, 2),
     );
   }
+  const PROJECT_AGENT_BODY =
+    "Use this agent to verify the application before ship. Run tests and check the result.";
+  const PROJECT_COMMAND_BODY =
+    "Run the deploy pipeline. Verify outputs and review the diff before pushing.";
   for (const file of spec.projectAgents || []) {
     mkdirSync(join(root, ".claude", "agents"), { recursive: true });
-    writeFileSync(join(root, ".claude", "agents", file), "agent");
+    writeFileSync(join(root, ".claude", "agents", file), PROJECT_AGENT_BODY);
   }
   for (const file of spec.projectCommands || []) {
     mkdirSync(join(root, ".claude", "commands"), { recursive: true });
-    writeFileSync(join(root, ".claude", "commands", file), "command");
+    writeFileSync(join(root, ".claude", "commands", file), PROJECT_COMMAND_BODY);
   }
   return root;
 }

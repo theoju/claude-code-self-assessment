@@ -214,9 +214,14 @@ export default async function Page() {
         <Panel title="Strengths — keep running these" tone="good">
           <ul className="space-y-2 text-sm">
             {strengths.map((d) => (
-              <li key={d.id} className="flex items-baseline gap-2">
-                <span className="mono text-xs text-[color:var(--color-mute)] w-10">{d.score}</span>
-                <span>{d.title}</span>
+              <li key={d.id} className="list-none p-0">
+                <Link
+                  href={`/dimensions/${d.id}`}
+                  className="flex items-baseline gap-2 hover:text-[color:var(--color-accent)] transition-colors"
+                >
+                  <span className="mono text-xs text-[color:var(--color-mute)] w-10">{d.score}</span>
+                  <span>{d.title}</span>
+                </Link>
               </li>
             ))}
           </ul>
@@ -224,9 +229,14 @@ export default async function Page() {
         <Panel title="Needs focus — real gap, real leverage" tone="warn">
           <ul className="space-y-2 text-sm">
             {needsWork.map((d) => (
-              <li key={d.id} className="flex items-baseline gap-2">
-                <span className="mono text-xs text-[color:var(--color-bad)] w-10">−{d.target - d.score}</span>
-                <span>{d.title}</span>
+              <li key={d.id} className="list-none p-0">
+                <Link
+                  href={`/dimensions/${d.id}`}
+                  className="flex items-baseline gap-2 hover:text-[color:var(--color-accent)] transition-colors"
+                >
+                  <span className="mono text-xs text-[color:var(--color-bad)] w-10">−{d.target - d.score}</span>
+                  <span>{d.title}</span>
+                </Link>
               </li>
             ))}
           </ul>
@@ -234,9 +244,14 @@ export default async function Page() {
         <Panel title="Barely touched" tone="bad">
           <ul className="space-y-2 text-sm">
             {notTouched.map((d) => (
-              <li key={d.id} className="flex items-baseline gap-2">
-                <span className="mono text-xs text-[color:var(--color-mute)] w-10">{d.score}</span>
-                <span>{d.title}</span>
+              <li key={d.id} className="list-none p-0">
+                <Link
+                  href={`/dimensions/${d.id}`}
+                  className="flex items-baseline gap-2 hover:text-[color:var(--color-accent)] transition-colors"
+                >
+                  <span className="mono text-xs text-[color:var(--color-mute)] w-10">{d.score}</span>
+                  <span>{d.title}</span>
+                </Link>
               </li>
             ))}
           </ul>
@@ -255,72 +270,79 @@ export default async function Page() {
             >
               <header className="flex flex-wrap items-baseline justify-between gap-3 mb-4">
                 <div>
-                  <h3 className="text-xl font-semibold">{d.title}</h3>
-                  <div className="text-xs text-[color:var(--color-mute)] mt-1">
-                    Rubric: {d.rubricArea} · Boris <BorisTips csv={d.borisTips} />
+                  <h3 className="text-xl font-semibold">
+                    <Link
+                      href={`/dimensions/${d.id}`}
+                      className="hover:text-[color:var(--color-accent)] transition-colors"
+                    >
+                      {d.title}
+                    </Link>
+                  </h3>
+                    <div className="text-xs text-[color:var(--color-mute)] mt-1">
+                      Rubric: {d.rubricArea} · Boris <BorisTips csv={d.borisTips} />
+                    </div>
                   </div>
+                  <div className="flex items-baseline gap-4">
+                    <span className="text-sm text-[color:var(--color-mute)]">weight ×{d.weight}</span>
+                    <span className={`text-sm mono ${tierColor(d.tier)}`}>
+                      {tierLabel(d.tier)}
+                    </span>
+                    <span className="text-sm text-[color:var(--color-mute)]">
+                      {trendGlyph(d.trend)} {d.trend}
+                    </span>
+                    <span className="mono text-2xl font-semibold text-[color:var(--color-accent)]">
+                      {d.score}
+                    </span>
+                    <span className="text-sm text-[color:var(--color-mute)]">
+                      / 100 <span className="text-xs">(raw {d.rawScore} of {d.rawTarget})</span>
+                    </span>
+                  </div>
+                </header>
+
+                <div className="relative h-2 rounded-full bg-[color:var(--color-panel-2)] mb-5">
+                  <div
+                    className="absolute top-0 left-0 h-full rounded-full bg-[color:var(--color-good)] opacity-70"
+                    style={{ width: `${d.score}%` }}
+                  />
+                  <div
+                    className="absolute top-0 h-full w-0.5 bg-[color:var(--color-accent)]"
+                    style={{ left: `${d.target}%` }}
+                    title={`target ${d.target}`}
+                  />
                 </div>
-                <div className="flex items-baseline gap-4">
-                  <span className="text-sm text-[color:var(--color-mute)]">weight ×{d.weight}</span>
-                  <span className={`text-sm mono ${tierColor(d.tier)}`}>
-                    {tierLabel(d.tier)}
-                  </span>
-                  <span className="text-sm text-[color:var(--color-mute)]">
-                    {trendGlyph(d.trend)} {d.trend}
-                  </span>
-                  <span className="mono text-2xl font-semibold text-[color:var(--color-accent)]">
-                    {d.score}
-                  </span>
-                  <span className="text-sm text-[color:var(--color-mute)]">
-                    / 100 <span className="text-xs">(raw {d.rawScore} of {d.rawTarget})</span>
-                  </span>
+
+                <p className="text-sm text-[color:var(--color-text)] leading-relaxed mb-5">
+                  <LinkifyBoris text={d.summary} />
+                </p>
+
+                <div className="grid md:grid-cols-3 gap-5 text-sm">
+                  <Column label="Evidence observed">
+                    {d.evidence.map((e, i) => (
+                      <li key={i}><LinkifyBoris text={e} /></li>
+                    ))}
+                  </Column>
+                  <Column label="Gaps">
+                    {d.gaps.map((g, i) => (
+                      <li key={i}><LinkifyBoris text={g} /></li>
+                    ))}
+                  </Column>
+                  <Column label="Next actions">
+                    {d.nextActions.map((a, i) => (
+                      <li key={i} className="text-[color:var(--color-text)]"><LinkifyBoris text={a} /></li>
+                    ))}
+                  </Column>
                 </div>
-              </header>
 
-              <div className="relative h-2 rounded-full bg-[color:var(--color-panel-2)] mb-5">
-                <div
-                  className="absolute top-0 left-0 h-full rounded-full bg-[color:var(--color-good)] opacity-70"
-                  style={{ width: `${d.score}%` }}
-                />
-                <div
-                  className="absolute top-0 h-full w-0.5 bg-[color:var(--color-accent)]"
-                  style={{ left: `${d.target}%` }}
-                  title={`target ${d.target}`}
-                />
-              </div>
-
-              <p className="text-sm text-[color:var(--color-text)] leading-relaxed mb-5">
-                <LinkifyBoris text={d.summary} />
-              </p>
-
-              <div className="grid md:grid-cols-3 gap-5 text-sm">
-                <Column label="Evidence observed">
-                  {d.evidence.map((e, i) => (
-                    <li key={i}><LinkifyBoris text={e} /></li>
-                  ))}
-                </Column>
-                <Column label="Gaps">
-                  {d.gaps.map((g, i) => (
-                    <li key={i}><LinkifyBoris text={g} /></li>
-                  ))}
-                </Column>
-                <Column label="Next actions">
-                  {d.nextActions.map((a, i) => (
-                    <li key={i} className="text-[color:var(--color-text)]"><LinkifyBoris text={a} /></li>
-                  ))}
-                </Column>
-              </div>
-
-              {(d.executionScore != null || d.gapReason) && (
-                <ExecutionAxis
-                  score={d.executionScore}
-                  evidence={d.executionEvidence}
-                  gaps={d.executionGaps}
-                  gapReason={d.gapReason}
-                />
-              )}
-            </article>
-          ))}
+                {(d.executionScore != null || d.gapReason) && (
+                  <ExecutionAxis
+                    score={d.executionScore}
+                    evidence={d.executionEvidence}
+                    gaps={d.executionGaps}
+                    gapReason={d.gapReason}
+                  />
+                )}
+              </article>
+            ))}
         </div>
       </section>
 

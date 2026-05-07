@@ -1,7 +1,92 @@
 import { existsSync } from "node:fs";
+import { readFile, stat, readdir } from "node:fs/promises";
 import { join } from "node:path";
 import { claudeHome, safeReadJson, safeReaddir } from "./_fs-utils.mjs";
 import { gatherInsightsSignals } from "./insights-signals.mjs";
+
+// Action verbs that indicate the file actually tells Claude what to DO.
+// A skill/command/agent that doesn't say "run", "use", "prefer", etc. is just
+// decoration — anti-gaming defense against "spray empty stubs to inflate score".
+const ACTION_VERBS =
+  /\b(run|use|prefer|avoid|never|always|don'?t|do not|invoke|trigger|check|verify|build|create|skip|stop|launch|delegate|read|write|edit|fetch|search|generate|format|test|deploy|commit|push|review|update|remove)\b/i;
+const MIN_SUBSTANTIVE_CHARS = 50;
+
+/**
+ * Strip frontmatter, headings, code-fence markers, and bullet markers so we
+ * can measure how much *body* prose a file actually has. Empty stubs and
+ * heading-only files collapse to near-zero characters here.
+ */
+function stripBoilerplate(content) {
+  return content
+    .replace(/^---[\s\S]*?---\s*/m, "")
+    .replace(/^\+\+\+[\s\S]*?\+\+\+\s*/m, "")
+    .replace(/^#{1,6}\s.*$/gm, "")
+    .replace(/^\s*[-*]\s+/gm, "")
+    .replace(/^\s*\d+\.\s+/gm, "")
+    .replace(/^```.*$/gm, "")
+    .replace(/\bTODO\b.*$/gim, "")
+    .replace(/\bFIXME\b.*$/gim, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+/**
+ * True if the file at `path` has ≥50 chars of non-boilerplate body AND at
+ * least one action verb. Used to count only substantive skills/commands/
+ * agents/plans — empty stubs no longer inflate the score.
+ */
+export async function isSubstantive(path) {
+  let content;
+  try {
+    content = await readFile(path, "utf8");
+  } catch {
+    return false;
+  }
+  const body = stripBoilerplate(content);
+  if (body.length < MIN_SUBSTANTIVE_CHARS) return false;
+  if (!ACTION_VERBS.test(body)) return false;
+  return true;
+}
+
+async function filterSubstantive(dir, names) {
+  const out = [];
+  for (const n of names) {
+    if (await isSubstantive(join(dir, n))) out.push(n);
+  }
+  return out;
+}
+
+async function isSubstantiveSkill(skillPath) {
+  let entries = [];
+  try {
+    const st = await stat(skillPath);
+    if (st.isFile()) return isSubstantive(skillPath);
+    entries = await readdir(skillPath);
+  } catch {
+    return false;
+  }
+  for (const e of entries) {
+    if (e.endsWith(".md") && (await isSubstantive(join(skillPath, e)))) return true;
+  }
+  return false;
+}
+
+async function filterSubstantiveSkillDirs(dir, names) {
+  const out = [];
+  for (const n of names) {
+    if (await isSubstantiveSkill(join(dir, n))) out.push(n);
+  }
+  return out;
+}
+
+async function countSubstantiveFiles(dir) {
+  const entries = await safeReaddir(dir);
+  let n = 0;
+  for (const e of entries) {
+    if (await isSubstantive(join(dir, e))) n += 1;
+  }
+  return n;
+}
 
 async function listProjectMemoryFiles() {
   const base = join(claudeHome(), "projects");
@@ -28,22 +113,25 @@ export async function gatherSignals(projectRoot = process.cwd(), options = {}) {
   const projectSettings =
     (await safeReadJson(join(projectRoot, ".claude", "settings.local.json"))) || {};
 
-  const personalAgents = (await safeReaddir(join(claudeHome(), "agents"))).filter(
-    (f) => f.endsWith(".md")
-  );
-  const personalCommands = (await safeReaddir(join(claudeHome(), "commands"))).filter(
-    (f) => f.endsWith(".md")
-  );
-  const personalSkills = (await safeReaddir(join(claudeHome(), "skills"))).filter(
-    (f) => !f.startsWith(".")
-  );
+  const personalAgentsDir = join(claudeHome(), "agents");
+  const personalCommandsDir = join(claudeHome(), "commands");
+  const personalSkillsDir = join(claudeHome(), "skills");
+  const projectAgentsDir = join(projectRoot, ".claude", "agents");
+  const projectCommandsDir = join(projectRoot, ".claude", "commands");
 
-  const projectAgents = (await safeReaddir(join(projectRoot, ".claude", "agents"))).filter(
-    (f) => f.endsWith(".md")
-  );
-  const projectCommands = (await safeReaddir(join(projectRoot, ".claude", "commands"))).filter(
-    (f) => f.endsWith(".md")
-  );
+  const personalAgentsRaw = (await safeReaddir(personalAgentsDir)).filter((f) => f.endsWith(".md"));
+  const personalCommandsRaw = (await safeReaddir(personalCommandsDir)).filter((f) => f.endsWith(".md"));
+  const personalSkillsRaw = (await safeReaddir(personalSkillsDir)).filter((f) => !f.startsWith("."));
+  const projectAgentsRaw = (await safeReaddir(projectAgentsDir)).filter((f) => f.endsWith(".md"));
+  const projectCommandsRaw = (await safeReaddir(projectCommandsDir)).filter((f) => f.endsWith(".md"));
+
+  // Substantive filter: count only files with real body content + an action
+  // verb. Closes the "spray empty stubs to inflate the score" loophole.
+  const personalAgents = await filterSubstantive(personalAgentsDir, personalAgentsRaw);
+  const personalCommands = await filterSubstantive(personalCommandsDir, personalCommandsRaw);
+  const personalSkills = await filterSubstantiveSkillDirs(personalSkillsDir, personalSkillsRaw);
+  const projectAgents = await filterSubstantive(projectAgentsDir, projectAgentsRaw);
+  const projectCommands = await filterSubstantive(projectCommandsDir, projectCommandsRaw);
 
   const plugins = Object.entries(settings.enabledPlugins || {})
     .filter(([, v]) => v === true)
@@ -57,7 +145,11 @@ export async function gatherSignals(projectRoot = process.cwd(), options = {}) {
   const hooks = settings.hooks || {};
   const env = settings.env || {};
 
-  const plansCount = await dirSize(join(claudeHome(), "plans"));
+  const plansDir = join(claudeHome(), "plans");
+  const plansCountRaw = await dirSize(plansDir);
+  // Empty plan files (no body, no checklist, no verbs) shouldn't count toward
+  // Memory or Planning credit.
+  const plansCount = await countSubstantiveFiles(plansDir);
   const sessionsCount = await dirSize(join(claudeHome(), "sessions"));
   const statuslineConfigured = existsSync(join(claudeHome(), "statusline.sh"));
   const keybindingsConfigured = existsSync(join(claudeHome(), "keybindings.json"));
@@ -91,6 +183,14 @@ export async function gatherSignals(projectRoot = process.cwd(), options = {}) {
     personalSkills,
     projectAgents,
     projectCommands,
+    raw: {
+      personalAgents: personalAgentsRaw,
+      personalCommands: personalCommandsRaw,
+      personalSkills: personalSkillsRaw,
+      projectAgents: projectAgentsRaw,
+      projectCommands: projectCommandsRaw,
+      plansCount: plansCountRaw,
+    },
     plugins,
     memory,
     claudeMdExists,
