@@ -114,14 +114,14 @@ What each piece does:
 
 Flag reference for `/self-assessment`:
 
-| Flag                               | Meaning                                                                                                                                                                   |
-| ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `--claude-md-target <name>=<path>` | Audit a CLAUDE.md file at `<path>` and label it `<name>` in the report. Repeat the flag for multiple targets. **`name=path` form is required** — bare paths are rejected. |
-| `--include-transcripts`            | Scan the last N days of `~/.claude/projects/*/*.jsonl` transcripts for behavioral signals (skill invocation, plan-mode usage, ★ Insight banners, worktree usage).         |
-| `--no-transcripts`                 | Skip the transcript scan even when `scoring.includeTranscripts: true` in config. Wins over `--include-transcripts`.                                                       |
-| `--insights-lookback <N>`          | How many days back to read from `~/.claude/usage-data/`. Defaults to 30 (or `scoring.insightsLookbackDays` in config).                                                    |
-| `--no-slack`                       | Skip the Slack post even when `slack.enabled: true`. Useful for ad-hoc local runs.                                                                                        |
-| `--print`                          | Print the full block of dimension scores to stdout in addition to the summary.                                                                                            |
+| Flag                                         | Meaning                                                                                                                                                                                                         |
+| -------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `--claude-md-target <name=path>` or `<path>` | Audit a CLAUDE.md file at `<path>`. With `name=path`, the report labels it `<name>`; with a bare path, the name defaults to the last directory segment. Repeat the flag for multiple targets. Path can use `~`. |
+| `--include-transcripts`                      | Scan the last N days of `~/.claude/projects/*/*.jsonl` transcripts for behavioral signals (skill invocation, plan-mode usage, ★ Insight banners, worktree usage).                                               |
+| `--no-transcripts`                           | Skip the transcript scan even when `scoring.includeTranscripts: true` in config. Wins over `--include-transcripts`.                                                                                             |
+| `--insights-lookback <N>`                    | How many days back to read from `~/.claude/usage-data/`. Defaults to 30 (or `scoring.insightsLookbackDays` in config).                                                                                          |
+| `--no-slack`                                 | Skip the Slack post even when `slack.enabled: true`. Useful for ad-hoc local runs.                                                                                                                              |
+| `--print`                                    | Print the full block of dimension scores to stdout in addition to the summary.                                                                                                                                  |
 
 Cadence note: `/insights` is token-heavy (run it weekly-ish);
 `/self-assessment` is cheap (run it daily). The chained form above is the
