@@ -13,14 +13,14 @@ describe("borisTipLink", () => {
 
   it("handles all sections referenced by the rubric (no unknowns)", async () => {
     const rubric = (await import("../../data/rubric.json")).default as {
-      dimensions: Array<{ borisTips: string; nextActions: string[] }>;
+      dimensions: Array<{ borisTips: string; nextActions: Array<{ action: string }> }>;
     };
     const tipNumbers = new Set<number>();
     for (const d of rubric.dimensions) {
       parseBorisTipList(d.borisTips).forEach((t) => tipNumbers.add(t.n));
       // Also catch "Boris tip N" mentions in nextActions
-      for (const action of d.nextActions) {
-        for (const m of action.matchAll(/Boris tip\s+(\d+)/gi)) {
+      for (const a of d.nextActions) {
+        for (const m of a.action.matchAll(/Boris tip\s+(\d+)/gi)) {
           tipNumbers.add(parseInt(m[1]!, 10));
         }
       }

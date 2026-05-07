@@ -13,7 +13,10 @@ function dim(overrides: Partial<Dimension> = {}): Dimension {
     rawTarget: 90,
     rubricArea: "x",
     borisTips: "1",
-    nextActions: ["First action — Boris tip 1", "Second action — Boris tip 2"],
+    nextActions: [
+    { id: "first", action: "First action — Boris tip 1", effort: "5min" },
+    { id: "second", action: "Second action — Boris tip 2", effort: "5min" },
+  ],
     score: 30,
     rawScore: 30,
     tier: "starter",

@@ -5,6 +5,7 @@ import {
   tierLabel,
   trendGlyph,
   computeStats,
+  evaluatePredicate,
   type Dimension,
 } from "../assessment";
 
@@ -14,16 +15,19 @@ function dim(overrides: Partial<Dimension> = {}): Dimension {
     title: "Test",
     weight: 1,
     target: 80,
+    rawTarget: 80,
     rubricArea: "test",
     borisTips: "1",
-    nextActions: ["do thing"],
+    nextActions: [{ id: "do-thing", action: "do thing", effort: "5min" }],
     score: 50,
+    rawScore: 50,
     tier: "developing",
     trend: "flat",
     evidence: [],
     gaps: [],
     summary: "",
     executionScore: null,
+    executionRawScore: null,
     executionEvidence: [],
     executionGaps: [],
     gapReason: null,
@@ -87,9 +91,9 @@ describe("computeStats", () => {
 
   it("orders priorityActions by weight × deficit and caps at 6", () => {
     const dims = [
-      dim({ id: "low", weight: 1, target: 80, score: 70, nextActions: ["small"] }),
-      dim({ id: "high", weight: 3, target: 90, score: 30, nextActions: ["big"] }),
-      dim({ id: "mid", weight: 2, target: 80, score: 60, nextActions: ["mid"] }),
+      dim({ id: "low", weight: 1, target: 80, score: 70, nextActions: [{ id: "small", action: "small", effort: "5min" }] }),
+      dim({ id: "high", weight: 3, target: 90, score: 30, nextActions: [{ id: "big", action: "big", effort: "5min" }] }),
+      dim({ id: "mid", weight: 2, target: 80, score: 60, nextActions: [{ id: "mid", action: "mid", effort: "5min" }] }),
     ];
     const stats = computeStats(dims);
     // weight × deficit: high=180, mid=40, low=10 → high first
@@ -101,9 +105,9 @@ describe("computeStats", () => {
 
   it("excludes dimensions already at or above target", () => {
     const dims = [
-      dim({ id: "done", target: 80, score: 80, nextActions: ["x"] }),
-      dim({ id: "exceeds", target: 70, score: 90, nextActions: ["y"] }),
-      dim({ id: "behind", target: 80, score: 50, nextActions: ["z"] }),
+      dim({ id: "done", target: 80, score: 80, nextActions: [{ id: "x", action: "x", effort: "5min" }] }),
+      dim({ id: "exceeds", target: 70, score: 90, nextActions: [{ id: "y", action: "y", effort: "5min" }] }),
+      dim({ id: "behind", target: 80, score: 50, nextActions: [{ id: "z", action: "z", effort: "5min" }] }),
     ];
     const stats = computeStats(dims);
     expect(stats.priorityActions.map((a) => a.dimensionId)).toEqual(["behind"]);
@@ -111,10 +115,98 @@ describe("computeStats", () => {
 
   it("flattens multiple nextActions per dimension", () => {
     const dims = [
-      dim({ id: "x", target: 90, score: 30, nextActions: ["a1", "a2", "a3"] }),
+      dim({ id: "x", target: 90, score: 30, nextActions: [
+        { id: "a1", action: "a1", effort: "5min" },
+        { id: "a2", action: "a2", effort: "5min" },
+        { id: "a3", action: "a3", effort: "5min" },
+      ]}),
     ];
     const stats = computeStats(dims);
     expect(stats.priorityActions).toHaveLength(3);
-    expect(stats.priorityActions.map((a) => a.action)).toEqual(["a1", "a2", "a3"]);
+    expect(stats.priorityActions.map((a) => a.action.action)).toEqual(["a1", "a2", "a3"]);
+  });
+
+  it("filters out actions whose satisfied flag is true from priorityActions", () => {
+    const dims = [
+      dim({
+        id: "x",
+        target: 90,
+        score: 30,
+        nextActions: [
+          { id: "done", action: "Already done", effort: "5min", satisfied: true },
+          { id: "open", action: "Still actionable", effort: "5min" },
+        ],
+      }),
+    ];
+    const stats = computeStats(dims);
+    const ids = stats.priorityActions.map(a => a.action.id);
+    expect(ids).toContain("open");
+    expect(ids).not.toContain("done");
+  });
+});
+
+describe("evaluatePredicate", () => {
+  const sig = {
+    effortLevel: "xhigh",
+    skipDangerous: false,
+    autoCompactWindow: "400000",
+    plugins: 12,
+    nested: { count: 5, name: "ok" },
+  };
+
+  it("treats present truthy paths as true", () => {
+    expect(evaluatePredicate("effortLevel", sig)).toBe(true);
+    expect(evaluatePredicate("plugins", sig)).toBe(true);
+    expect(evaluatePredicate("nested.count", sig)).toBe(true);
+    expect(evaluatePredicate("nested.name", sig)).toBe(true);
+  });
+
+  it("treats absent or falsy paths as false", () => {
+    expect(evaluatePredicate("missing", sig)).toBe(false);
+    expect(evaluatePredicate("nested.missing", sig)).toBe(false);
+    expect(evaluatePredicate("skipDangerous", sig)).toBe(false);
+  });
+
+  it("supports negation", () => {
+    expect(evaluatePredicate("!skipDangerous", sig)).toBe(true);
+    expect(evaluatePredicate("!effortLevel", sig)).toBe(false);
+    expect(evaluatePredicate("!missing", sig)).toBe(true);
+  });
+
+  it("supports equality and alternation", () => {
+    expect(evaluatePredicate("effortLevel=xhigh", sig)).toBe(true);
+    expect(evaluatePredicate("effortLevel=max", sig)).toBe(false);
+    expect(evaluatePredicate("effortLevel=xhigh|max", sig)).toBe(true);
+    expect(evaluatePredicate("effortLevel=high|max", sig)).toBe(false);
+    expect(evaluatePredicate("plugins=12", sig)).toBe(true);
+  });
+
+  it("supports inequality", () => {
+    expect(evaluatePredicate("effortLevel!=high", sig)).toBe(true);
+    expect(evaluatePredicate("effortLevel!=xhigh", sig)).toBe(false);
+  });
+
+  it("supports numeric comparisons", () => {
+    expect(evaluatePredicate("plugins>10", sig)).toBe(true);
+    expect(evaluatePredicate("plugins>12", sig)).toBe(false);
+    expect(evaluatePredicate("plugins>=12", sig)).toBe(true);
+    expect(evaluatePredicate("plugins<20", sig)).toBe(true);
+    expect(evaluatePredicate("plugins<=12", sig)).toBe(true);
+    expect(evaluatePredicate("nested.count>=5", sig)).toBe(true);
+  });
+
+  it("returns false for non-numeric LHS in numeric ops", () => {
+    expect(evaluatePredicate("effortLevel>1", sig)).toBe(false);
+  });
+
+  it("supports AND via &", () => {
+    expect(evaluatePredicate("!skipDangerous & plugins>0", sig)).toBe(true);
+    expect(evaluatePredicate("!skipDangerous & plugins>100", sig)).toBe(false);
+    expect(evaluatePredicate("effortLevel=xhigh & autoCompactWindow", sig)).toBe(true);
+  });
+
+  it("returns false for empty or malformed predicates", () => {
+    expect(evaluatePredicate("", sig)).toBe(false);
+    expect(evaluatePredicate("   ", sig)).toBe(false);
   });
 });
