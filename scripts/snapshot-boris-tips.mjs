@@ -14,9 +14,23 @@ const INDEX_PATH = join(ROOT, "app", "data", "boris-tip-index.json");
 const OUT_PATH = join(ROOT, "app", "data", "boris-tips-content.json");
 
 if (!existsSync(SKILL_PATH)) {
-  console.error(`Boris skill not found at ${SKILL_PATH}`);
-  console.error("Install it via: curl -L -o ~/.claude/skills/boris/SKILL.md https://howborisusesclaudecode.com/api/install");
-  process.exit(1);
+  // Fall back to writing an empty stub so the dashboard build succeeds even on
+  // machines that don't have the /boris skill installed (CI, fresh clones).
+  // Users with the skill present get the real snapshot; everyone else sees a
+  // graceful "tip content not snapshotted" empty state — `getTipContent()`
+  // already returns null for missing tips.
+  const stub = {
+    $schema: "Stub generated when ~/.claude/skills/boris/SKILL.md is absent.",
+    capturedAt: new Date().toISOString(),
+    site: "https://howborisusesclaudecode.com",
+    tips: {},
+  };
+  writeFileSync(OUT_PATH, JSON.stringify(stub, null, 2));
+  console.warn(`Boris skill not found at ${SKILL_PATH} — wrote empty stub to ${OUT_PATH}.`);
+  console.warn("To populate: install the skill via");
+  console.warn("  curl -L --create-dirs -o ~/.claude/skills/boris/SKILL.md https://howborisusesclaudecode.com/api/install");
+  console.warn("then re-run: npm run snapshot:boris-tips");
+  process.exit(0);
 }
 
 const md = readFileSync(SKILL_PATH, "utf8");

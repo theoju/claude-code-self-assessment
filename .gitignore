@@ -13,6 +13,11 @@ app/data/assessment-history.json
 app/data/progression.json
 app/data/insights-narrative.md
 
+# Snapshot of the /boris skill — third-party content (Boris Cherny / Daniel An).
+# Regenerated locally by `npm run snapshot:boris-tips` (also runs as a
+# postinstall hook). Not redistributed via this MIT-licensed repo.
+app/data/boris-tips-content.json
+
 # Installed LaunchAgent's runtime logs
 .launchd.out.log
 .launchd.err.log
