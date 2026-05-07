@@ -198,12 +198,23 @@ export default async function DimensionPage({ params }: Props) {
           All next actions for this dimension
         </h2>
         <ul className="space-y-2 text-sm">
-          {dim.nextActions.map((a, i) => (
+          {dim.nextActions.map((a) => (
             <li
-              key={i}
-              className="bg-[color:var(--color-panel)] border border-[color:var(--color-line)] rounded-lg p-3"
+              key={a.id}
+              className={`bg-[color:var(--color-panel)] border border-[color:var(--color-line)] rounded-lg p-3 flex items-baseline gap-3 ${a.satisfied ? "opacity-60" : ""}`}
             >
-              {a}
+              <span className="font-mono text-[10px] px-1.5 py-0.5 rounded bg-[color:var(--color-panel-2)] border border-[color:var(--color-line)] shrink-0">
+                {a.effort}
+              </span>
+              <span className={`flex-1 ${a.satisfied ? "line-through" : ""}`}>{a.action}</span>
+              {a.satisfied ? (
+                <span
+                  className="text-[10px] mono text-[color:var(--color-good)] shrink-0"
+                  title={a.satisfiedWhen ? `Satisfied: ${a.satisfiedWhen}` : "Already done"}
+                >
+                  ✓ done
+                </span>
+              ) : null}
             </li>
           ))}
         </ul>

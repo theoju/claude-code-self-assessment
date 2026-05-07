@@ -4,6 +4,23 @@ import { readJson } from "./_read-json";
 export type Tier = "not-touched" | "starter" | "developing" | "solid" | "advanced";
 export type Trend = "new" | "flat" | "improving" | "slipping";
 
+export type Effort = "5min" | "15min" | "30min" | "1hr" | "2hr";
+
+export interface NextAction {
+  id: string;
+  action: string;
+  effort: Effort;
+  requires?: string[];
+  /**
+   * Predicate evaluated against `signalsSummary`. When true, the action is
+   * already done — filtered from priority lists and shown ✓ done on the
+   * dimension page. Grammar: see evaluatePredicate.
+   */
+  satisfiedWhen?: string;
+  /** Computed at load time from satisfiedWhen + signalsSummary. */
+  satisfied?: boolean;
+}
+
 export interface RubricDimension {
   id: string;
   title: string;
@@ -11,7 +28,7 @@ export interface RubricDimension {
   target: number;
   rubricArea: string;
   borisTips: string;
-  nextActions: string[];
+  nextActions: NextAction[];
 }
 
 export interface ScoredDimension {
@@ -122,6 +139,68 @@ export interface Assessment {
   claudeMd: ClaudeMdReport | null;
 }
 
+// ---------------------------------------------------------------------------
+// Predicate engine — satisfiedWhen DSL
+// ---------------------------------------------------------------------------
+
+function readPath(obj: unknown, path: string): unknown {
+  return path.split(".").reduce<unknown>((acc, key) => {
+    if (acc && typeof acc === "object" && key in (acc as Record<string, unknown>)) {
+      return (acc as Record<string, unknown>)[key];
+    }
+    return undefined;
+  }, obj);
+}
+
+function isTruthy(v: unknown): boolean {
+  if (v === null || v === undefined) return false;
+  if (typeof v === "boolean") return v;
+  if (typeof v === "number") return v !== 0 && !Number.isNaN(v);
+  if (typeof v === "string") return v.length > 0 && v !== "0" && v.toLowerCase() !== "false";
+  if (Array.isArray(v)) return v.length > 0;
+  if (typeof v === "object") return Object.keys(v as object).length > 0;
+  return Boolean(v);
+}
+
+function evaluateAtomic(expr: string, signals: Record<string, unknown>): boolean {
+  const trimmed = expr.trim();
+  if (!trimmed) return false;
+  if (trimmed.startsWith("!")) return !evaluateAtomic(trimmed.slice(1), signals);
+  // Order matters: longer operators first so ">=" doesn't match as ">".
+  const cmpMatch = trimmed.match(/^(.+?)(>=|<=|!=|=|>|<)(.+)$/);
+  if (cmpMatch) {
+    const path = cmpMatch[1].trim();
+    const op = cmpMatch[2];
+    const rhs = cmpMatch[3].trim();
+    const value = readPath(signals, path);
+    if (op === "=" || op === "!=") {
+      const literals = rhs.split("|").map((s) => s.trim());
+      const hit = literals.some((lit) => String(value) === lit);
+      return op === "=" ? hit : !hit;
+    }
+    const num = typeof value === "number" ? value : Number(value);
+    const rhsNum = Number(rhs);
+    if (Number.isNaN(num) || Number.isNaN(rhsNum)) return false;
+    switch (op) {
+      case ">": return num > rhsNum;
+      case ">=": return num >= rhsNum;
+      case "<": return num < rhsNum;
+      case "<=": return num <= rhsNum;
+    }
+  }
+  // No operator → truthy check on the path.
+  return isTruthy(readPath(signals, trimmed));
+}
+
+export function evaluatePredicate(expr: string, signals: Record<string, unknown>): boolean {
+  if (!expr || !expr.trim()) return false;
+  const atoms = expr.split("&").map((s) => s.trim()).filter(Boolean);
+  if (atoms.length === 0) return false;
+  return atoms.every((atom) => evaluateAtomic(atom, signals));
+}
+
+// ---------------------------------------------------------------------------
+
 const DATA_DIR = join(process.cwd(), "app", "data");
 const RUBRIC_PATH = join(DATA_DIR, "rubric.json");
 const ASSESSMENT_PATH = join(DATA_DIR, "assessment.json");
@@ -212,8 +291,15 @@ export async function loadAssessment(): Promise<Assessment> {
 
   const dimensions: Dimension[] = rubric.dimensions.map((d) => {
     const s = scored.scores.find((x) => x.id === d.id);
+    const nextActions = d.nextActions.map((a) => ({
+      ...a,
+      satisfied: a.satisfiedWhen
+        ? evaluatePredicate(a.satisfiedWhen, scored.signalsSummary)
+        : false,
+    }));
     return {
       ...d,
+      nextActions,
       score: s?.score ?? 0,
       rawScore: s?.rawScore ?? 0,
       target: 100,
@@ -265,7 +351,7 @@ export interface OverallStats {
   priorityActions: Array<{
     dimensionId: string;
     title: string;
-    action: string;
+    action: NextAction;
     weight: number;
     deficit: number;
   }>;
@@ -292,6 +378,7 @@ export function computeStats(dims: Dimension[]): OverallStats {
       }))
     )
     .filter((a) => a.deficit > 0)
+    .filter((a) => !a.action.satisfied)
     .sort((a, b) => b.weight * b.deficit - a.weight * a.deficit)
     .slice(0, 6);
 

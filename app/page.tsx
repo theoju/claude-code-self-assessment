@@ -198,7 +198,7 @@ export default async function Page() {
                 <div className="text-xs uppercase tracking-wider text-[color:var(--color-mute)] mb-1">
                   {a.title} · weight {a.weight} · −{a.deficit} pts gap
                 </div>
-                <div className="text-sm"><LinkifyBoris text={a.action} /></div>
+                <div className="text-sm"><LinkifyBoris text={a.action.action} /></div>
               </div>
             </li>
           ))}
@@ -327,8 +327,18 @@ export default async function Page() {
                     ))}
                   </Column>
                   <Column label="Next actions">
-                    {d.nextActions.map((a, i) => (
-                      <li key={i} className="text-[color:var(--color-text)]"><LinkifyBoris text={a} /></li>
+                    {d.nextActions.map((a) => (
+                      <li
+                        key={a.id}
+                        className={`text-[color:var(--color-text)] ${a.satisfied ? "opacity-60 line-through" : ""}`}
+                      >
+                        <LinkifyBoris text={a.action} />
+                        {a.satisfied ? (
+                          <span className="ml-1 text-[10px] not-italic text-[color:var(--color-good)] no-underline" style={{ textDecoration: "none" }}>
+                            ✓ done
+                          </span>
+                        ) : null}
+                      </li>
                     ))}
                   </Column>
                 </div>

@@ -159,13 +159,15 @@ export interface PlusTenPath {
 
 /**
  * Pick the highest-leverage move that would push the dimension's score up.
- * Main's `nextActions` is `string[]`, so we use the rubric author's stated
- * order: the first listed action is treated as the load-bearing step.
+ * Uses the rubric author's stated order: the first non-satisfied action is
+ * treated as the load-bearing step.
  */
 export function plusTenPath(dim: Dimension): PlusTenPath | null {
   if (!dim.nextActions || dim.nextActions.length === 0) return null;
+  const first = dim.nextActions.find((a) => !a.satisfied);
+  if (!first) return null;
   return {
-    step: dim.nextActions[0],
+    step: first.action,
     rationale: "First action listed by the rubric author for this dimension.",
   };
 }
