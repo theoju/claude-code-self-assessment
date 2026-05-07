@@ -27,7 +27,7 @@ The webhook env var name comes from `slack.webhookEnvVar` in `assessment.config.
 
 In transcripts mode (`--include-transcripts` or `scoring.includeTranscripts: true`), configured-but-silent hooks lose most of their credit. Anti-gaming: "wire 4 empty hooks for +32 points" no longer works.
 
-To get execution-grade credit, configure a hook in `~/.claude/settings.json` that appends to `~/.claude/hook-fires.jsonl`, then use Claude Code in a real session before re-scoring.
+To get execution-grade credit: run `/insights` once in Claude Code to seed `~/.claude/usage-data/`, then re-run `/self-assessment`. Hook-fire counts are read from `~/.claude/usage-data/session-meta/*.json`.
 
 ## `integrations` didn't rise after installing plugins
 
@@ -45,8 +45,8 @@ Same anti-gaming gate: installed-but-never-invoked plugins are penalized in tran
 
 ## Hook execution score capped despite many hooks configured
 
-**Cause:** `~/.claude/hook-fires.jsonl` is absent. Claude Code does **not** emit this file by default — so unless the user has wired a `PostToolUse` (or similar) hook in `settings.json` that appends to it, every run reports `hookFireCount: null` and the scorer falls back to "trust the config" credit.
-**Fix:** If the user wants execution-grade credit (not just configuration credit), they need a hook that writes to `~/.claude/hook-fires.jsonl`. Otherwise this is expected — note it in the report rather than chasing a fix.
+**Cause:** `~/.claude/usage-data/session-meta/` is empty or hasn't been seeded yet. The scorer reads hook-fire counts from the session-meta JSON files written by Claude Code's `/insights` command. Without that data it falls back to "trust the config" credit (`hookFireCount: null`).
+**Fix:** Run `/insights` once in Claude Code to seed `~/.claude/usage-data/`, then re-run `/self-assessment`. If `/insights` has been run and counts are still zero, that's expected for brand-new setups — note it in the report rather than chasing a fix.
 
 ## `--include-transcripts` feels slow
 

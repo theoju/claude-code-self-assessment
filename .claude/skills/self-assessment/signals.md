@@ -14,8 +14,7 @@ From `~/.claude/`:
 - `projects/*/memory/` — per-project memory file counts.
 - `statusline.sh`, `keybindings.json` — presence checks (custom UX configured?).
 - `CLAUDE.md` — global personality memo.
-- `usage-data/session-meta/` and `usage-data/facets/` — session telemetry the harness writes (sessions in window, tool counts, friction counts, outcome buckets).
-- `hook-fires.jsonl` — optional telemetry for hook execution. **Absent by default** (Claude Code does not emit this); see "How counts stay honest" below.
+- `usage-data/session-meta/` and `usage-data/facets/` — session telemetry written by Claude Code's `/insights` command (sessions in window, tool counts, friction counts, outcome buckets, hook-fire counts).
 
 From the project root:
 
@@ -23,7 +22,7 @@ From the project root:
 - `.claude/agents/*.md`, `.claude/commands/*.md` — project-scoped craft.
 - `CLAUDE.md` — project-scoped personality memo.
 
-`scoring.insightsLookbackDays` (default 30) caps the window for session-meta/facets/hook-fires.
+`scoring.insightsLookbackDays` (default 30) caps the window for session-meta and facets data.
 
 ## Behavioral-mode reads (`includeTranscripts: true` or `--include-transcripts`)
 
@@ -54,7 +53,7 @@ The CLAUDE.md auditor (when `claudeMd.targets` is configured) reads each target 
 
 The scoring code has a few deliberate gates that prevent spurious credit:
 
-- **Three-state `hookFireCount`.** `~/.claude/hook-fires.jsonl` may be absent (Claude Code doesn't emit it by default). The scorer distinguishes `null` ("no telemetry — trust the config") from `0` ("file exists, no fires in window — gate credit") from `N>0` ("warm, full credit"). Without this, every fresh user would get hard-zeroed on hook execution. See [`gotchas.md`](./gotchas.md) → "Hook execution score capped despite many hooks configured".
+- **Three-state `hookFireCount`.** `~/.claude/usage-data/session-meta/*.json` may be empty if `/insights` hasn't been run yet. The scorer distinguishes `null` ("no telemetry — trust the config") from `0` ("data present, no fires in window — gate credit") from `N>0` ("warm, full credit"). Without this, every fresh user would get hard-zeroed on hook execution. See [`gotchas.md`](./gotchas.md) → "Hook execution score capped despite many hooks configured".
 - **Plugin-skill filtering.** Marketplace-installed skills don't count toward personal-craft Automation by default (`includePluginSkillsAsPersonal: false`). Flip the flag explicitly if the user wants them counted.
 - **Built-in MCP connectors not attributed.** `mcp__claude_ai_*` tool calls aren't credited as plugin usage — only `mcp__plugin_<name>_*` is. Built-ins shouldn't inflate the plugin score.
 - **Null-vs-zero discipline for transcript signals.** `planModeSessionCount` and friends start as `null` and stay `null` when transcripts weren't scanned. Scoring predicates must treat that as "we didn't look," not "user didn't do it."
