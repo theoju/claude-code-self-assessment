@@ -278,14 +278,52 @@ Acknowledgements:
 
 - **Anthropic** for building Claude Code and exposing the local
   `~/.claude/usage-data/` telemetry that makes the Execution axis possible.
-- **Boris Cherny** ([howborisusesclaudecode.com](https://howborisusesclaudecode.com))
-  for the workflow-tip ranking that the rubric weights are derived from. Tip
-  content is fetched at install time from a snapshot of the public site and
-  cross-referenced via the dashboard's `/tips/N` route.
+- **Boris Cherny** ([@bcherny on X](https://x.com/bcherny)) — author of the
+  87 workflow tips that the rubric weights are derived from.
+- **Daniel An** ([@CarolinaCherry on
+  GitHub](https://github.com/CarolinaCherry)) — creator of
+  [howborisusesclaudecode.com](https://howborisusesclaudecode.com) and
+  compiler of the `/boris` skill that `/self-assessment` cross-references.
+  Tip content is rendered from a local snapshot of that skill via the
+  dashboard's `/tips/N` route.
 
 If you work at Anthropic and any of this attribution should be tightened
 (or relaxed), please open an issue on this repo.
 
 ## License
 
-MIT.
+This project is licensed under the **MIT License** — see the [`LICENSE`](./LICENSE)
+file for the full text.
+
+```
+MIT License
+
+Copyright (c) 2026 Theo Jungeblut
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+THE SOFTWARE.
+```
+
+**Third-party content not covered by the MIT grant** (also documented in `LICENSE`):
+
+- *Trademarks.* "Claude", "Claude Code", and `/insights` are trademarks of
+  Anthropic, used nominatively. The MIT license does not grant trademark rights.
+- *Tip content.* `app/data/boris-tips-content.json` is a snapshot of Boris
+  Cherny's tips compiled by Daniel An. It's included for cross-referencing
+  only; redistributing the tip text outside that role requires permission
+  from the original authors.

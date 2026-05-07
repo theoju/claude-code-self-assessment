@@ -367,9 +367,18 @@ export default async function Page() {
             </dd>
           </div>
           <div>
-            <dt className="text-[color:var(--color-mute)] mb-1">Tip aggregation website</dt>
+            <dt className="text-[color:var(--color-mute)] mb-1">Tip aggregation &amp; /boris skill</dt>
             <dd>
-              <strong className="text-[color:var(--color-text)]">Daniel An</strong> — creator of{" "}
+              <strong className="text-[color:var(--color-text)]">Daniel An</strong> (
+              <a
+                href="https://github.com/CarolinaCherry"
+                target="_blank"
+                rel="noreferrer"
+                className="underline decoration-dotted underline-offset-2 text-[color:var(--color-accent)]"
+              >
+                @CarolinaCherry on GitHub ↗
+              </a>
+              ) — creator of{" "}
               <a
                 href="https://howborisusesclaudecode.com"
                 target="_blank"
@@ -377,8 +386,9 @@ export default async function Page() {
                 className="underline decoration-dotted underline-offset-2 text-[color:var(--color-accent)]"
               >
                 howborisusesclaudecode.com ↗
-              </a>
-              , the public catalog this dashboard cross-references.
+              </a>{" "}
+              and compiler of the <span className="mono">/boris</span> skill that
+              <span className="mono"> /self-assessment</span> cross-references.
             </dd>
           </div>
           <div>
