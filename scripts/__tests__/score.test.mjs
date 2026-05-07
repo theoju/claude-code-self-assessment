@@ -568,7 +568,7 @@ describe("EXECUTION_SCORERS", () => {
     });
   });
 
-  describe("workshop-only-by-nature dimensions", () => {
+  describe("platform-setup-only dimensions", () => {
     it.each(["model-effort", "memory", "customization"])(
       "%s returns null with NO_TELEMETRY_FOR_DIMENSION reason",
       (id) => {

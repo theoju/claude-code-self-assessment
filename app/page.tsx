@@ -72,7 +72,7 @@ export default async function Page() {
           <RadarChart dimensions={dims} showExecution={assessment.executionOverall != null} />
           <div className="flex items-center gap-6 text-xs text-[color:var(--color-mute)] mt-4 justify-center flex-wrap">
             <span className="inline-flex items-center gap-2">
-              <span className="w-3 h-3 rounded-sm bg-[color:var(--color-good)] opacity-70" /> Workshop
+              <span className="w-3 h-3 rounded-sm bg-[color:var(--color-good)] opacity-70" /> Platform Setup
             </span>
             {assessment.executionOverall != null && (
               <span className="inline-flex items-center gap-2">
@@ -113,7 +113,7 @@ export default async function Page() {
             </div>
             <div className="grid grid-cols-2 gap-4">
               <SnapshotTile
-                label="Workshop"
+                label="Platform Setup"
                 tone="good"
                 score={assessment.overall}
                 denom={100}
@@ -142,7 +142,7 @@ export default async function Page() {
                 Δ {executionDelta} —{" "}
                 {executionDelta >= EXECUTION_DELTA_HIGHLIGHT
                   ? "your config is ahead of your habits."
-                  : "workshop and execution roughly aligned."}
+                  : "platform setup and execution roughly aligned."}
                 {executionDelta >= EXECUTION_DELTA_HIGHLIGHT && (
                   <>
                     {" "}
@@ -342,7 +342,7 @@ export default async function Page() {
 
       <footer className="mt-16 pt-6 border-t border-[color:var(--color-line)] text-xs text-[color:var(--color-mute)] space-y-2">
         <p>
-          Scoring uses two axes: <strong className="text-[color:var(--color-good)]">Workshop</strong> from{" "}
+          Scoring uses two axes: <strong className="text-[color:var(--color-good)]">Platform Setup</strong> from{" "}
           <span className="mono">~/.claude</span> config (settings, plugins, agents, commands, skills, memory)
           and <strong className="text-[color:var(--color-warn)]">Execution</strong> from{" "}
           <span className="mono">~/.claude/usage-data</span> behavioral signals (the same local files{" "}

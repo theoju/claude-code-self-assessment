@@ -180,7 +180,7 @@ async function main() {
       : `Execution ${scored.executionOverall} / 100 (observed practice)`;
     const lines = [
       `Claude Code Mastery — ${assessment.user || "you"}`,
-      `Workshop  ${assessment.overall} / 100`,
+      `Platform Setup  ${assessment.overall} / 100`,
       exHeader,
       ``,
       ...scored.scores.map((s) => {

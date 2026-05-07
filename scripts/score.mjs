@@ -247,7 +247,7 @@ export const SCORERS = {
   },
 };
 
-// Workshop scorers measure "do you have the infrastructure"; execution
+// Platform-Setup scorers measure "do you have the infrastructure"; execution
 // scorers measure "do you actually use it." Both axes ship side-by-side.
 
 export const GAP_REASONS = {
@@ -261,7 +261,7 @@ export const GAP_REASONS = {
   // (effort/model never logged to session-meta; memory tools never appear in
   // tool_counts; terminal/IDE customization is purely client-side config).
   // These render as "unmeasured" with a clear rationale instead of blank.
-  NO_TELEMETRY_FOR_DIMENSION: "no /insights telemetry exists for this dimension — workshop-only by nature",
+  NO_TELEMETRY_FOR_DIMENSION: "no /insights telemetry exists for this dimension — platform-setup-only by nature",
 };
 
 function unavailable(reason) {
@@ -482,7 +482,7 @@ export const EXECUTION_SCORERS = {
     };
   }),
 
-  // Workshop-only-by-nature dimensions. /insights data does not carry the
+  // Platform-Setup-only-by-nature dimensions. /insights data does not carry the
   // relevant signal: model/effort are never written to session-meta;
   // memory-related tools never appear in tool_counts; terminal/IDE
   // customization (statusline, keybindings, themes) is pure client config.
@@ -493,7 +493,7 @@ export const EXECUTION_SCORERS = {
   customization: () => unavailable(GAP_REASONS.NO_TELEMETRY_FOR_DIMENSION),
 
   // Linear ratio of sessions emitting the `★ Insight ` banner — the rendered
-  // signature of the explanatory-output-style plugin. Workshop already credits
+  // signature of the explanatory-output-style plugin. Platform Setup already credits
   // plugin installation (signals.mjs hasPlugin check); this scorer credits
   // actual use. Honest caveat: if the plugin's banner string changes upstream,
   // this scorer goes silent (returns 0). Documented in methodology.
@@ -514,7 +514,7 @@ export const EXECUTION_SCORERS = {
 };
 
 // Per-dim score is normalized to its target so hitting target = 100. Both
-// axes (Workshop and Execution) use the same per-dim target from the rubric,
+// axes (Platform Setup and Execution) use the same per-dim target from the rubric,
 // making the radar's two polygons semantically comparable: a vertex at 100
 // means "you've hit the rubric's target for this dimension," regardless of
 // whether the target was 75 or 95 raw. Raw values are preserved as

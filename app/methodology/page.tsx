@@ -22,7 +22,7 @@ export default function MethodologyPage() {
         </p>
         <ul>
           <li>
-            <strong className="text-[color:var(--color-good)]">Workshop</strong> — derived from your
+            <strong className="text-[color:var(--color-good)]">Platform Setup</strong> — derived from your
             local <span className="mono">~/.claude</span> setup: settings, plugins, custom
             agents/commands/skills, hooks, project memory, and CLAUDE.md health. It answers:{" "}
             <em>are the tools in place?</em>
@@ -34,7 +34,7 @@ export default function MethodologyPage() {
           </li>
         </ul>
         <p>
-          The diagnostic case is a high Workshop score paired with a low Execution score — every
+          The diagnostic case is a high Platform Setup score paired with a low Execution score — every
           tool installed, none of them used. The <strong>Δ</strong> readout on the dashboard makes
           this gap explicit.
         </p>
@@ -88,7 +88,7 @@ export default function MethodologyPage() {
           <li>
             <strong>Learning &amp; Explanatory Mode</strong> — <span className="mono">learningModeSessionRatio × 100</span>.
             Counts sessions where Claude emitted the <span className="mono">★ Insight</span> banner
-            from the explanatory-output-style plugin. Workshop credits installation; this scorer
+            from the explanatory-output-style plugin. Platform Setup credits installation; this scorer
             credits actual use. Caveat: the substring match depends on the plugin&apos;s banner
             string, so a future plugin upgrade could regress this signal silently.
           </li>
@@ -108,7 +108,7 @@ export default function MethodologyPage() {
             relevant signals never reach the cooked telemetry: model/effort are not written to{" "}
             <span className="mono">session-meta</span>; memory-related tools do not appear in{" "}
             <span className="mono">tool_counts</span>; terminal/IDE customization (statusline, theme,
-            keybindings) is purely client-side configuration. Workshop-only is the honest position.
+            keybindings) is purely client-side configuration. Platform-Setup-only is the honest position.
           </li>
         </ul>
         <p>
@@ -201,7 +201,7 @@ export default function MethodologyPage() {
           <a className="underline" href="https://howborisusesclaudecode.com" target="_blank" rel="noreferrer">
             howborisusesclaudecode.com
           </a>
-          . Workshop overall and Execution overall are both weight-normalized means over their
+          . Platform Setup overall and Execution overall are both weight-normalized means over their
           respective per-dimension scores. Priority actions are sorted by{" "}
           <span className="mono">weight × (target − score)</span>.
         </p>
@@ -222,7 +222,7 @@ export default function MethodologyPage() {
         <p>
           The dashboard&apos;s scoring is independent of <span className="mono">/insights</span>: it reads
           the same raw <span className="mono">~/.claude/usage-data/</span> files but computes its own
-          Workshop and Execution scores. If you also want Claude&apos;s own analysis surfaced here, there
+          Platform Setup and Execution scores. If you also want Claude&apos;s own analysis surfaced here, there
           are two paths — both rely on artifacts already on your disk, neither auto-captures anything.
         </p>
         <h3 className="text-sm font-semibold text-[color:var(--color-text)] mt-4">
