@@ -186,7 +186,16 @@ score. If you want execution-grade credit for hooks, configure a hook in
 
 If you pass `--claude-md-target <name=path>` (or list targets in
 `assessment.config.json#claudeMd.targets`), each target's `CLAUDE.md` files
-are scored on a 6-criterion 100-point rubric.
+are scored on a 6-criterion 100-point rubric:
+
+| Criterion            | Max | What earns it                                                                                                               |
+| -------------------- | --- | --------------------------------------------------------------------------------------------------------------------------- |
+| Commands/workflows   | 20  | Fenced code blocks containing real tooling invocations                                                                      |
+| Architecture clarity | 20  | An `## Architecture`/`## Structure` heading with ≥80 chars of body                                                          |
+| Non-obvious patterns | 15  | A `## Gotchas`/`## Notes` section with specific tool/file references (not generic prose)                                    |
+| Conciseness          | 15  | Between 15 and 400 lines                                                                                                    |
+| Currency             | 15  | mtime ≤ 30d (15) / ≤ 90d (10). Capped at 5 if stale version mentions like `Claude 3`/`Sonnet 3.5`/`claude.json` are present |
+| Actionability        | 15  | Bullet density × heading count + imperative-verb hits (`run`, `use`, `prefer`, `avoid`, …)                                  |
 
 Output is **report-only** (`mode: "report-only"` is the only mode shipped) —
 the auditor never edits CLAUDE.md. Only aggregate stats land in the Slack
@@ -221,8 +230,9 @@ both read from this file at runtime — no rebuild needed.
 
 To add a new dimension:
 
-1. Add a `{ id, title, weight, target, rubricArea, borisTips, nextActions }` entry.
-2. Add a matching scorer function in `scripts/score.mjs`.
+1. Add a `{ id, title, weight, target, rubricArea, borisTips, noiseFloor, nextActions }` entry.
+2. Add a matching `SCORERS[id]` function in `scripts/score.mjs`.
+3. Add an entry to `EXPLAINERS[id]` in `app/lib/dimension-explainer.ts` so the explainer page renders.
 
 Tests in `scripts/__tests__/score.test.mjs` (74 unit tests) and
 `scripts/__tests__/integration/` (gatherSignals + pipeline) catch most
@@ -259,3 +269,4 @@ each morning and post the result to Slack. See `ROUTINE.md` for setup.
 - `ROUTINE.md` — cloud / launchd scheduled run
 - `.claude/commands/self-assessment.md` — the slash-command shim
 - `scripts/score.mjs` — every scoring rule, transparent and editable
+- `app/lib/dimension-explainer.ts` — formula descriptions rendered on `/dimensions/<id>`

@@ -29,11 +29,16 @@ From the project root:
 
 When opted in, the scorer additionally walks `~/.claude/projects/*/conversations*.jsonl` to count, per session in the window:
 
-- Plan-mode entries (`/plan`, `EnterPlanMode` tool calls)
-- Auto-mode entries
-- Bypass-permissions entries
-- Worktree state events (real worktree usage, not just commands)
-- Learning-mode session matches
+| Signal                                                                                                                            | Feeds into              |
+| --------------------------------------------------------------------------------------------------------------------------------- | ----------------------- |
+| Subagent dispatch frequency                                                                                                       | `parallel`              |
+| Plan-mode entries (`/plan`, `EnterPlanMode` tool calls)                                                                           | `planning`              |
+| Verify-before-ship rate (Bash invocations of `npm test`/`vitest`/`playwright`/etc. before `git commit`/`git push`/`gh pr create`) | `verification`          |
+| Auto-mode session count                                                                                                           | `permissions`           |
+| Bypass-permissions entries (penalty)                                                                                              | `permissions`           |
+| Tool-use distribution + per-plugin invocation gating                                                                              | `integrations`          |
+| Worktree state events (real worktree usage, not just commands)                                                                    | `parallel`              |
+| Learning-mode session matches                                                                                                     | `learning`              |
 
 This is **expensive** — full transcript scan each run, slow on large histories. Off by default; turn on once a baseline exists.
 
