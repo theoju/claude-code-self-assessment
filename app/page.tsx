@@ -61,9 +61,9 @@ export default async function Page() {
           Compared against Boris Cherny's 87 workflow tips (howborisusesclaudecode.com)
           and the Claude Code Mastery rubric. Scoring is evidence-based — signals pulled from
           <span className="mono text-[color:var(--color-text)]"> ~/.claude/settings.json</span>,
-          installed plugins, custom agents/commands/skills directories, and project memory.
-          The Mastery share link was not publicly reachable (403); dimensions reflect the
-          rubric's canonical mastery categories.
+          installed plugins, custom agents/commands/skills directories, project memory, and
+          the local <span className="mono text-[color:var(--color-text)]">/insights</span>{" "}
+          telemetry under <span className="mono text-[color:var(--color-text)]">~/.claude/usage-data/</span>.
         </p>
       </header>
 
@@ -340,7 +340,77 @@ export default async function Page() {
         </section>
       )}
 
-      <footer className="mt-16 pt-6 border-t border-[color:var(--color-line)] text-xs text-[color:var(--color-mute)] space-y-2">
+      <section
+        aria-labelledby="credits-heading"
+        className="mt-16 rounded-md border border-[color:var(--color-line)] bg-[color:var(--color-panel)] px-6 py-5"
+      >
+        <h2
+          id="credits-heading"
+          className="text-xs uppercase tracking-[0.15em] text-[color:var(--color-mute)] mb-4"
+        >
+          Credits &amp; references
+        </h2>
+        <dl className="grid gap-4 text-sm md:grid-cols-2">
+          <div>
+            <dt className="text-[color:var(--color-mute)] mb-1">Workflow tips</dt>
+            <dd>
+              <strong className="text-[color:var(--color-text)]">Boris Cherny</strong> — author of
+              the 87 tips this rubric weights against.{" "}
+              <a
+                href="https://x.com/bcherny"
+                target="_blank"
+                rel="noreferrer"
+                className="underline decoration-dotted underline-offset-2 text-[color:var(--color-accent)]"
+              >
+                @bcherny on X ↗
+              </a>
+            </dd>
+          </div>
+          <div>
+            <dt className="text-[color:var(--color-mute)] mb-1">Tip aggregation &amp; /boris skill</dt>
+            <dd>
+              <strong className="text-[color:var(--color-text)]">Daniel An</strong> (
+              <a
+                href="https://github.com/CarolinaCherry"
+                target="_blank"
+                rel="noreferrer"
+                className="underline decoration-dotted underline-offset-2 text-[color:var(--color-accent)]"
+              >
+                @CarolinaCherry on GitHub ↗
+              </a>
+              ) — creator of{" "}
+              <a
+                href="https://howborisusesclaudecode.com"
+                target="_blank"
+                rel="noreferrer"
+                className="underline decoration-dotted underline-offset-2 text-[color:var(--color-accent)]"
+              >
+                howborisusesclaudecode.com ↗
+              </a>{" "}
+              and compiler of the <span className="mono">/boris</span> skill that
+              <span className="mono"> /self-assessment</span> cross-references.
+            </dd>
+          </div>
+          <div>
+            <dt className="text-[color:var(--color-mute)] mb-1">Local data sources read</dt>
+            <dd className="space-y-0.5">
+              <div><span className="mono">~/.claude/settings.json</span>, <span className="mono">agents/</span>, <span className="mono">commands/</span>, <span className="mono">skills/</span>, <span className="mono">plans/</span></div>
+              <div><span className="mono">~/.claude/projects/*/memory</span></div>
+              <div><span className="mono">~/.claude/usage-data/</span> (same files <span className="mono">/insights</span> reads)</div>
+            </dd>
+          </div>
+          <div>
+            <dt className="text-[color:var(--color-mute)] mb-1">Local tools &amp; skills used</dt>
+            <dd className="space-y-0.5">
+              <div>Boris skill snapshot at <span className="mono">~/.claude/skills/boris</span></div>
+              <div>Slash commands: <span className="mono">/self-assessment</span>, <span className="mono">/refresh-insights</span></div>
+              <div>Built with Next.js 16, Tailwind CSS, Vitest</div>
+            </dd>
+          </div>
+        </dl>
+      </section>
+
+      <footer className="mt-8 pt-6 border-t border-[color:var(--color-line)] text-xs text-[color:var(--color-mute)] space-y-2">
         <p>
           Scoring uses two axes: <strong className="text-[color:var(--color-good)]">Platform Setup</strong> from{" "}
           <span className="mono">~/.claude</span> config (settings, plugins, agents, commands, skills, memory)
@@ -353,14 +423,10 @@ export default async function Page() {
           </Link>
         </p>
         <p className="opacity-75">
-          Independent open-source dashboard. Not affiliated with, endorsed by, or sponsored by Anthropic.
+          Independent open-source dashboard (MIT). Not affiliated with, endorsed by, or sponsored by Anthropic.
           &quot;Claude&quot;, &quot;Claude Code&quot;, and <span className="mono">/insights</span> are
           trademarks of Anthropic, used here only to identify the platform whose locally-stored data this
-          tool analyzes. Workflow tip ranking by{" "}
-          <a href="https://howborisusesclaudecode.com" target="_blank" rel="noreferrer" className="underline decoration-dotted underline-offset-2">
-            Boris Cherny
-          </a>
-          .
+          tool analyzes.
         </p>
       </footer>
     </main>

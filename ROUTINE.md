@@ -5,7 +5,7 @@ Two launchd jobs run back-to-back every morning:
 | Time  | Routine     | Script                              | What it does                                                        | Posts to                                       |
 |-------|-------------|-------------------------------------|---------------------------------------------------------------------|------------------------------------------------|
 | 06:00 | Coverage    | `scripts/run-coverage.mjs`          | Vitest + V8 coverage, integration suite, benches, Playwright web vitals | Slack — links to `/coverage`               |
-| 07:15 | Mastery     | `scripts/run-assessment.mjs`        | Re-scores 12 Boris dimensions from `~/.claude/` signals + audits CLAUDE.md targets (report-only) | Slack — links to `/`                           |
+| 07:15 | Mastery     | `scripts/run-assessment.mjs`        | Re-scores 12 Boris dimensions on the **Platform Setup** + **Execution** axes from `~/.claude/` and `~/.claude/usage-data/` + audits CLAUDE.md targets (report-only) | Slack — links to `/`                           |
 
 The 75-minute gap means the dashboard reflects fresh coverage by the time the Mastery summary arrives. Both routines reuse the same `SLACK_WEBHOOK_URL` from `.env.local`.
 

@@ -1,0 +1,38 @@
+MIT License
+
+Copyright (c) 2026 Theo Jungeblut
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+---
+
+Third-party content not covered by this license:
+
+- "Claude", "Claude Code", and "/insights" are trademarks of Anthropic, used
+  here only nominatively to identify the platform whose locally-stored data
+  this tool analyzes. This project is not affiliated with, endorsed by, or
+  sponsored by Anthropic.
+
+- The 87 workflow tips referenced by this dashboard are authored by Boris
+  Cherny (@bcherny) and aggregated at https://howborisusesclaudecode.com by
+  Daniel An (@CarolinaCherry). The snapshot at
+  app/data/boris-tips-content.json is derived from the /boris skill (see
+  ~/.claude/skills/boris) and is included here for cross-referencing only.
+  Republishing or redistributing that content beyond the cross-reference role
+  it serves in this dashboard requires permission from the original authors.
