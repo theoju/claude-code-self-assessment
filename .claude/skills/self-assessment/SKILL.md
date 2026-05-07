@@ -33,3 +33,4 @@ If `slack.enabled: true` but `SLACK_WEBHOOK_URL` is missing, surface a single li
 - Scoring logic: `scripts/score.mjs`. Explainer copy: `app/lib/dimension-explainer.ts` → renders at `/dimensions/<id>` on the dashboard.
 - Cloud routine (07:15 daily run): `ROUTINE.md`.
 - Human-facing user guide: `docs/self-assessment.md`.
+- Companion slash command: `/refresh-insights` (`.claude/commands/refresh-insights.md`) — files the markdown that Claude Code's `/insights` already produced into the dashboard's narrative section. Pair them as the daily workflow: `/refresh-insights && /self-assessment ...`.
