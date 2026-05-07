@@ -240,16 +240,22 @@ export default function MethodologyPage() {
           2. An inline markdown summary (optional)
         </h3>
         <p>
-          If you&apos;d like a condensed narrative rendered inline rather than opened in a new tab, paste a
-          markdown summary into <span className="mono">app/data/insights-narrative.md</span>:
+          If you&apos;d like a condensed narrative rendered inline rather than opened in a new tab, run{" "}
+          <span className="mono">/insights</span> in Claude Code, then drop the markdown summary into{" "}
+          <span className="mono">app/data/insights-narrative.md</span>. Three ways to do it, all
+          user-initiated:
         </p>
         <pre className="bg-[color:var(--color-panel-2)] p-3 rounded text-xs overflow-x-auto">
-{`pbpaste | npm run import-insights
+{`/refresh-insights              # slash command — Claude writes the file from the current session's /insights output
+pbpaste | npm run import-insights   # pipe the clipboard
 # or paste manually into app/data/insights-narrative.md`}
         </pre>
         <p>
           That file is gitignored, never uploaded, never posted to Slack, and rendered locally with the
-          markdown helper used elsewhere in the dashboard. We don&apos;t auto-capture{" "}
+          markdown helper used elsewhere in the dashboard. The <span className="mono">/refresh-insights</span>{" "}
+          command is a thin convenience wrapper — it only files output that <span className="mono">/insights</span>{" "}
+          already produced in your session, never invokes <span className="mono">/insights</span> on its own,
+          and won&apos;t paraphrase or augment the text. We don&apos;t auto-capture{" "}
           <span className="mono">/insights</span> output, don&apos;t reuse Anthropic&apos;s prompt template,
           and don&apos;t persist anything beyond the files you choose to create.
         </p>
