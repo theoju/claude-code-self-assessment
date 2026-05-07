@@ -1,6 +1,6 @@
 ---
 name: self-assessment
-description: Score Claude Code usage against the 12-dimension Mastery rubric (weighted by Boris Cherny's 87 tips). Trigger on "score me", "mastery audit", "self-assessment", "how am I doing with claude code", "am I improving", "/self-assessment". Reads ~/.claude/* state, writes app/data/assessment.json, appends history, optionally posts to Slack.
+description: Score Claude Code usage on two axes (Platform Setup vs Execution) using the 12-dimension Mastery rubric. Trigger on "score me", "mastery audit", "self-assessment", "rate my setup", "audit my claude code", "mastery score", "how am I doing with claude code", "am I improving", "/self-assessment".
 ---
 
 # self-assessment

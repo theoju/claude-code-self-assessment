@@ -28,16 +28,16 @@ From the project root:
 
 When opted in, the scorer additionally walks `~/.claude/projects/*/conversations*.jsonl` to count, per session in the window:
 
-| Signal                                                                                                                            | Feeds into              |
-| --------------------------------------------------------------------------------------------------------------------------------- | ----------------------- |
-| Subagent dispatch frequency                                                                                                       | `parallel`              |
-| Plan-mode entries (`/plan`, `EnterPlanMode` tool calls)                                                                           | `planning`              |
-| Verify-before-ship rate (Bash invocations of `npm test`/`vitest`/`playwright`/etc. before `git commit`/`git push`/`gh pr create`) | `verification`          |
-| Auto-mode session count                                                                                                           | `permissions`           |
-| Bypass-permissions entries (penalty)                                                                                              | `permissions`           |
-| Tool-use distribution + per-plugin invocation gating                                                                              | `integrations`          |
-| Worktree state events (real worktree usage, not just commands)                                                                    | `parallel`              |
-| Learning-mode session matches                                                                                                     | `learning`              |
+| Signal                                                                                                                            | Feeds into     |
+| --------------------------------------------------------------------------------------------------------------------------------- | -------------- |
+| Subagent dispatch frequency                                                                                                       | `parallel`     |
+| Plan-mode entries (`/plan`, `EnterPlanMode` tool calls)                                                                           | `planning`     |
+| Verify-before-ship rate (Bash invocations of `npm test`/`vitest`/`playwright`/etc. before `git commit`/`git push`/`gh pr create`) | `verification` |
+| Auto-mode session count                                                                                                           | `permissions`  |
+| Bypass-permissions entries (penalty)                                                                                              | `permissions`  |
+| Tool-use distribution + per-plugin invocation gating                                                                              | `integrations` |
+| Worktree state events (real worktree usage, not just commands)                                                                    | `parallel`     |
+| Learning-mode session matches                                                                                                     | `learning`     |
 
 This is **expensive** — full transcript scan each run, slow on large histories. Off by default; turn on once a baseline exists.
 
@@ -48,6 +48,8 @@ This is **expensive** — full transcript scan each run, slow on large histories
 - Slack webhook (if `slack.enabled: true` and `SLACK_WEBHOOK_URL` is set) — fire-and-forget summary post. Failures log a warning; they don't fail the run.
 
 The CLAUDE.md auditor (when `claudeMd.targets` is configured) reads each target but writes **nothing** — `mode: "report-only"` is the only mode shipped, and the scorer reports aggregate stats only (no paths or per-file detail).
+
+`app/data/` is used instead of `${CLAUDE_PLUGIN_DATA}` because the assessment is rendered by a Next.js dashboard colocated in the same repo. The data path is project-scoped on purpose — this skill is not portable across repos and is not intended to be installed via the marketplace. If the dashboard is ever extracted into its own repo, the storage path becomes a real decision.
 
 ## How counts stay honest
 
