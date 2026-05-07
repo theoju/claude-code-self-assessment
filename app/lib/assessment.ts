@@ -186,6 +186,7 @@ function evaluateAtomic(expr: string, signals: Record<string, unknown>): boolean
       case ">=": return num >= rhsNum;
       case "<": return num < rhsNum;
       case "<=": return num <= rhsNum;
+      default: return false;
     }
   }
   // No operator → truthy check on the path.
