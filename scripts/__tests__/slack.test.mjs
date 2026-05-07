@@ -21,6 +21,32 @@ describe("buildSlackMessage", () => {
     expect(action.elements[0].url).toBe("http://localhost:3737");
   });
 
+  it("renders Platform Setup and Execution as two separate axes (never collapsed)", () => {
+    const msg = buildSlackMessage(makeAssessment(), makeRubric(), config);
+    const flat = JSON.stringify(msg.blocks);
+    expect(flat).toMatch(/Platform Setup/);
+    expect(flat).toMatch(/Execution/);
+    expect(flat).not.toMatch(/\*Overall\*/);
+    expect(msg.text).toMatch(/Platform 60\/100/);
+    expect(msg.text).toMatch(/Execution 50\/100/);
+  });
+
+  it("shows Execution as unmeasured when executionOverall is missing", () => {
+    const a = makeAssessment();
+    delete a.executionOverall;
+    const msg = buildSlackMessage(a, makeRubric(), config);
+    const flat = JSON.stringify(msg.blocks);
+    expect(flat).toMatch(/_unmeasured_/);
+    expect(msg.text).not.toMatch(/Execution/);
+  });
+
+  it("renders the Δ between Platform and Execution when nonzero", () => {
+    const a = makeAssessment({ overall: 80, executionOverall: 62 });
+    const msg = buildSlackMessage(a, makeRubric(), config);
+    const flat = JSON.stringify(msg.blocks);
+    expect(flat).toMatch(/Δ \+18/);
+  });
+
   it("surfaces strengths only when score >= 80", () => {
     const a = makeAssessment();
     a.scores[0].score = 90; // strength
@@ -59,10 +85,14 @@ describe("buildSlackMessage", () => {
   });
 
   it("falls back to default url and engineer name", () => {
-    const msg = buildSlackMessage(makeAssessment({ user: null }), makeRubric(), {
-      slack: {},
-      user: {},
-    });
+    const msg = buildSlackMessage(
+      makeAssessment({ user: null }),
+      makeRubric(),
+      {
+        slack: {},
+        user: {},
+      },
+    );
     expect(msg.text).toMatch(/Engineer/);
     const action = msg.blocks.at(-1);
     expect(action.elements[0].url).toBe("http://localhost:3737");
@@ -85,9 +115,33 @@ describe("buildSlackMessage", () => {
       targetOverall: 100,
       user: "Engineer",
       scores: [
-        { id: "a", score: 90, rawScore: 63, tier: "advanced", target: 100, rawTarget: 70, weight: 1 },
-        { id: "b", score: 95, rawScore: 71, tier: "advanced", target: 100, rawTarget: 75, weight: 1 },
-        { id: "c", score: 92, rawScore: 64, tier: "advanced", target: 100, rawTarget: 70, weight: 1 },
+        {
+          id: "a",
+          score: 90,
+          rawScore: 63,
+          tier: "advanced",
+          target: 100,
+          rawTarget: 70,
+          weight: 1,
+        },
+        {
+          id: "b",
+          score: 95,
+          rawScore: 71,
+          tier: "advanced",
+          target: 100,
+          rawTarget: 75,
+          weight: 1,
+        },
+        {
+          id: "c",
+          score: 92,
+          rawScore: 64,
+          tier: "advanced",
+          target: 100,
+          rawTarget: 70,
+          weight: 1,
+        },
       ],
       trends: { a: "flat", b: "flat", c: "flat" },
     };
