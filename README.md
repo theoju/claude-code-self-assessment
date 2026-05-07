@@ -200,7 +200,68 @@ The `boris` skill at `~/.claude/skills/boris` (installed with the
 `andrej-karpathy-skills` or `claude-code-workflows` marketplace). The rubric's
 `borisTips` field cross-references section numbers.
 
+## Surfacing Claude's `/insights` analysis in the dashboard
+
+The dashboard scores your usage from raw signals on its own. Two opt-in paths
+let you also surface Claude's own analysis — both read artifacts already on
+your disk, neither auto-captures anything.
+
+**1. One-click HTML report button.** When you run `/insights`, Claude Code
+writes a full HTML report to `~/.claude/usage-data/report.html`. The
+dashboard detects the file and shows an "Open Claude's full /insights
+report" button that streams it locally through `/api/insights-report`. Same
+posture as reading the JSON telemetry: a static file Claude Code wrote to
+your machine, served locally for your own consumption.
+
+**2. Inline markdown summary** (optional). For a condensed narrative
+rendered inline, paste markdown into `app/data/insights-narrative.md`:
+
+```bash
+# In Claude Code:
+/insights
+# Then for inline rendering:
+pbpaste | npm run import-insights   # macOS clipboard
+# or paste into app/data/insights-narrative.md directly
+```
+
+The markdown file is gitignored, rendered locally, never uploaded, and
+never posted to Slack. The HTML report is served only on localhost via the
+local Next route. The dashboard never invokes `/insights` itself, never
+captures API output, and never persists anything beyond the files you
+choose to create.
+
+## Attribution & relationship to Claude Code
+
+This is an **independent, open-source community tool**. It is **not affiliated
+with, endorsed by, or sponsored by Anthropic**.
+
+What the dashboard actually does:
+
+- Reads files that Claude Code writes to your local `~/.claude/` directory
+  during normal use — settings, installed plugins, project memory, and the
+  per-session telemetry under `~/.claude/usage-data/`. Those are your files on
+  your machine; this tool just reads them and computes its own scores.
+- The Execution-axis scoring and the progression timeline rely on the same
+  local data files that Claude Code's built-in `/insights` command reads.
+  This project does **not** reuse `/insights` output, replicate its UI, or
+  call any Anthropic API. References to `/insights` in the dashboard describe
+  the data source format only.
+- "Claude", "Claude Code", and "/insights" are trademarks of Anthropic, used
+  here only to identify the platform this tool complements — not to imply
+  endorsement or partnership.
+
+Acknowledgements:
+
+- **Anthropic** for building Claude Code and exposing the local
+  `~/.claude/usage-data/` telemetry that makes the Execution axis possible.
+- **Boris Cherny** ([howborisusesclaudecode.com](https://howborisusesclaudecode.com))
+  for the workflow-tip ranking that the rubric weights are derived from. Tip
+  content is fetched at install time from a snapshot of the public site and
+  cross-referenced via the dashboard's `/tips/N` route.
+
+If you work at Anthropic and any of this attribution should be tightened
+(or relaxed), please open an issue on this repo.
+
 ## License
 
-MIT. Credit to Boris Cherny and the Claude Code team for the underlying
-methodology.
+MIT.

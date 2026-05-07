@@ -23,7 +23,8 @@
     "coverage:print": "node scripts/run-coverage.mjs --print --no-slack",
     "schedule:coverage:install": "bash scripts/launchd/install-coverage.sh",
     "schedule:coverage:uninstall": "bash scripts/launchd/install-coverage.sh uninstall",
-    "snapshot:boris-tips": "node scripts/snapshot-boris-tips.mjs"
+    "snapshot:boris-tips": "node scripts/snapshot-boris-tips.mjs",
+    "import-insights": "node scripts/import-insights.mjs"
   },
   "dependencies": {
     "next": "^16.0.0",

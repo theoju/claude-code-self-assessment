@@ -68,8 +68,10 @@ describe("buildSlackMessage", () => {
     expect(action.elements[0].url).toBe("http://localhost:3737");
   });
 
-  it("omits sections when there are no strengths or gaps", () => {
-    // Custom rubric where targets are reachable without crossing the strength bar.
+  it("omits Biggest gaps when every score is at/above 80 (post-normalization)", () => {
+    // After per-dim normalization, a score is a "gap" when it's <= 80 (deficit
+    // >= 20 against the universal target of 100). All scores here are >= 90,
+    // so no gaps qualify. Strengths still appear because >= 80 = strength.
     const rubric = {
       dimensions: [
         { id: "a", title: "A", weight: 1, target: 70 },
@@ -79,19 +81,19 @@ describe("buildSlackMessage", () => {
     };
     const a = {
       capturedAt: "2026-04-25T07:15:00.000Z",
-      overall: 65,
-      targetOverall: 72,
+      overall: 92,
+      targetOverall: 100,
       user: "Engineer",
       scores: [
-        { id: "a", score: 65, tier: "developing", target: 70, weight: 1 },
-        { id: "b", score: 70, tier: "solid", target: 75, weight: 1 },
-        { id: "c", score: 60, tier: "developing", target: 70, weight: 1 },
+        { id: "a", score: 90, rawScore: 63, tier: "advanced", target: 100, rawTarget: 70, weight: 1 },
+        { id: "b", score: 95, rawScore: 71, tier: "advanced", target: 100, rawTarget: 75, weight: 1 },
+        { id: "c", score: 92, rawScore: 64, tier: "advanced", target: 100, rawTarget: 70, weight: 1 },
       ],
       trends: { a: "flat", b: "flat", c: "flat" },
     };
     const msg = buildSlackMessage(a, rubric, config);
     const flat = JSON.stringify(msg.blocks);
-    expect(flat).not.toMatch(/Strengths/);
+    expect(flat).toMatch(/Strengths/);
     expect(flat).not.toMatch(/Biggest gaps/);
   });
 });

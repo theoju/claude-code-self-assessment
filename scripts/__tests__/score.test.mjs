@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
-import { SCORERS, tierFor, clamp, scoreAll, computeTrends } from "../score.mjs";
-import { makeSignals, makeRubric } from "./_fixtures.mjs";
+import { SCORERS, EXECUTION_SCORERS, tierFor, clamp, scoreAll, computeTrends } from "../score.mjs";
+import { makeSignals, makeRubric, makeInsights } from "./_fixtures.mjs";
 
 describe("clamp", () => {
   it("clamps to 0..100 by default", () => {
@@ -53,6 +53,23 @@ describe("SCORERS.automation", () => {
     expect(r.gaps.join(" ")).toMatch(/agents/i);
     expect(r.gaps.join(" ")).toMatch(/commands/i);
   });
+  it("downweights hook credit when configured but never fires in the window", () => {
+    const hot = SCORERS.automation(
+      makeSignals({
+        settings: { hookTotalCount: 3, hookEvents: ["PostToolUse"] },
+        insights: makeInsights({ hookFireCount: 12 }),
+      }),
+    );
+    const cold = SCORERS.automation(
+      makeSignals({
+        settings: { hookTotalCount: 3, hookEvents: ["PostToolUse"] },
+        insights: makeInsights({ hookFireCount: 0 }),
+      }),
+    );
+    expect(cold.score).toBeLessThan(hot.score);
+    expect(cold.gaps.join(" ")).toMatch(/none fired/i);
+    expect(cold.evidence.join(" ")).toMatch(/gated/i);
+  });
 });
 
 describe("SCORERS.permissions", () => {
@@ -75,6 +92,23 @@ describe("SCORERS.permissions", () => {
     );
     expect(r.score).toBeGreaterThanOrEqual(70);
     expect(r.evidence.some((e) => /3 permission allowlist/i.test(e))).toBe(true);
+  });
+  it("amplifies penalty when transcripts show bypassPermissions usage", () => {
+    const clean = SCORERS.permissions(makeSignals());
+    const bypassed = SCORERS.permissions(
+      makeSignals({
+        insights: makeInsights({ transcriptsScanned: true, bypassPermissionsSessionCount: 5 }),
+      }),
+    );
+    expect(bypassed.score).toBe(clean.score - 5);
+    expect(bypassed.gaps.join(" ")).toMatch(/bypassPermissions used in 5/);
+  });
+  it("ignores bypass amplification when transcripts not scanned", () => {
+    const clean = SCORERS.permissions(makeSignals());
+    const noTranscript = SCORERS.permissions(
+      makeSignals({ insights: makeInsights({ transcriptsScanned: false }) }),
+    );
+    expect(noTranscript.score).toBe(clean.score);
   });
 });
 
@@ -237,6 +271,354 @@ describe("SCORERS.learning", () => {
   });
 });
 
+describe("EXECUTION_SCORERS", () => {
+  describe("permissions", () => {
+    it("returns null score with gapReason when insights are absent", () => {
+      const r = EXECUTION_SCORERS.permissions(makeSignals());
+      expect(r.score).toBeNull();
+      expect(r.gapReason).toMatch(/run \/insights/i);
+    });
+    it("returns null score with gapReason when transcripts not scanned", () => {
+      const r = EXECUTION_SCORERS.permissions(
+        makeSignals({ insights: makeInsights({ transcriptsScanned: false }) }),
+      );
+      expect(r.score).toBeNull();
+      expect(r.gapReason).toMatch(/includeTranscripts/);
+    });
+    it("rewards high auto-mode ratio, punishes bypass usage", () => {
+      const r = EXECUTION_SCORERS.permissions(
+        makeSignals({
+          insights: makeInsights({
+            transcriptsScanned: true,
+            sessionsAnalyzed: 100,
+            autoModeSessionCount: 90,
+            bypassPermissionsSessionCount: 0,
+          }),
+        }),
+      );
+      expect(r.score).toBeGreaterThanOrEqual(85);
+      const bad = EXECUTION_SCORERS.permissions(
+        makeSignals({
+          insights: makeInsights({
+            transcriptsScanned: true,
+            sessionsAnalyzed: 100,
+            autoModeSessionCount: 50,
+            bypassPermissionsSessionCount: 25,
+          }),
+        }),
+      );
+      expect(bad.score).toBeLessThan(r.score);
+      expect(bad.gaps.join(" ")).toMatch(/bypassPermissions/);
+    });
+    it("uses soft 1.2× asymmetry — majority-auto users with some bypass don't score zero", () => {
+      // A user at 50% auto + 25% bypass scored 0 under the old 2× asymmetry.
+      // The new 1.2× ratio surfaces the trend honestly: still well below the
+      // 90/0 score (=90) but no longer reads as complete failure.
+      const mixed = EXECUTION_SCORERS.permissions(
+        makeSignals({
+          insights: makeInsights({
+            transcriptsScanned: true,
+            sessionsAnalyzed: 100,
+            autoModeSessionCount: 50,
+            bypassPermissionsSessionCount: 25,
+          }),
+        }),
+      );
+      // 50/100*100 - 25/100*120 = 50 - 30 = 20
+      expect(mixed.score).toBe(20);
+    });
+  });
+
+  describe("verification", () => {
+    it("returns null when insights absent", () => {
+      const r = EXECUTION_SCORERS.verification(makeSignals());
+      expect(r.score).toBeNull();
+    });
+    it("scales inversely with buggy_code + wrong_approach rate", () => {
+      const clean = EXECUTION_SCORERS.verification(
+        makeSignals({ insights: makeInsights({ sessionsAnalyzed: 100, frictionCounts: {} }) }),
+      );
+      const messy = EXECUTION_SCORERS.verification(
+        makeSignals({
+          insights: makeInsights({
+            sessionsAnalyzed: 100,
+            frictionCounts: { buggy_code: 20, wrong_approach: 5 },
+          }),
+        }),
+      );
+      expect(clean.score).toBe(100);
+      expect(messy.score).toBeLessThan(clean.score);
+      expect(messy.gaps.join(" ")).toMatch(/20 first-pass-bug/);
+    });
+    it("uses exponential decay — never goes negative pre-clamp, even at high friction rates", () => {
+      // Old linear amplifier produced negative scores at >20% miss rate, then
+      // clamped to 0. New exponential curve asymptotes to 0 smoothly — a 30%
+      // miss rate scores ~9, not clamped 0, so the radar still distinguishes
+      // "really bad" from "completely off the rails."
+      const moderate = EXECUTION_SCORERS.verification(
+        makeSignals({
+          insights: makeInsights({
+            sessionsAnalyzed: 100,
+            frictionCounts: { buggy_code: 10, wrong_approach: 5 }, // 15%
+          }),
+        }),
+      );
+      const heavy = EXECUTION_SCORERS.verification(
+        makeSignals({
+          insights: makeInsights({
+            sessionsAnalyzed: 100,
+            frictionCounts: { buggy_code: 20, wrong_approach: 10 }, // 30%
+          }),
+        }),
+      );
+      // exp(-0.15*8)*100 = 30; exp(-0.30*8)*100 = 9
+      expect(moderate.score).toBe(30);
+      expect(heavy.score).toBe(9);
+      expect(heavy.score).toBeGreaterThan(0);
+    });
+  });
+
+  describe("parallel", () => {
+    it("scores subagent dispatch ratio without transcripts", () => {
+      const r = EXECUTION_SCORERS.parallel(
+        makeSignals({
+          insights: makeInsights({
+            sessionsAnalyzed: 100,
+            subagentSessionCount: 60,
+            transcriptsScanned: false,
+          }),
+        }),
+      );
+      expect(r.score).toBe(60);
+    });
+    it("adds worktree bonus when transcripts scanned", () => {
+      const r = EXECUTION_SCORERS.parallel(
+        makeSignals({
+          insights: makeInsights({
+            sessionsAnalyzed: 100,
+            subagentSessionCount: 40,
+            worktreeUsageSessionCount: 30,
+            transcriptsScanned: true,
+          }),
+        }),
+      );
+      expect(r.score).toBe(40 + 15); // 30/100 * 50 = 15
+    });
+    it("flags low subagent dispatch as a gap", () => {
+      const r = EXECUTION_SCORERS.parallel(
+        makeSignals({
+          insights: makeInsights({ sessionsAnalyzed: 100, subagentSessionCount: 5 }),
+        }),
+      );
+      expect(r.gaps.join(" ")).toMatch(/Subagent dispatch/);
+    });
+  });
+
+  describe("planning", () => {
+    it("requires transcripts", () => {
+      const r = EXECUTION_SCORERS.planning(
+        makeSignals({ insights: makeInsights({ transcriptsScanned: false }) }),
+      );
+      expect(r.score).toBeNull();
+      expect(r.gapReason).toMatch(/includeTranscripts/);
+    });
+    it("computes plan-mode ratio against multi-task sessions", () => {
+      const r = EXECUTION_SCORERS.planning(
+        makeSignals({
+          insights: makeInsights({
+            transcriptsScanned: true,
+            multiTaskSessionCount: 10,
+            planModeSessionCount: 3,
+          }),
+        }),
+      );
+      expect(r.score).toBe(30);
+      expect(r.gaps.join(" ")).toMatch(/half of multi-task/);
+    });
+  });
+
+  describe("automation", () => {
+    it("scales with hook fire count", () => {
+      const cold = EXECUTION_SCORERS.automation(
+        makeSignals({ insights: makeInsights({ sessionsAnalyzed: 100, hookFireCount: 0 }) }),
+      );
+      const warm = EXECUTION_SCORERS.automation(
+        makeSignals({ insights: makeInsights({ sessionsAnalyzed: 100, hookFireCount: 100 }) }),
+      );
+      expect(warm.score).toBeGreaterThan(cold.score);
+      expect(cold.gaps.join(" ")).toMatch(/dormant/i);
+    });
+    it("adds subagent-with-personal-agents bonus", () => {
+      const r = EXECUTION_SCORERS.automation(
+        makeSignals({
+          personalAgents: ["mine.md"],
+          insights: makeInsights({ sessionsAnalyzed: 100, hookFireCount: 0, subagentSessionCount: 50 }),
+        }),
+      );
+      expect(r.score).toBe(20);
+    });
+    it("returns unavailable when hookFireCount is null (file missing, not zero fires)", () => {
+      // Distinguishes "Claude Code didn't write hook-fires.jsonl" (null) from
+      // "the file exists but no fires happened in window" (0). The latter is a
+      // legitimate score of 0; the former must surface as unmeasured.
+      const r = EXECUTION_SCORERS.automation(
+        makeSignals({
+          insights: makeInsights({ sessionsAnalyzed: 100, hookFireCount: null }),
+        }),
+      );
+      expect(r.score).toBeNull();
+      expect(r.gapReason).toMatch(/hook-fires\.jsonl absent/);
+    });
+  });
+
+  describe("integrations", () => {
+    it("returns null with no plugins installed", () => {
+      const r = EXECUTION_SCORERS.integrations(
+        makeSignals({ plugins: [], insights: makeInsights({}) }),
+      );
+      expect(r.score).toBeNull();
+    });
+    it("scores volume per session, not coverage of installed plugins", () => {
+      // 4 plugins installed, only 2 fired but with heavy use: 200 calls/100
+      // sessions = 2/session → exactly the calibration target → score 100.
+      const heavyContextual = EXECUTION_SCORERS.integrations(
+        makeSignals({
+          plugins: ["a@1", "b@1", "c@1", "d@1"],
+          insights: makeInsights({
+            sessionsAnalyzed: 100,
+            toolInvocationsByPlugin: { a: 150, b: 50 },
+          }),
+        }),
+      );
+      expect(heavyContextual.score).toBe(100);
+      // Same coverage (2/4) but only 20 calls total — score reflects low volume.
+      const lightCoverage = EXECUTION_SCORERS.integrations(
+        makeSignals({
+          plugins: ["a@1", "b@1", "c@1", "d@1"],
+          insights: makeInsights({
+            sessionsAnalyzed: 100,
+            toolInvocationsByPlugin: { a: 15, b: 5 },
+          }),
+        }),
+      );
+      expect(lightCoverage.score).toBe(10); // 20/100/2 = 0.10 → 10
+      expect(lightCoverage.evidence.join(" ")).toMatch(/0\.2 per session/);
+    });
+    it("treats idle plugins as informational, not score-reducing", () => {
+      // 30 plugins installed, 1 fires heavily — under the old coverage formula
+      // this would score 3 (1/30); new formula focuses on volume, no penalty
+      // for breadth of installed-but-idle.
+      const r = EXECUTION_SCORERS.integrations(
+        makeSignals({
+          plugins: Array.from({ length: 30 }, (_, i) => `p${i}@1`),
+          insights: makeInsights({
+            sessionsAnalyzed: 100,
+            toolInvocationsByPlugin: { atlassian: 200 },
+          }),
+        }),
+      );
+      expect(r.score).toBe(100);
+      expect(r.gaps.join(" ")).toMatch(/29 plugins installed but idle/);
+      expect(r.gaps.join(" ")).toMatch(/informational/);
+    });
+  });
+
+  describe("scheduled", () => {
+    it("scores 0 with dormant gap when no scheduled-tool invocations", () => {
+      const r = EXECUTION_SCORERS.scheduled(
+        makeSignals({ insights: makeInsights({ scheduledInvocationsTotal: 0 }) }),
+      );
+      expect(r.score).toBe(0);
+      expect(r.gaps.join(" ")).toMatch(/dormant/);
+      expect(r.gapReason).toBeNull();
+    });
+    it("uses presence-and-intensity: 1=50, 2=75, 3+=100", () => {
+      const one = EXECUTION_SCORERS.scheduled(
+        makeSignals({ insights: makeInsights({ scheduledInvocationsTotal: 1 }) }),
+      );
+      const two = EXECUTION_SCORERS.scheduled(
+        makeSignals({ insights: makeInsights({ scheduledInvocationsTotal: 2 }) }),
+      );
+      const five = EXECUTION_SCORERS.scheduled(
+        makeSignals({ insights: makeInsights({ scheduledInvocationsTotal: 5 }) }),
+      );
+      expect(one.score).toBe(50);
+      expect(two.score).toBe(75);
+      expect(five.score).toBe(100);
+    });
+  });
+
+  describe("remote", () => {
+    it("scores 0 with dormant gap when no remote-tool invocations", () => {
+      const r = EXECUTION_SCORERS.remote(
+        makeSignals({ insights: makeInsights({ remoteInvocationsTotal: 0 }) }),
+      );
+      expect(r.score).toBe(0);
+      expect(r.gaps.join(" ")).toMatch(/dormant/);
+    });
+    it("scores 75 for two remote invocations and 100 for three+", () => {
+      const two = EXECUTION_SCORERS.remote(
+        makeSignals({ insights: makeInsights({ remoteInvocationsTotal: 2 }) }),
+      );
+      const four = EXECUTION_SCORERS.remote(
+        makeSignals({ insights: makeInsights({ remoteInvocationsTotal: 4 }) }),
+      );
+      expect(two.score).toBe(75);
+      expect(four.score).toBe(100);
+    });
+  });
+
+  describe("platform-setup-only dimensions", () => {
+    it.each(["model-effort", "memory", "customization"])(
+      "%s returns null with NO_TELEMETRY_FOR_DIMENSION reason",
+      (id) => {
+        const r = EXECUTION_SCORERS[id](makeSignals({ insights: makeInsights() }));
+        expect(r.score).toBeNull();
+        expect(r.gapReason).toMatch(/no \/insights telemetry/);
+      },
+    );
+  });
+
+  describe("learning", () => {
+    it("returns NO_TRANSCRIPTS when transcripts not scanned", () => {
+      const r = EXECUTION_SCORERS.learning(
+        makeSignals({ insights: makeInsights({ transcriptsScanned: false }) }),
+      );
+      expect(r.score).toBeNull();
+      expect(r.gapReason).toMatch(/includeTranscripts/);
+    });
+    it("scores linear ratio of sessions emitting ★ Insight banners", () => {
+      const r = EXECUTION_SCORERS.learning(
+        makeSignals({
+          insights: makeInsights({
+            transcriptsScanned: true,
+            sessionsAnalyzed: 100,
+            learningModeSessionCount: 30,
+            learningModeMatchesTotal: 90,
+          }),
+        }),
+      );
+      expect(r.score).toBe(30);
+      expect(r.evidence.join(" ")).toMatch(/30\/100/);
+      expect(r.evidence.join(" ")).toMatch(/90 ★ Insight banners/);
+    });
+    it("flags low adoption (<30%) with a gap message", () => {
+      const r = EXECUTION_SCORERS.learning(
+        makeSignals({
+          insights: makeInsights({
+            transcriptsScanned: true,
+            sessionsAnalyzed: 100,
+            learningModeSessionCount: 10,
+            learningModeMatchesTotal: 12,
+          }),
+        }),
+      );
+      expect(r.score).toBe(10);
+      expect(r.gaps.join(" ")).toMatch(/<30%/);
+    });
+  });
+});
+
 describe("scoreAll", () => {
   it("emits one row per rubric dimension with tier and clamped score", () => {
     const rubric = makeRubric();
@@ -264,6 +646,26 @@ describe("scoreAll", () => {
     const rubric = { dimensions: [{ id: "made-up", title: "X", weight: 1, target: 50 }] };
     const result = scoreAll(rubric, makeSignals());
     expect(result.scores[0]).toMatchObject({ id: "made-up", score: 0, tier: "not-touched" });
+  });
+
+  it("emits null executionOverall when no execution data is available", () => {
+    const result = scoreAll(makeRubric(), makeSignals());
+    expect(result.executionOverall).toBeNull();
+    for (const s of result.scores) expect(s.executionScore).toBeNull();
+  });
+
+  it("emits weight-normalized executionOverall when insights present", () => {
+    const result = scoreAll(
+      makeRubric(),
+      makeSignals({
+        plugins: ["a@1", "b@1"],
+        insights: makeInsights({ sessionsAnalyzed: 100, subagentSessionCount: 50, frictionCounts: {} }),
+      }),
+    );
+    expect(typeof result.executionOverall).toBe("number");
+    expect(result.executionOverall).toBeGreaterThan(0);
+    const exScored = result.scores.filter((s) => typeof s.executionScore === "number");
+    expect(exScored.length).toBeGreaterThan(0);
   });
 });
 

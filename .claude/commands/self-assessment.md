@@ -1,6 +1,6 @@
 ---
 description: Score my Claude Code usage against Boris Cherny's 87 tips and the Mastery rubric. Updates the dashboard data file, appends to history, and (if configured) posts the summary to Slack.
-argument-hint: [--no-slack] [--quiet] [--claude-md-target <name=path>]
+argument-hint: [--no-slack] [--print] [--include-transcripts] [--no-transcripts] [--insights-lookback N] [--progression-lookback N|none] [--claude-md-target name=path]
 allowed-tools: Bash(node:*), Bash(npm:*), Read, Write
 ---
 
@@ -27,8 +27,33 @@ Run the deterministic assessment pipeline. Scoring reads real signals from the c
 
 ## Configuration
 
-- `assessment.config.json` (copy from `.example`): non-secret config — display name, Slack channel, public URL.
+- `assessment.config.json` (copy from `.example`): non-secret config — display name, Slack channel, public URL, and default scoring window/transcript settings.
 - `.env.local`: `SLACK_WEBHOOK_URL=...` — the webhook secret, never committed.
+
+## Scoring overrides (for one-shot runs)
+
+These flags override `scoring.*` in `assessment.config.json` for a single run, so you don't have to edit the config to do a deep scan.
+
+- `--include-transcripts` — opt in to scanning `~/.claude/projects/*/*.jsonl` (expensive — hundreds of MB on active users). Enables auto/plan/worktree/skill milestones and the bypass-stopped detector.
+- `--no-transcripts` — force the scan off even when config has it on.
+- `--insights-lookback N` — set the Execution-axis aggregation window in days. Default 30. Use 90 for a smoother weekly read.
+- `--progression-lookback N|none` — set the milestone-timeline window. `none` = full history (default). Set to a number when you only want recent milestones.
+
+**Recipes:**
+- Cheap daily run (default): `npm run assess`
+- Weekly deep run: `npm run assess -- --include-transcripts --insights-lookback 90`
+- Quick check, transcripts off even if config enables them: `npm run assess -- --no-transcripts --no-slack`
+
+## Surfacing Claude's own /insights narrative in the dashboard
+
+If you also want the rich narrative output of the built-in `/insights` command rendered alongside the dashboard's scoring:
+
+1. Run `/insights` in Claude Code.
+2. Copy the output text.
+3. Either paste it into `app/data/insights-narrative.md` (created if missing) or pipe it via `pbpaste | npm run import-insights`.
+4. Refresh the dashboard.
+
+The file is gitignored, never uploaded, never posted to Slack, never auto-captured. The dashboard renders it locally in a clearly-attributed section. To remove it, delete the file.
 
 ## Notes
 

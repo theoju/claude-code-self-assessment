@@ -120,6 +120,32 @@ describe("gatherInsightsSignals", () => {
     expect(r.multiTaskSessionCount).toBe(2);
   });
 
+  it("aggregates scheduled and remote tool invocations from tool_counts", async () => {
+    writeMeta(dir, "s1", {
+      start_time: TWENTY_DAYS_AGO,
+      tool_counts: {
+        Bash: 10,
+        CronCreate: 1,
+        ScheduleWakeup: 2,
+        RemoteTrigger: 3,
+        SendMessage: 1,
+      },
+    });
+    writeMeta(dir, "s2", {
+      start_time: TWENTY_DAYS_AGO,
+      tool_counts: {
+        CronDelete: 1,
+        CronList: 4,
+        PushNotification: 2,
+      },
+    });
+    const r = await gatherInsightsSignals({ claudeHome: dir, now: NOW, lookbackDays: 30 });
+    // Scheduled: 1 (CronCreate) + 2 (ScheduleWakeup) + 1 (CronDelete) + 4 (CronList) = 8
+    expect(r.scheduledInvocationsTotal).toBe(8);
+    // Remote: 3 (RemoteTrigger) + 1 (SendMessage) + 2 (PushNotification) = 6
+    expect(r.remoteInvocationsTotal).toBe(6);
+  });
+
   it("attributes plugin tool invocations from mcp__plugin_<name>__* prefix", async () => {
     writeMeta(dir, "s1", {
       start_time: TWENTY_DAYS_AGO,
@@ -155,8 +181,22 @@ describe("gatherInsightsSignals", () => {
     expect(r.hookFiresByEvent).toEqual({ PostToolUse: 1, Stop: 1 });
   });
 
-  it("returns hookFireCount=0 when hook-fires.jsonl absent", async () => {
+  it("returns hookFireCount=null when hook-fires.jsonl absent (distinguish from empty file)", async () => {
+    // Claude Code does not emit hook-fires.jsonl by default. Returning null
+    // (not 0) lets downstream scorers route to "unmeasured" instead of
+    // collapsing to a hard zero on every user without the logging hook.
     writeMeta(dir, "s1", { start_time: TWENTY_DAYS_AGO });
+    const r = await gatherInsightsSignals({ claudeHome: dir, now: NOW, lookbackDays: 30 });
+    expect(r.hookFireCount).toBeNull();
+    expect(r.hookFiresByEvent).toEqual({});
+  });
+
+  it("returns hookFireCount=0 when hook-fires.jsonl exists but has no in-window entries", async () => {
+    // Distinct from null above: file exists, telemetry is wired, but nothing
+    // fired in the lookback. This is a real zero — automation execution
+    // legitimately scores 0, not "unmeasured".
+    writeMeta(dir, "s1", { start_time: TWENTY_DAYS_AGO });
+    writeFileSync(join(dir, "hook-fires.jsonl"), ""); // empty file
     const r = await gatherInsightsSignals({ claudeHome: dir, now: NOW, lookbackDays: 30 });
     expect(r.hookFireCount).toBe(0);
     expect(r.hookFiresByEvent).toEqual({});
@@ -218,6 +258,45 @@ describe("gatherInsightsSignals", () => {
     expect(r.autoModeSessionCount).toBe(2);
     expect(r.bypassPermissionsSessionCount).toBe(2);
     expect(r.planModeSessionCount).toBe(1);
+  });
+
+  it("counts ★ Insight banners as learning-mode adoption when scanning transcripts", async () => {
+    writeMeta(dir, "active", { start_time: TWENTY_DAYS_AGO });
+    writeMeta(dir, "quiet", { start_time: TWENTY_DAYS_AGO });
+    writeMeta(dir, "user-quote", { start_time: TWENTY_DAYS_AGO });
+    // Two assistant turns in this session contain the banner -> session counts once.
+    writeTranscript(dir, "proj-a", "active", [
+      { type: "assistant", message: { content: "★ Insight ───\nfoo\n───" }, timestamp: TWENTY_DAYS_AGO },
+      { type: "assistant", message: { content: "★ Insight ───\nbar\n───" }, timestamp: TWENTY_DAYS_AGO },
+    ]);
+    // No banners.
+    writeTranscript(dir, "proj-a", "quiet", [
+      { type: "assistant", message: { content: "regular reply" }, timestamp: TWENTY_DAYS_AGO },
+    ]);
+    // User quotes the pattern in their own message — must NOT count.
+    writeTranscript(dir, "proj-b", "user-quote", [
+      { type: "user", message: { content: "what is ★ Insight ?" }, timestamp: TWENTY_DAYS_AGO },
+    ]);
+    const r = await gatherInsightsSignals({
+      claudeHome: dir,
+      now: NOW,
+      lookbackDays: 30,
+      includeTranscripts: true,
+    });
+    expect(r.learningModeSessionCount).toBe(1);
+    expect(r.learningModeMatchesTotal).toBe(2);
+  });
+
+  it("leaves learningModeSessionCount null when transcripts not scanned", async () => {
+    writeMeta(dir, "s1", { start_time: TWENTY_DAYS_AGO });
+    const r = await gatherInsightsSignals({
+      claudeHome: dir,
+      now: NOW,
+      lookbackDays: 30,
+      includeTranscripts: false,
+    });
+    expect(r.learningModeSessionCount).toBeNull();
+    expect(r.learningModeMatchesTotal).toBeNull();
   });
 
   it("counts worktree-state events as worktree usage when scanning transcripts", async () => {

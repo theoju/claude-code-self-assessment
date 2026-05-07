@@ -1,6 +1,5 @@
-import { readFile } from "node:fs/promises";
-import { existsSync } from "node:fs";
 import { join } from "node:path";
+import { readJson } from "./_read-json";
 
 export type Tier = "not-touched" | "starter" | "developing" | "solid" | "advanced";
 export type Trend = "new" | "flat" | "improving" | "slipping";
@@ -17,15 +16,27 @@ export interface RubricDimension {
 
 export interface ScoredDimension {
   id: string;
+  // Normalized to per-dim target (rawScore / rawTarget × 100, clamped 0-100).
+  // 100 = "you've hit the rubric's target for this dimension."
   score: number;
+  rawScore: number;
   tier: Tier;
   evidence: string[];
   gaps: string[];
+  executionScore: number | null;
+  executionRawScore: number | null;
+  executionEvidence: string[];
+  executionGaps: string[];
+  gapReason: string | null;
 }
 
-export interface Dimension extends RubricDimension, ScoredDimension {
+export interface Dimension extends Omit<RubricDimension, "target">, ScoredDimension {
   trend: Trend;
   summary: string;
+  // After normalization, each dimension's effective target is 100. The raw
+  // rubric target is preserved as `rawTarget` for display annotation.
+  target: number;
+  rawTarget: number;
 }
 
 export type Grade = "A" | "B" | "C" | "D" | "F";
@@ -103,9 +114,11 @@ export interface Assessment {
   capturedAt: string;
   overall: number;
   targetOverall: number;
+  executionOverall: number | null;
   user: string | null;
   dimensions: Dimension[];
   signalsSummary: Record<string, unknown>;
+  insights: Record<string, unknown> | null;
   claudeMd: ClaudeMdReport | null;
 }
 
@@ -140,15 +153,6 @@ const SUMMARIES: Record<string, string> = {
     "Fully dialed in if explanatory mode is active. No action required beyond occasional use.",
 };
 
-async function readJson<T>(path: string): Promise<T | null> {
-  if (!existsSync(path)) return null;
-  try {
-    return JSON.parse(await readFile(path, "utf8")) as T;
-  } catch {
-    return null;
-  }
-}
-
 export function tierFor(score: number): Tier {
   if (score >= 85) return "advanced";
   if (score >= 70) return "solid";
@@ -161,14 +165,18 @@ export async function loadAssessment(): Promise<Assessment> {
   const rubric = (await readJson<{ dimensions: RubricDimension[] }>(RUBRIC_PATH)) || {
     dimensions: [],
   };
+  // Older assessment.json files may not have executionOverall or insights;
+  // loader backfills via ?? null below to satisfy the strict in-memory type.
   const scored = await readJson<{
     capturedAt: string;
     overall: number;
     targetOverall: number;
+    executionOverall?: number | null;
     user: string | null;
     scores: ScoredDimension[];
     trends: Record<string, Trend>;
     signalsSummary: Record<string, unknown>;
+    insights?: Record<string, unknown> | null;
     claudeMd?: ClaudeMdReport | null;
   }>(ASSESSMENT_PATH);
 
@@ -176,15 +184,25 @@ export async function loadAssessment(): Promise<Assessment> {
     return {
       capturedAt: new Date().toISOString(),
       overall: 0,
-      targetOverall: 0,
+      targetOverall: 100,
+      executionOverall: null,
+      insights: null,
       user: null,
       dimensions: rubric.dimensions.map((d) => ({
         ...d,
         score: 0,
+        rawScore: 0,
+        target: 100,
+        rawTarget: d.target,
         tier: "not-touched",
         trend: "new",
         evidence: ["No assessment.json yet — run /self-assessment or `node scripts/run-assessment.mjs`."],
         gaps: [],
+        executionScore: null,
+        executionRawScore: null,
+        executionEvidence: [],
+        executionGaps: [],
+        gapReason: null,
         summary: SUMMARIES[d.id] || "",
       })),
       signalsSummary: {},
@@ -197,10 +215,18 @@ export async function loadAssessment(): Promise<Assessment> {
     return {
       ...d,
       score: s?.score ?? 0,
+      rawScore: s?.rawScore ?? 0,
+      target: 100,
+      rawTarget: d.target,
       tier: s ? tierFor(s.score) : "not-touched",
       trend: scored.trends[d.id] ?? "new",
       evidence: s?.evidence ?? [],
       gaps: s?.gaps ?? [],
+      executionScore: s?.executionScore ?? null,
+      executionRawScore: s?.executionRawScore ?? null,
+      executionEvidence: s?.executionEvidence ?? [],
+      executionGaps: s?.executionGaps ?? [],
+      gapReason: s?.gapReason ?? null,
       summary: SUMMARIES[d.id] || "",
     };
   });
@@ -209,9 +235,11 @@ export async function loadAssessment(): Promise<Assessment> {
     capturedAt: scored.capturedAt,
     overall: scored.overall,
     targetOverall: scored.targetOverall,
+    executionOverall: scored.executionOverall ?? null,
     user: scored.user,
     dimensions,
     signalsSummary: scored.signalsSummary,
+    insights: scored.insights ?? null,
     claudeMd: scored.claudeMd ?? null,
   };
 }

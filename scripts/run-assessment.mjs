@@ -8,8 +8,10 @@ import { readFile, writeFile, mkdir } from "node:fs/promises";
 import { existsSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
+import { homedir } from "node:os";
 import { gatherSignals } from "./signals.mjs";
 import { scoreAll, computeTrends } from "./score.mjs";
+import { detectMilestones } from "./progression.mjs";
 import { buildSlackMessage, postToSlack } from "./slack.mjs";
 import { auditAll, summarize, CRITERIA, expandHome } from "./claude-md-audit.mjs";
 
@@ -20,6 +22,7 @@ const CONFIG_EXAMPLE_PATH = join(ROOT, "assessment.config.example.json");
 const HISTORY_PATH = join(DATA_DIR, "assessment-history.json");
 const ASSESSMENT_PATH = join(DATA_DIR, "assessment.json");
 const RUBRIC_PATH = join(DATA_DIR, "rubric.json");
+const PROGRESSION_PATH = join(DATA_DIR, "progression.json");
 
 const argv = process.argv.slice(2);
 const flags = new Set(argv);
@@ -39,6 +42,20 @@ function flagValues(name) {
     }
   }
   return out;
+}
+
+function singleFlagValue(name) {
+  const all = flagValues(name);
+  return all.length ? all[all.length - 1] : null;
+}
+
+function parseLookbackOverride(raw) {
+  if (raw === "none" || raw === "null" || raw === "full") return null;
+  const n = parseInt(raw, 10);
+  if (!Number.isFinite(n) || n <= 0) {
+    throw new Error(`expected a positive integer or 'none', got: ${JSON.stringify(raw)}`);
+  }
+  return n;
 }
 
 function parseTargetSpec(spec) {
@@ -70,9 +87,35 @@ async function main() {
     {};
 
   const scoringConfig = config?.scoring || {};
+  // CLI flags override config so a one-shot deep run doesn't require editing
+  // assessment.config.json. Useful for the weekly transcript scan.
+  const insightsLookbackRaw = singleFlagValue("--insights-lookback");
+  const progressionLookbackRaw = singleFlagValue("--progression-lookback");
+  const insightsLookbackDays =
+    insightsLookbackRaw != null
+      ? parseLookbackOverride(insightsLookbackRaw)
+      : scoringConfig.insightsLookbackDays ?? 30;
+  const progressionLookbackDays =
+    progressionLookbackRaw != null
+      ? parseLookbackOverride(progressionLookbackRaw)
+      : scoringConfig.progressionLookbackDays ?? null;
+  // --no-transcripts > --include-transcripts > config. The explicit "off"
+  // form lets users skip the expensive scan in one run without editing config.
+  const includeTranscripts = flags.has("--no-transcripts")
+    ? false
+    : flags.has("--include-transcripts")
+    ? true
+    : !!scoringConfig.includeTranscripts;
+
+  const claudeHome = process.env.CLAUDE_HOME || join(homedir(), ".claude");
   const signals = await gatherSignals(ROOT, {
-    insightsLookbackDays: scoringConfig.insightsLookbackDays ?? 30,
-    includeTranscripts: !!scoringConfig.includeTranscripts,
+    insightsLookbackDays,
+    includeTranscripts,
+  });
+  const progression = await detectMilestones({
+    claudeHome,
+    lookbackDays: progressionLookbackDays,
+    includeTranscripts,
   });
   const scored = scoreAll(rubric, signals);
   const history = (await readJson(HISTORY_PATH)) || [];
@@ -126,19 +169,37 @@ async function main() {
       { capturedAt: assessment.capturedAt, overall: assessment.overall, scores: scored.scores },
     ].slice(-90);
     await writeFile(HISTORY_PATH, JSON.stringify(newHistory, null, 2));
+    if (progression) {
+      await writeFile(PROGRESSION_PATH, JSON.stringify(progression, null, 2));
+    }
   }
 
   if (flags.has("--print") || !process.env.CI) {
+    const exHeader = scored.executionOverall == null
+      ? "Execution    n/a / 100 (run /insights to populate)"
+      : `Execution ${scored.executionOverall} / 100 (observed practice)`;
     const lines = [
       `Claude Code Mastery — ${assessment.user || "you"}`,
-      `Overall ${assessment.overall} / ${assessment.targetOverall}`,
+      `Platform Setup  ${assessment.overall} / 100`,
+      exHeader,
       ``,
       ...scored.scores.map((s) => {
         const d = rubric.dimensions.find((x) => x.id === s.id);
         const trend = { improving: "↗", slipping: "↘", flat: "→", new: "✦" }[trends[s.id]] || "?";
-        return `  ${s.score.toString().padStart(3)} / ${d.target}  ${trend}  ${d.title}`;
+        const ex = typeof s.executionScore === "number"
+          ? ` · ex ${s.executionScore.toString().padStart(3)}`
+          : "";
+        // Show normalized score with raw value as a small hint so the formula
+        // (raw / d.target × 100) is auditable from the CLI output.
+        return `  ${s.score.toString().padStart(3)} / 100  ${trend}  ${d.title} (raw ${s.rawScore}/${d.target})${ex}`;
       }),
     ];
+    if (progression && progression.milestones.length > 0) {
+      lines.push("", `Progression — ${progression.milestones.length} milestone(s):`);
+      for (const m of progression.milestones) {
+        lines.push(`  ${m.timestamp.slice(0, 10)}  ${m.milestone}  (${m.dimension}, Boris tip ${m.borisTip})`);
+      }
+    }
     if (claudeMdRuns.length) {
       const sum = assessment.claudeMd.summary;
       lines.push("", "CLAUDE.md health (report-only):");

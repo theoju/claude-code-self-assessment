@@ -3,9 +3,10 @@ import type { Dimension } from "@/app/lib/assessment";
 interface Props {
   dimensions: Dimension[];
   size?: number;
+  showExecution?: boolean;
 }
 
-export default function RadarChart({ dimensions, size = 480 }: Props) {
+export default function RadarChart({ dimensions, size = 480, showExecution = false }: Props) {
   const cx = size / 2;
   const cy = size / 2;
   const radius = size / 2 - 70;
@@ -32,6 +33,25 @@ export default function RadarChart({ dimensions, size = 480 }: Props) {
         return `${i === 0 ? "M" : "L"}${x.toFixed(1)},${y.toFixed(1)}`;
       })
       .join(" ") + " Z";
+
+  // Null executionScores would collapse to the centre and distort the polygon —
+  // skip them, leaving the shape visibly sparse on unmeasured axes.
+  const executionVertices: Array<{ x: number; y: number; i: number }> = showExecution
+    ? dimensions
+        .map((d, i) => {
+          if (d.executionScore == null) return null;
+          const [x, y] = pointAt(d.executionScore, i);
+          return { x, y, i };
+        })
+        .filter((v): v is { x: number; y: number; i: number } => v !== null)
+    : [];
+
+  const executionPath =
+    executionVertices.length >= 2
+      ? executionVertices
+          .map((v, i) => `${i === 0 ? "M" : "L"}${v.x.toFixed(1)},${v.y.toFixed(1)}`)
+          .join(" ") + " Z"
+      : null;
 
   const rings = [20, 40, 60, 80, 100];
 
@@ -67,10 +87,25 @@ export default function RadarChart({ dimensions, size = 480 }: Props) {
       <path d={targetPath} fill="var(--color-accent)" fillOpacity={0.08} stroke="var(--color-accent)" strokeOpacity={0.6} strokeDasharray="4 3" strokeWidth={1} />
       <path d={scorePath} fill="var(--color-good)" fillOpacity={0.2} stroke="var(--color-good)" strokeWidth={1.5} />
 
+      {executionPath && (
+        <path
+          d={executionPath}
+          fill="var(--color-warn)"
+          fillOpacity={0.1}
+          stroke="var(--color-warn)"
+          strokeWidth={1.25}
+          strokeDasharray="3 3"
+        />
+      )}
+
       {dimensions.map((d, i) => {
         const [x, y] = pointAt(d.score, i);
         return <circle key={d.id} cx={x} cy={y} r={3} fill="var(--color-good)" />;
       })}
+
+      {executionVertices.map((v) => (
+        <circle key={`exec-${dimensions[v.i].id}`} cx={v.x} cy={v.y} r={2.5} fill="var(--color-warn)" />
+      ))}
 
       {dimensions.map((d, i) => {
         const angle = (Math.PI * 2 * i) / n - Math.PI / 2;
@@ -79,6 +114,10 @@ export default function RadarChart({ dimensions, size = 480 }: Props) {
         const anchor =
           Math.abs(Math.cos(angle)) < 0.2 ? "middle" : Math.cos(angle) > 0 ? "start" : "end";
         const label = d.title.split(" — ")[0].split("&")[0].trim();
+        // When showExecution is on but this dim has no measurement, mark the
+        // label as unmeasured (italic + dimmed) and append a ¹ superscript
+        // pointing at the footnote rendered next to the radar legend.
+        const unmeasured = showExecution && d.executionScore == null;
         return (
           <text
             key={`lbl-${d.id}`}
@@ -86,10 +125,17 @@ export default function RadarChart({ dimensions, size = 480 }: Props) {
             y={ly}
             fontSize={11}
             fill="var(--color-mute)"
+            fontStyle={unmeasured ? "italic" : undefined}
+            opacity={unmeasured ? 0.65 : 1}
             textAnchor={anchor}
             dominantBaseline="middle"
           >
             {label}
+            {unmeasured ? (
+              <tspan dx={2} dy={-3} fontSize={9}>
+                ¹
+              </tspan>
+            ) : null}
           </text>
         );
       })}
