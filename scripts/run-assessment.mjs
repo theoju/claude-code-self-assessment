@@ -119,7 +119,7 @@ async function main() {
   });
   const scored = scoreAll(rubric, signals);
   const history = (await readJson(HISTORY_PATH)) || [];
-  const trends = computeTrends(scored, history);
+  const trends = computeTrends(scored, history, rubric);
 
   const cliTargets = flagValues("--claude-md-target").map(parseTargetSpec);
   const cmConfig = config?.claudeMd || {};

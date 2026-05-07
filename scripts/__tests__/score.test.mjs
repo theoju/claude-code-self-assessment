@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { SCORERS, EXECUTION_SCORERS, tierFor, clamp, scoreAll, computeTrends } from "../score.mjs";
+import { SCORERS, EXECUTION_SCORERS, tierFor, clamp, scoreAll, computeTrends, DEFAULT_NOISE_FLOOR } from "../score.mjs";
 import { makeSignals, makeRubric, makeInsights } from "./_fixtures.mjs";
 
 describe("clamp", () => {
@@ -669,7 +669,7 @@ describe("scoreAll", () => {
   });
 });
 
-describe("computeTrends", () => {
+describe("computeTrends (legacy — no rubric arg)", () => {
   const current = {
     scores: [
       { id: "a", score: 70 },
@@ -684,19 +684,28 @@ describe("computeTrends", () => {
     expect(Object.values(trends).every((t) => t === "new")).toBe(true);
   });
 
-  it("classifies improving / slipping / flat against last entry", () => {
+  it("classifies improving / flat against last entry (score ≥5 AND evidence changed)", () => {
+    // wobble → flat: real progress requires widened fixture: score ≥5 + evidence change
     const history = [
       {
         capturedAt: "2026-04-24",
         overall: 60,
         scores: [
-          { id: "a", score: 65 },
-          { id: "b", score: 55 },
-          { id: "c", score: 80 },
+          { id: "a", score: 65, evidence: ["base"], gaps: [] },
+          { id: "b", score: 55, evidence: ["base"], gaps: [] },
+          { id: "c", score: 80, evidence: ["base"], gaps: [] },
         ],
       },
     ];
-    const trends = computeTrends(current, history);
+    const curWithEvidence = {
+      scores: [
+        { id: "a", score: 70, evidence: ["base", "new-signal"], gaps: [] }, // +5, evidence added → improving
+        { id: "b", score: 50, evidence: ["base"], gaps: ["gap1"] },         // -5, gaps added → slipping
+        { id: "c", score: 80, evidence: ["base"], gaps: [] },               // flat
+        { id: "d", score: 40, evidence: [], gaps: [] },                     // new
+      ],
+    };
+    const trends = computeTrends(curWithEvidence, history);
     expect(trends.a).toBe("improving");
     expect(trends.b).toBe("slipping");
     expect(trends.c).toBe("flat");
@@ -713,5 +722,53 @@ describe("computeTrends", () => {
     );
     expect(trends.a).toBe("flat");
     expect(trends.b).toBe("flat");
+  });
+});
+
+describe("computeTrends", () => {
+  const rubric = {
+    dimensions: [
+      { id: "automation", noiseFloor: 5 },
+      { id: "permissions" }, // no override → uses DEFAULT_NOISE_FLOOR
+    ],
+  };
+
+  function snapshot(scores) {
+    return { scores };
+  }
+
+  it("returns 'new' for any dimension on first run", () => {
+    const t = computeTrends(snapshot([{ id: "automation", score: 60, evidence: [], gaps: [] }]), [], rubric);
+    expect(t.automation).toBe("new");
+  });
+
+  it("flags 'flat' for sub-noise-floor wobbles", () => {
+    const prev = snapshot([{ id: "automation", score: 60, evidence: ["a"], gaps: ["b"] }]);
+    const cur = snapshot([{ id: "automation", score: 63, evidence: ["a"], gaps: ["b"] }]);
+    const t = computeTrends(cur, [prev], rubric);
+    expect(t.automation).toBe("flat");
+  });
+
+  it("flags 'flat' when score moved past floor but evidence/gaps unchanged", () => {
+    const prev = snapshot([{ id: "automation", score: 60, evidence: ["x"], gaps: [] }]);
+    const cur = snapshot([{ id: "automation", score: 70, evidence: ["x"], gaps: [] }]);
+    const t = computeTrends(cur, [prev], rubric);
+    expect(t.automation).toBe("flat");
+  });
+
+  it("flags 'improving' when score and evidence both move up", () => {
+    const prev = snapshot([{ id: "automation", score: 60, evidence: ["x"], gaps: ["y"] }]);
+    const cur = snapshot([{ id: "automation", score: 75, evidence: ["x", "z"], gaps: [] }]);
+    const t = computeTrends(cur, [prev], rubric);
+    expect(t.automation).toBe("improving");
+  });
+
+  it("uses DEFAULT_NOISE_FLOOR when dimension has no override", () => {
+    const prev = snapshot([{ id: "permissions", score: 60, evidence: ["x"], gaps: [] }]);
+    const cur = snapshot([
+      { id: "permissions", score: 60 + DEFAULT_NOISE_FLOOR - 1, evidence: ["x"], gaps: [] },
+    ]);
+    const t = computeTrends(cur, [prev], rubric);
+    expect(t.permissions).toBe("flat");
   });
 });

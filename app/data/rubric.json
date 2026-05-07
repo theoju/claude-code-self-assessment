@@ -1,5 +1,5 @@
 {
-  "$schema": "Static rubric. Scores live in assessment.json. History lives in assessment-history.json.",
+  "$schema": "Static rubric. Scores live in assessment.json. History lives in assessment-history.json. noiseFloor (optional, default 5) sets the per-dimension trend sensitivity in points: deltas smaller than this and deltas without evidence changes render as 'flat' instead of '↗/↘'.",
   "dimensions": [
     {
       "id": "automation",
