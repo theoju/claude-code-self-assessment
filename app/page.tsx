@@ -61,9 +61,9 @@ export default async function Page() {
           Compared against Boris Cherny's 87 workflow tips (howborisusesclaudecode.com)
           and the Claude Code Mastery rubric. Scoring is evidence-based — signals pulled from
           <span className="mono text-[color:var(--color-text)]"> ~/.claude/settings.json</span>,
-          installed plugins, custom agents/commands/skills directories, and project memory.
-          The Mastery share link was not publicly reachable (403); dimensions reflect the
-          rubric's canonical mastery categories.
+          installed plugins, custom agents/commands/skills directories, project memory, and
+          the local <span className="mono text-[color:var(--color-text)]">/insights</span>{" "}
+          telemetry under <span className="mono text-[color:var(--color-text)]">~/.claude/usage-data/</span>.
         </p>
       </header>
 
