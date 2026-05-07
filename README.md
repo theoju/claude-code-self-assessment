@@ -89,6 +89,44 @@ Two slash commands ship in `.claude/commands/`:
   convenience wrapper around `pbpaste | npm run import-insights`; never
   invokes `/insights` itself, never paraphrases.
 
+### Running the full workflow
+
+The two slash commands chain with Claude Code's built-in `/insights`. Run
+`/insights` first (it's token-heavy and user-initiated), then chain the
+filer + scorer in one shot:
+
+```text
+/insights
+
+/refresh-insights && /self-assessment \
+  --claude-md-target <name>=<absolute-path-to-project-root> \
+  --include-transcripts \
+  --insights-lookback 30
+```
+
+What each piece does:
+
+| Step                | Effect                                                                                                                                                            |
+| ------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `/insights`         | Anthropic's built-in command — writes the HTML report and prints the markdown narrative into the session. **Not invoked by this dashboard**; you run it yourself. |
+| `/refresh-insights` | Files that markdown verbatim into `app/data/insights-narrative.md` (gitignored).                                                                                  |
+| `/self-assessment`  | Calls `npm run assess`, scores Platform Setup + Execution, posts to Slack if configured.                                                                          |
+
+Flag reference for `/self-assessment`:
+
+| Flag                               | Meaning                                                                                                                                                                   |
+| ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `--claude-md-target <name>=<path>` | Audit a CLAUDE.md file at `<path>` and label it `<name>` in the report. Repeat the flag for multiple targets. **`name=path` form is required** — bare paths are rejected. |
+| `--include-transcripts`            | Scan the last N days of `~/.claude/projects/*/*.jsonl` transcripts for behavioral signals (skill invocation, plan-mode usage, ★ Insight banners, worktree usage).         |
+| `--no-transcripts`                 | Skip the transcript scan even when `scoring.includeTranscripts: true` in config. Wins over `--include-transcripts`.                                                       |
+| `--insights-lookback <N>`          | How many days back to read from `~/.claude/usage-data/`. Defaults to 30 (or `scoring.insightsLookbackDays` in config).                                                    |
+| `--no-slack`                       | Skip the Slack post even when `slack.enabled: true`. Useful for ad-hoc local runs.                                                                                        |
+| `--print`                          | Print the full block of dimension scores to stdout in addition to the summary.                                                                                            |
+
+Cadence note: `/insights` is token-heavy (run it weekly-ish);
+`/self-assessment` is cheap (run it daily). The chained form above is the
+full weekly refresh — drop the first two on daily runs.
+
 ## Slack notifier (optional)
 
 1. Create an Incoming Webhook at <https://api.slack.com/apps> (new app → add
