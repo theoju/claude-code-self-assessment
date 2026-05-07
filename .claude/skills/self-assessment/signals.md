@@ -55,7 +55,7 @@ The CLAUDE.md auditor (when `claudeMd.targets` is configured) reads each target 
 
 The scoring code has a few deliberate gates that prevent spurious credit:
 
-- **Three-state `hookFireCount`.** `~/.claude/usage-data/session-meta/*.json` may be empty if `/insights` hasn't been run yet. The scorer distinguishes `null` ("no telemetry — trust the config") from `0` ("data present, no fires in window — gate credit") from `N>0` ("warm, full credit"). Without this, every fresh user would get hard-zeroed on hook execution. See [`gotchas.md`](./gotchas.md) → "Hook execution score capped despite many hooks configured".
+- **Three-state `hookFireCount`.** `~/.claude/usage-data/session-meta/*.json` may be empty if `/insights` hasn't been run yet. The scorer distinguishes `null` ("no telemetry — trust the config") from `0` ("data present, no fires in window — gate credit") from `N>0` ("warm, full credit"). Without this, every fresh user would get hard-zeroed on hook execution. See [Hook execution score capped despite many hooks configured](./gotchas.md#hook-execution-score-capped-despite-many-hooks-configured) in `gotchas.md`.
 - **Plugin-skill filtering.** Marketplace-installed skills don't count toward personal-craft Automation by default (`includePluginSkillsAsPersonal: false`). Flip the flag explicitly if the user wants them counted.
 - **Built-in MCP connectors not attributed.** `mcp__claude_ai_*` tool calls aren't credited as plugin usage — only `mcp__plugin_<name>_*` is. Built-ins shouldn't inflate the plugin score.
 - **Null-vs-zero discipline for transcript signals.** `planModeSessionCount` and friends start as `null` and stay `null` when transcripts weren't scanned. Scoring predicates must treat that as "we didn't look," not "user didn't do it."
