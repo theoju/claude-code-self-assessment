@@ -1,3 +1,8 @@
+---
+description: File the markdown summary from a /insights run into app/data/insights-narrative.md (verbatim, gitignored, never posted to Slack). Run /insights first; this command never auto-fires it.
+allowed-tools: Read, Write
+---
+
 # /refresh-insights
 
 Imports the markdown summary printed by Claude Code's `/insights` command into the dashboard's inline narrative section. **User-initiated**: nothing is auto-captured. The summary is written verbatim to `app/data/insights-narrative.md` (gitignored), rendered locally on the dashboard, and never uploaded or posted to Slack.
@@ -39,7 +44,9 @@ The "FROM /INSIGHTS" section disappears from the dashboard; the "Open Claude's f
 
 ## Why a separate command rather than a flag on `/self-assessment`
 
-Different cadence. `/self-assessment` runs daily (cheap), `/insights` runs weekly-ish (token-heavy). Bundling them would either over-spend tokens or hide the `/insights` invocation from the user. Keeping `/refresh-insights` separate makes the data flow explicit: *you* decide when to refresh the narrative.
+Different cadence. `/self-assessment` runs daily (cheap), `/insights` runs weekly-ish (token-heavy). Bundling them would either over-spend tokens or hide the `/insights` invocation from the user. Keeping `/refresh-insights` separate makes the data flow explicit: _you_ decide when to refresh the narrative.
+
+Pair with [`/self-assessment`](./self-assessment.md) for the full weekly chain — see [README.md "Running the full workflow"](../../README.md#running-the-full-workflow). The chain is `/insights` → `/refresh-insights` → `/self-assessment`; the first is token-heavy and user-initiated, the second is the verbatim filer, the third is the daily scorer.
 
 ## Privacy & attribution
 
