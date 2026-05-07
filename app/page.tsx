@@ -264,15 +264,20 @@ export default async function Page() {
         </h2>
         <div className="space-y-6">
           {sorted.map((d) => (
-            <Link
+            <article
               key={d.id}
-              href={`/dimensions/${d.id}`}
-              className="block hover:bg-[color:var(--color-panel-2)] transition-colors"
+              className="bg-[color:var(--color-panel)] border border-[color:var(--color-line)] rounded-xl p-6"
             >
-              <article className="bg-[color:var(--color-panel)] border border-[color:var(--color-line)] rounded-xl p-6">
-                <header className="flex flex-wrap items-baseline justify-between gap-3 mb-4">
-                  <div>
-                    <h3 className="text-xl font-semibold">{d.title}</h3>
+              <header className="flex flex-wrap items-baseline justify-between gap-3 mb-4">
+                <div>
+                  <h3 className="text-xl font-semibold">
+                    <Link
+                      href={`/dimensions/${d.id}`}
+                      className="hover:text-[color:var(--color-accent)] transition-colors"
+                    >
+                      {d.title}
+                    </Link>
+                  </h3>
                     <div className="text-xs text-[color:var(--color-mute)] mt-1">
                       Rubric: {d.rubricArea} · Boris <BorisTips csv={d.borisTips} />
                     </div>
@@ -337,8 +342,7 @@ export default async function Page() {
                   />
                 )}
               </article>
-            </Link>
-          ))}
+            ))}
         </div>
       </section>
 
