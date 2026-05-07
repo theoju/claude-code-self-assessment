@@ -4,13 +4,20 @@ import { CRITERIA } from "./claude-md-audit.mjs";
 import { formatTipsForSlack } from "./boris-tips.mjs";
 
 export function buildSlackMessage(assessment, rubric, config) {
-  const { overall, targetOverall, scores, capturedAt } = assessment;
+  const { overall, executionOverall, scores, capturedAt } = assessment;
   const byId = Object.fromEntries(rubric.dimensions.map((d) => [d.id, d]));
+  const hasExecution = typeof executionOverall === "number";
+  const delta = hasExecution ? overall - executionOverall : null;
 
   // Scores are normalized to per-dim target (target effectively 100 after
   // normalization). Gap is "distance to a perfect normalized 100."
   const topGaps = [...scores]
-    .map((s) => ({ ...s, title: byId[s.id].title, gap: 100 - s.score, weight: byId[s.id].weight }))
+    .map((s) => ({
+      ...s,
+      title: byId[s.id].title,
+      gap: 100 - s.score,
+      weight: byId[s.id].weight,
+    }))
     .filter((s) => s.gap >= 20)
     .sort((a, b) => b.weight * b.gap - a.weight * a.gap)
     .slice(0, 3);
@@ -29,7 +36,9 @@ export function buildSlackMessage(assessment, rubric, config) {
     channel: config?.slack?.channel,
     username: config?.slack?.username || "Claude Code Mastery",
     icon_emoji: config?.slack?.iconEmoji || ":chart_with_upwards_trend:",
-    text: `${name}'s Claude Code Mastery — ${overall}/100 (${date})`,
+    text: hasExecution
+      ? `${name}'s Claude Code Mastery — Platform ${overall}/100 · Execution ${executionOverall}/100 (${date})`
+      : `${name}'s Claude Code Mastery — Platform ${overall}/100 (${date})`,
     blocks: [
       {
         type: "header",
@@ -38,7 +47,13 @@ export function buildSlackMessage(assessment, rubric, config) {
       {
         type: "section",
         fields: [
-          { type: "mrkdwn", text: `*Overall*\n${overall} / 100` },
+          { type: "mrkdwn", text: `*Platform Setup*\n${overall} / 100` },
+          {
+            type: "mrkdwn",
+            text: hasExecution
+              ? `*Execution*\n${executionOverall} / 100${delta !== 0 ? `  _(Δ ${delta > 0 ? "+" : ""}${delta})_` : ""}`
+              : `*Execution*\n_unmeasured_`,
+          },
           { type: "mrkdwn", text: `*Date*\n${date}` },
         ],
       },
@@ -62,7 +77,10 @@ export function buildSlackMessage(assessment, rubric, config) {
                 "*Biggest gaps (weight × deficit)*\n" +
                 topGaps
                   .map((s) => {
-                    const tipLinks = formatTipsForSlack(byId[s.id].borisTips, url);
+                    const tipLinks = formatTipsForSlack(
+                      byId[s.id].borisTips,
+                      url,
+                    );
                     const tail = tipLinks ? ` · Boris ${tipLinks}` : "";
                     return `• ${s.title} — ${s.score}/100 _(raw target ${byId[s.id].target}, w×${s.weight})_${tail}`;
                   })
@@ -73,26 +91,36 @@ export function buildSlackMessage(assessment, rubric, config) {
       assessment.claudeMd?.summary
         ? (() => {
             const s = assessment.claudeMd.summary;
-            const avgPart = s.avgScore == null ? "no scoreable files" : `Avg ${s.avgScore} (${s.avgGrade})`;
+            const avgPart =
+              s.avgScore == null
+                ? "no scoreable files"
+                : `Avg ${s.avgScore} (${s.avgGrade})`;
             const lines = [
               `*CLAUDE.md health* _(report-only)_`,
               `Targets: ${s.targets} · Files: ${s.files} · ${avgPart}`,
             ];
             if (s.files > 0) {
               const d = s.distribution;
-              lines.push(`Distribution: A:${d.A} B:${d.B} C:${d.C} D:${d.D} F:${d.F}`);
+              lines.push(
+                `Distribution: A:${d.A} B:${d.B} C:${d.C} D:${d.D} F:${d.F}`,
+              );
             }
-            if (s.targetsMissing) lines.push(`Targets without CLAUDE.md: ${s.targetsMissing}`);
-            if (s.targetsError) lines.push(`Targets with errors: ${s.targetsError}`);
+            if (s.targetsMissing)
+              lines.push(`Targets without CLAUDE.md: ${s.targetsMissing}`);
+            if (s.targetsError)
+              lines.push(`Targets with errors: ${s.targetsError}`);
             if (s.avgBreakdown) {
               lines.push(
                 "*Breakdown (avg)*",
                 CRITERIA.map(
-                  (c) => `• ${c.label}: \`${s.avgBreakdown[c.key]}/${c.max}\``
-                ).join("\n")
+                  (c) => `• ${c.label}: \`${s.avgBreakdown[c.key]}/${c.max}\``,
+                ).join("\n"),
               );
             }
-            return { type: "section", text: { type: "mrkdwn", text: lines.join("\n") } };
+            return {
+              type: "section",
+              text: { type: "mrkdwn", text: lines.join("\n") },
+            };
           })()
         : null,
       {
@@ -121,7 +149,10 @@ export async function postToSlack(message) {
   });
   if (!res.ok) {
     const body = await res.text().catch(() => "");
-    return { posted: false, reason: `${res.status} ${res.statusText} ${body}`.trim() };
+    return {
+      posted: false,
+      reason: `${res.status} ${res.statusText} ${body}`.trim(),
+    };
   }
   return { posted: true };
 }

@@ -81,18 +81,114 @@ export function makeInsights(overrides = {}) {
 export function makeRubric() {
   return {
     dimensions: [
-      { id: "automation", title: "Automation", weight: 3, target: 90, rubricArea: "x", borisTips: "1", nextActions: ["a"] },
-      { id: "permissions", title: "Permissions", weight: 3, target: 85, rubricArea: "x", borisTips: "1", nextActions: ["a"] },
-      { id: "model-effort", title: "Model & Effort", weight: 3, target: 90, rubricArea: "x", borisTips: "1", nextActions: ["a"] },
-      { id: "parallel", title: "Parallel", weight: 3, target: 90, rubricArea: "x", borisTips: "1", nextActions: ["a"] },
-      { id: "verification", title: "Verification", weight: 3, target: 95, rubricArea: "x", borisTips: "1", nextActions: ["a"] },
-      { id: "memory", title: "Memory", weight: 3, target: 92, rubricArea: "x", borisTips: "1", nextActions: ["a"] },
-      { id: "planning", title: "Planning", weight: 2, target: 95, rubricArea: "x", borisTips: "1", nextActions: ["a"] },
-      { id: "integrations", title: "Integrations", weight: 2, target: 95, rubricArea: "x", borisTips: "1", nextActions: ["a"] },
-      { id: "customization", title: "Customization", weight: 1, target: 80, rubricArea: "x", borisTips: "1", nextActions: ["a"] },
-      { id: "scheduled", title: "Scheduled", weight: 2, target: 80, rubricArea: "x", borisTips: "1", nextActions: ["a"] },
-      { id: "remote", title: "Remote", weight: 1, target: 75, rubricArea: "x", borisTips: "1", nextActions: ["a"] },
-      { id: "learning", title: "Learning", weight: 1, target: 90, rubricArea: "x", borisTips: "1", nextActions: ["a"] },
+      {
+        id: "automation",
+        title: "Automation",
+        weight: 3,
+        target: 90,
+        rubricArea: "x",
+        borisTips: "1",
+        nextActions: ["a"],
+      },
+      {
+        id: "permissions",
+        title: "Permissions",
+        weight: 3,
+        target: 85,
+        rubricArea: "x",
+        borisTips: "1",
+        nextActions: ["a"],
+      },
+      {
+        id: "model-effort",
+        title: "Model & Effort",
+        weight: 3,
+        target: 90,
+        rubricArea: "x",
+        borisTips: "1",
+        nextActions: ["a"],
+      },
+      {
+        id: "parallel",
+        title: "Parallel",
+        weight: 3,
+        target: 90,
+        rubricArea: "x",
+        borisTips: "1",
+        nextActions: ["a"],
+      },
+      {
+        id: "verification",
+        title: "Verification",
+        weight: 3,
+        target: 95,
+        rubricArea: "x",
+        borisTips: "1",
+        nextActions: ["a"],
+      },
+      {
+        id: "memory",
+        title: "Memory",
+        weight: 3,
+        target: 92,
+        rubricArea: "x",
+        borisTips: "1",
+        nextActions: ["a"],
+      },
+      {
+        id: "planning",
+        title: "Planning",
+        weight: 2,
+        target: 95,
+        rubricArea: "x",
+        borisTips: "1",
+        nextActions: ["a"],
+      },
+      {
+        id: "integrations",
+        title: "Integrations",
+        weight: 2,
+        target: 95,
+        rubricArea: "x",
+        borisTips: "1",
+        nextActions: ["a"],
+      },
+      {
+        id: "customization",
+        title: "Customization",
+        weight: 1,
+        target: 80,
+        rubricArea: "x",
+        borisTips: "1",
+        nextActions: ["a"],
+      },
+      {
+        id: "scheduled",
+        title: "Scheduled",
+        weight: 2,
+        target: 80,
+        rubricArea: "x",
+        borisTips: "1",
+        nextActions: ["a"],
+      },
+      {
+        id: "remote",
+        title: "Remote",
+        weight: 1,
+        target: 75,
+        rubricArea: "x",
+        borisTips: "1",
+        nextActions: ["a"],
+      },
+      {
+        id: "learning",
+        title: "Learning",
+        weight: 1,
+        target: 90,
+        rubricArea: "x",
+        borisTips: "1",
+        nextActions: ["a"],
+      },
     ],
   };
 }
@@ -102,6 +198,7 @@ export function makeAssessment(overrides = {}) {
   return {
     capturedAt: "2026-04-25T07:15:00.000Z",
     overall: 60,
+    executionOverall: 50,
     targetOverall: 100,
     user: "Test User",
     scores: rubric.dimensions.map((d) => ({
@@ -126,9 +223,10 @@ function deepMerge(a, b) {
   if (b && typeof b === "object") {
     const out = { ...a };
     for (const [k, v] of Object.entries(b)) {
-      out[k] = a && typeof a[k] === "object" && a[k] !== null && !Array.isArray(a[k])
-        ? deepMerge(a[k], v)
-        : v;
+      out[k] =
+        a && typeof a[k] === "object" && a[k] !== null && !Array.isArray(a[k])
+          ? deepMerge(a[k], v)
+          : v;
     }
     return out;
   }
