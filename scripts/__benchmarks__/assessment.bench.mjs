@@ -11,7 +11,7 @@ const ROOT = dirname(dirname(dirname(fileURLToPath(import.meta.url))));
 const rubric = makeRubric();
 const config = {
   user: { displayName: "Engineer" },
-  slack: { channel: "#mastery", username: "Mastery" },
+  slack: { channel: "#self-assessment", username: "Self-Assessment" },
   publish: { publicUrl: "http://localhost:3737" },
 };
 

@@ -48,7 +48,7 @@ export default async function Page() {
     <main className="max-w-[1200px] mx-auto px-8 py-12">
       <header className="mb-12 border-b border-[color:var(--color-line)] pb-8">
         <div className="flex items-baseline gap-3 text-xs uppercase tracking-[0.15em] text-[color:var(--color-mute)] mb-3">
-          <span>Claude Code Mastery</span>
+          <span>Claude Code Self-Assessment</span>
           <span>·</span>
           <span>Personal Assessment</span>
           <span>·</span>
@@ -59,7 +59,7 @@ export default async function Page() {
         </h1>
         <p className="text-[color:var(--color-mute)] max-w-3xl leading-relaxed">
           Compared against Boris Cherny's 87 workflow tips (howborisusesclaudecode.com)
-          and the Claude Code Mastery rubric. Scoring is evidence-based — signals pulled from
+          and the Claude Code Self-Assessment rubric. Scoring is evidence-based — signals pulled from
           <span className="mono text-[color:var(--color-text)]"> ~/.claude/settings.json</span>,
           installed plugins, custom agents/commands/skills directories, project memory, and
           the local <span className="mono text-[color:var(--color-text)]">/insights</span>{" "}
@@ -109,7 +109,7 @@ export default async function Page() {
         <div className="col-span-12 md:col-span-5 flex flex-col justify-center">
           <div className="mb-6">
             <div className="text-xs uppercase tracking-wider text-[color:var(--color-mute)] mb-3">
-              Mastery snapshot — two axes
+              Self-assessment snapshot — two axes
             </div>
             <div className="grid grid-cols-2 gap-4">
               <SnapshotTile

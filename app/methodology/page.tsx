@@ -2,7 +2,7 @@ import Link from "next/link";
 
 export const dynamic = "force-static";
 
-export const metadata = { title: "Methodology — Claude Code Mastery" };
+export const metadata = { title: "Methodology — Claude Code Self-Assessment" };
 
 export default function MethodologyPage() {
   return (
@@ -16,7 +16,7 @@ export default function MethodologyPage() {
 
       <Section title="Two axes, not one composite">
         <p>
-          Mastery here is scored on two independent axes rather than collapsed into a single number.
+          Self-assessment here is scored on two independent axes rather than collapsed into a single number.
           A composite would obscure the very thing this dashboard exists to surface — the gap between
           how Claude Code is <em>configured</em> and how it&apos;s actually <em>used</em>.
         </p>

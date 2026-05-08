@@ -12,7 +12,7 @@ Ask the user, in this order:
 
 1. **Display name** — "What name should the dashboard and Slack post use?" (e.g. "Theo").
 2. **Slack** — "Should runs post to Slack? (y/n)". If yes:
-   - Channel name (e.g. `#claude-code-mastery`).
+   - Channel name (e.g. `#claude-code-self-assessment`).
    - Tell them to add `SLACK_WEBHOOK_URL=...` to `.env.local`. **Do not invent or paste a webhook URL** — it must come from the user.
 3. **Public dashboard URL** (optional) — "Is the dashboard deployed somewhere public? Paste the URL or skip — defaults to http://localhost:3737."
 4. **CLAUDE.md targets** (optional) — "Want to audit any project CLAUDE.md files each morning? Paste paths or skip."
@@ -34,15 +34,15 @@ Patch the values per the user's answers. The example file (verbatim from main):
   },
   "slack": {
     "enabled": true,
-    "channel": "#claude-code-mastery",
-    "username": "Claude Code Mastery",
+    "channel": "#claude-code-self-assessment",
+    "username": "Claude Code Self-Assessment",
     "iconEmoji": ":chart_with_upwards_trend:",
     "postOnScoreDelta": 0,
     "webhookEnvVar": "SLACK_WEBHOOK_URL"
   },
   "publish": {
     "publicUrl": "http://localhost:3737",
-    "comment": "Set to your deployed URL (e.g. https://claude-mastery.vercel.app) so the Slack message links somewhere useful."
+    "comment": "Set to your deployed URL (e.g. https://claude-self-assessment.vercel.app) so the Slack message links somewhere useful."
   },
   "scoring": {
     "includePluginSkillsAsPersonal": false,

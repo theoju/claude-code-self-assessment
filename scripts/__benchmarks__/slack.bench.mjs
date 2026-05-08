@@ -6,7 +6,7 @@ const assessment = makeAssessment();
 const rubric = makeRubric();
 const config = {
   user: { displayName: "Engineer" },
-  slack: { channel: "#mastery", username: "Mastery", iconEmoji: ":chart:" },
+  slack: { channel: "#self-assessment", username: "Self-Assessment", iconEmoji: ":chart:" },
   publish: { publicUrl: "http://localhost:3737" },
 };
 

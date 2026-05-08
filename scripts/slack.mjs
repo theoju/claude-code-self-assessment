@@ -34,15 +34,15 @@ export function buildSlackMessage(assessment, rubric, config) {
 
   return {
     channel: config?.slack?.channel,
-    username: config?.slack?.username || "Claude Code Mastery",
+    username: config?.slack?.username || "Claude Code Self-Assessment",
     icon_emoji: config?.slack?.iconEmoji || ":chart_with_upwards_trend:",
     text: hasExecution
-      ? `${name}'s Claude Code Mastery — Platform ${overall}/100 · Execution ${executionOverall}/100 (${date})`
-      : `${name}'s Claude Code Mastery — Platform ${overall}/100 (${date})`,
+      ? `${name}'s Claude Code Self-Assessment — Platform ${overall}/100 · Execution ${executionOverall}/100 (${date})`
+      : `${name}'s Claude Code Self-Assessment — Platform ${overall}/100 (${date})`,
     blocks: [
       {
         type: "header",
-        text: { type: "plain_text", text: `Claude Code Mastery — ${name}` },
+        text: { type: "plain_text", text: `Claude Code Self-Assessment — ${name}` },
       },
       {
         type: "section",

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Installs the daily 07:15 Claude Code Mastery assessment as a macOS LaunchAgent.
+# Installs the daily 07:15 Claude Code Self-Assessment as a macOS LaunchAgent.
 #
 #   ./scripts/launchd/install.sh          # install / reload
 #   ./scripts/launchd/install.sh uninstall
@@ -9,10 +9,10 @@
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-LABEL="com.$(whoami).claude-mastery"
+LABEL="com.$(whoami).claude-self-assessment"
 PLIST_NAME="${LABEL}.plist"
 PLIST_DEST="${HOME}/Library/LaunchAgents/${PLIST_NAME}"
-TEMPLATE="${REPO_ROOT}/scripts/launchd/claude-mastery.plist.template"
+TEMPLATE="${REPO_ROOT}/scripts/launchd/claude-self-assessment.plist.template"
 
 if [[ "${1:-}" == "uninstall" ]]; then
   launchctl unload "${PLIST_DEST}" 2>/dev/null || true

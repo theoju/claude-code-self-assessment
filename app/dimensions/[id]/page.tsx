@@ -19,7 +19,7 @@ export async function generateMetadata({ params }: Props) {
   const assessment = await loadAssessment();
   const dim = assessment.dimensions.find((d) => d.id === id);
   if (!dim) return { title: "Dimension not found" };
-  return { title: `${dim.title} — Mastery dashboard` };
+  return { title: `${dim.title} — Self-Assessment dashboard` };
 }
 
 export default async function DimensionPage({ params }: Props) {

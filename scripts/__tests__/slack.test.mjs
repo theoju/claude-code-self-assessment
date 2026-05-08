@@ -4,15 +4,15 @@ import { makeAssessment, makeRubric } from "./_fixtures.mjs";
 
 const config = {
   user: { displayName: "Engineer" },
-  slack: { channel: "#mastery", username: "Mastery", iconEmoji: ":chart:" },
+  slack: { channel: "#self-assessment", username: "Self-Assessment", iconEmoji: ":chart:" },
   publish: { publicUrl: "http://localhost:3737" },
 };
 
 describe("buildSlackMessage", () => {
   it("includes header, overall block, and dashboard link", () => {
     const msg = buildSlackMessage(makeAssessment(), makeRubric(), config);
-    expect(msg.channel).toBe("#mastery");
-    expect(msg.username).toBe("Mastery");
+    expect(msg.channel).toBe("#self-assessment");
+    expect(msg.username).toBe("Self-Assessment");
     const types = msg.blocks.map((b) => b.type);
     expect(types[0]).toBe("header");
     expect(types).toContain("section");

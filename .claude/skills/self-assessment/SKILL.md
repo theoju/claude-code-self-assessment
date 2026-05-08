@@ -1,11 +1,11 @@
 ---
 name: self-assessment
-description: Score Claude Code usage on two axes (Platform Setup vs Execution) using the 12-dimension Mastery rubric. Trigger on "score me", "mastery audit", "self-assessment", "rate my setup", "audit my claude code", "mastery score", "how am I doing with claude code", "am I improving", "/self-assessment".
+description: Score Claude Code usage on two axes (Platform Setup vs Execution) using the 12-dimension Self-Assessment rubric. Trigger on "score me", "self-assessment audit", "self-assessment", "rate my setup", "audit my claude code", "self-assessment score", "how am I doing with claude code", "am I improving", "/self-assessment".
 ---
 
 # self-assessment
 
-Deterministic mastery scorer. Real signals from `~/.claude/settings.json`, `~/.claude/{agents,commands,skills,projects/*/memory}`, installed plugins, and (opt-in) 30-day transcripts. Same machine state → same number.
+Deterministic self-assessment scorer. Real signals from `~/.claude/settings.json`, `~/.claude/{agents,commands,skills,projects/*/memory}`, installed plugins, and (opt-in) 30-day transcripts. Same machine state → same number.
 
 ## What to do
 

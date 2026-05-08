@@ -5,9 +5,9 @@ Two launchd jobs run back-to-back every morning:
 | Time  | Routine     | Script                              | What it does                                                        | Posts to                                       |
 |-------|-------------|-------------------------------------|---------------------------------------------------------------------|------------------------------------------------|
 | 06:00 | Coverage    | `scripts/run-coverage.mjs`          | Vitest + V8 coverage, integration suite, benches, Playwright web vitals | Slack — links to `/coverage`               |
-| 07:15 | Mastery     | `scripts/run-assessment.mjs`        | Re-scores 12 Boris dimensions on the **Platform Setup** + **Execution** axes from `~/.claude/` and `~/.claude/usage-data/` + audits CLAUDE.md targets (report-only) | Slack — links to `/`                           |
+| 07:15 | Self-Assessment     | `scripts/run-assessment.mjs`        | Re-scores 12 Boris dimensions on the **Platform Setup** + **Execution** axes from `~/.claude/` and `~/.claude/usage-data/` + audits CLAUDE.md targets (report-only) | Slack — links to `/`                           |
 
-The 75-minute gap means the dashboard reflects fresh coverage by the time the Mastery summary arrives. Both routines reuse the same `SLACK_WEBHOOK_URL` from `.env.local`.
+The 75-minute gap means the dashboard reflects fresh coverage by the time the Self-Assessment summary arrives. Both routines reuse the same `SLACK_WEBHOOK_URL` from `.env.local`.
 
 # Morning assessment routine
 
@@ -15,7 +15,7 @@ Runs `/self-assessment` at **07:15 every day**, posts the summary to Slack, and 
 
 ## CLAUDE.md health (report-only)
 
-The Mastery routine also audits any repos listed under `claudeMd.targets` in `assessment.config.json`. It scores each target's `CLAUDE.md` files against the `claude-md-improver` rubric (commands / architecture / patterns / conciseness / currency / actionability).
+The Self-Assessment routine also audits any repos listed under `claudeMd.targets` in `assessment.config.json`. It scores each target's `CLAUDE.md` files against the `claude-md-improver` rubric (commands / architecture / patterns / conciseness / currency / actionability).
 
 **Shareable surfaces (Slack, console print) show aggregates only** — total targets, files scanned, average score/grade, grade distribution. No project names, paths, or per-file issues. So screenshots can go in any channel without leaking which repos you track. Per-target detail (paths, issues, breakdown) lives in the local `app/data/assessment.json` and dashboard.
 
@@ -54,15 +54,15 @@ node scripts/run-assessment.mjs --print
 
 The installer:
 - Reads `SLACK_WEBHOOK_URL` from `.env.local` and bakes it into the LaunchAgent.
-- Creates `~/Library/LaunchAgents/com.<you>.claude-mastery.plist`.
+- Creates `~/Library/LaunchAgents/com.<you>.claude-self-assessment.plist`.
 - Loads it into `launchctl`.
 - Tells you how to test, inspect logs, and uninstall.
 
 ## Verify
 
 ```bash
-launchctl list | grep claude-mastery      # confirm it's loaded
-launchctl start com.$(whoami).claude-mastery   # fire it now, for testing
+launchctl list | grep claude-self-assessment      # confirm it's loaded
+launchctl start com.$(whoami).claude-self-assessment   # fire it now, for testing
 tail .launchd.out.log .launchd.err.log    # see what happened
 ```
 

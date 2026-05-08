@@ -2,7 +2,7 @@
 
 A deterministic scorer for how you actually use Claude Code, compared against
 Boris Cherny's 87 workflow tips and a two-axis **Platform Setup vs Execution**
-mastery rubric.
+Self-Assessment rubric.
 
 The score is reproducible: same machine state → same numbers. Trends only move
 when the underlying signals do, so day-to-day noise doesn't masquerade as
@@ -118,7 +118,7 @@ never raw prompts or turns.
 ## Reading the output
 
 ```
-Claude Code Mastery — Theo
+Claude Code Self-Assessment — Theo
 Platform Setup  78 / 100        Execution  41 / 100        Δ 37 ⚠
 
    33 / 90  →  Automation — Hooks, Commands, Agents
@@ -147,7 +147,7 @@ Each dimension card on the home page links to `/dimensions/<id>`.
 The default score is a **configuration audit**: did you toggle the right
 knobs? Useful, but you can max it out without ever using Claude Code well.
 
-`--include-transcripts` upgrades it to a **mastery audit** by walking
+`--include-transcripts` upgrades it to a **self-assessment audit** by walking
 `~/.claude/projects/*/conversations*.jsonl` within the insights lookback
 window and deriving aggregates per session:
 
