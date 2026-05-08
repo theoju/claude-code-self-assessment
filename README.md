@@ -1,12 +1,12 @@
-# Claude Code Mastery
+# Claude Code Self-Assessment
 
 A personal dashboard that scores your day-to-day Claude Code usage against
 [Boris Cherny's 87 workflow tips](https://howborisusesclaudecode.com) and a
-mastery rubric. Reads signals directly from `~/.claude/` — no telemetry, no
+Self-Assessment rubric. Reads signals directly from `~/.claude/` — no telemetry, no
 external service, nothing leaves your machine unless you enable the Slack
 notifier.
 
-![Dashboard overview — two-axis scoring (Platform Setup vs Execution), 12-dimension radar, milestone progression, and the headline read.](docs/images/mastery-dashboard.png)
+![Dashboard overview — two-axis scoring (Platform Setup vs Execution), 12-dimension radar, milestone progression, and the headline read.](docs/images/self-assessment-dashboard.png)
 
 - **Two axes, not one composite**: **Platform Setup** (how `~/.claude/` is
   configured) and **Execution** (whether you actually use it, derived from
@@ -26,7 +26,7 @@ notifier.
   stays local; the Slack message is the delivery vehicle.
 
 ```
-Claude Code Mastery — Engineer
+Claude Code Self-Assessment — Engineer
 Platform Setup  78 / 100
 Execution       63 / 100 (observed practice)
 
@@ -39,8 +39,8 @@ Execution       63 / 100 (observed practice)
 ## Quick start
 
 ```bash
-git clone <this repo> claude-mastery
-cd claude-mastery
+git clone <this repo> claude-self-assessment
+cd claude-self-assessment
 npm install
 npm run setup          # creates assessment.config.json and .env.local from examples
 npm run assess:print   # score your setup, print to terminal
@@ -150,12 +150,12 @@ next wake.
 
 ```bash
 npm run schedule:install     # one-time
-launchctl start com.$(whoami).claude-mastery   # fire once to test
+launchctl start com.$(whoami).claude-self-assessment   # fire once to test
 npm run schedule:uninstall   # remove
 ```
 
 The installer reads `SLACK_WEBHOOK_URL` from `.env.local` and bakes it into
-`~/Library/LaunchAgents/com.<you>.claude-mastery.plist`. See
+`~/Library/LaunchAgents/com.<you>.claude-self-assessment.plist`. See
 [`ROUTINE.md`](./ROUTINE.md) for the full explanation of why `/schedule`
 doesn't work here (Anthropic-cloud routines can't read your local
 `~/.claude/`).
@@ -178,7 +178,7 @@ scripts/
   run-assessment.mjs                  # entry point (npm run assess)
   setup.sh                            # first-run bootstrap
   launchd/
-    claude-mastery.plist.template     # LaunchAgent template
+    claude-self-assessment.plist.template     # LaunchAgent template
     install.sh                        # substitutes placeholders, loads via launchctl
 .claude/
   commands/self-assessment.md         # ships the /self-assessment slash command
@@ -204,7 +204,7 @@ ROUTINE.md                            # scheduling deep dive
 | `app/data/assessment.json`                              | gitignored    | your scored snapshot                                                                                                               |
 | `app/data/assessment-history.json`                      | gitignored    | your trend series                                                                                                                  |
 | `.launchd.{out,err}.log`                                | gitignored    | runtime output from the LaunchAgent                                                                                                |
-| `~/Library/LaunchAgents/com.<you>.claude-mastery.plist` | outside repo  | lives in your `$HOME`                                                                                                              |
+| `~/Library/LaunchAgents/com.<you>.claude-self-assessment.plist` | outside repo  | lives in your `$HOME`                                                                                                              |
 
 The rubric and scoring engine are generic. Everything identifying — display
 name, channel, webhook, and your actual scores — stays on your machine.

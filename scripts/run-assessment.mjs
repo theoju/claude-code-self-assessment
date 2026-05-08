@@ -179,7 +179,7 @@ async function main() {
       ? "Execution    n/a / 100 (run /insights to populate)"
       : `Execution ${scored.executionOverall} / 100 (observed practice)`;
     const lines = [
-      `Claude Code Mastery — ${assessment.user || "you"}`,
+      `Claude Code Self-Assessment — ${assessment.user || "you"}`,
       `Platform Setup  ${assessment.overall} / 100`,
       exHeader,
       ``,

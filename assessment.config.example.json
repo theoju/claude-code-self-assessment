@@ -6,15 +6,15 @@
   },
   "slack": {
     "enabled": true,
-    "channel": "#claude-code-mastery",
-    "username": "Claude Code Mastery",
+    "channel": "#claude-code-self-assessment",
+    "username": "Claude Code Self-Assessment",
     "iconEmoji": ":chart_with_upwards_trend:",
     "postOnScoreDelta": 0,
     "webhookEnvVar": "SLACK_WEBHOOK_URL"
   },
   "publish": {
     "publicUrl": "http://localhost:3737",
-    "comment": "Set to your deployed URL (e.g. https://claude-mastery.vercel.app) so the Slack message links somewhere useful."
+    "comment": "Set to your deployed URL (e.g. https://claude-self-assessment.vercel.app) so the Slack message links somewhere useful."
   },
   "scoring": {
     "includePluginSkillsAsPersonal": false,

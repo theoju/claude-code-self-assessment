@@ -21,7 +21,7 @@ copy_if_missing() {
   fi
 }
 
-echo "Claude Code Mastery — one-time setup"
+echo "Claude Code Self-Assessment — one-time setup"
 echo ""
 
 copy_if_missing assessment.config.example.json assessment.config.json

@@ -1,9 +1,9 @@
 import { test, expect } from "@playwright/test";
 
-test.describe("Mastery dashboard", () => {
+test.describe("Self-Assessment dashboard", () => {
   test("home page renders header, radar, and priority actions", async ({ page }) => {
     await page.goto("/");
-    await expect(page.getByText(/Claude Code Mastery/i).first()).toBeVisible();
+    await expect(page.getByText(/Claude Code Self-Assessment/i).first()).toBeVisible();
     await expect(page.locator("svg").first()).toBeVisible();
     // Priority actions section heading
     await expect(page.getByRole("heading", { name: /priority actions/i })).toBeVisible();

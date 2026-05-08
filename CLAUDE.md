@@ -1,4 +1,4 @@
-# Project memory: claude-code-mastery
+# Project memory: claude-code-self-assessment
 
 A local Next.js 16 dashboard that scores Claude Code usage against Boris Cherny's
 87 workflow tips. Reads `~/.claude/` and `~/.claude/usage-data/` directly — no

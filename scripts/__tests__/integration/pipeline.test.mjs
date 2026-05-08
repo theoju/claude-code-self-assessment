@@ -70,7 +70,7 @@ describe("pipeline gatherSignals → scoreAll → buildSlackMessage", () => {
 
     expect(msg.channel).toBe("#test");
     const flat = JSON.stringify(msg.blocks);
-    expect(flat).toMatch(/Claude Code Mastery — Engineer/);
+    expect(flat).toMatch(/Claude Code Self-Assessment — Engineer/);
     expect(msg.blocks.at(-1).elements[0].url).toBe("http://localhost:3737");
   });
 

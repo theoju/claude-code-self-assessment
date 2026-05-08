@@ -53,7 +53,7 @@ launchctl unload "${PLIST_DEST}" 2>/dev/null || true
 launchctl load "${PLIST_DEST}"
 
 echo "Installed: ${PLIST_DEST}"
-echo "Next run:  06:00 daily (75 min before the 07:15 Mastery routine)"
+echo "Next run:  06:00 daily (75 min before the 07:15 Self-Assessment routine)"
 echo ""
 echo "Commands:"
 echo "  launchctl list | grep ${LABEL}        # verify loaded"
