@@ -110,6 +110,18 @@ two-axis Slack/console renderers don't fall back to the unmeasured form.
   `.env.local`. The LaunchAgent gets it via `EnvironmentVariables` in the
   plist (baked at install). For ad-hoc local runs that should post to
   Slack, prefix with `set -a; source .env.local; set +a;`.
+- Cross-references between sibling docs/skills/commands should be
+  bidirectional. When you add a pointer in one direction (e.g. PR #26 made
+  `/refresh-insights` point to `/self-assessment`), check whether the
+  reverse direction also needs one. PR #27 closed the loop in the
+  `self-assessment` SKILL.md `## Pointers` section after a re-audit caught
+  the asymmetry. Default to symmetric; one-way pointers age into stale
+  asymmetric trees.
+- Committed README/doc assets live in `docs/images/`. The `.gitignore`
+  rule `dashboard-*.png` exists to keep ad-hoc tooling/test screenshots
+  out of the repo — name committed assets around it (e.g.
+  `mastery-dashboard.png`) rather than adding a per-file `!exception`
+  that future contributors have to maintain.
 
 ## Privacy
 
