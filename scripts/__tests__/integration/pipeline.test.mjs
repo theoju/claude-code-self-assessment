@@ -2,6 +2,8 @@ import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { gatherSignals } from "../../signals.mjs";
 import { scoreAll, computeTrends } from "../../score.mjs";
 import { buildSlackMessage } from "../../slack.mjs";
+import { detectMilestones } from "../../progression.mjs";
+import { detectConfigMilestones } from "../../config-progression.mjs";
 import { makeTmpClaudeHome, makeTmpProjectRoot, cleanup } from "./_tmpHome.mjs";
 import { makeRubric } from "../_fixtures.mjs";
 
@@ -25,7 +27,10 @@ describe("pipeline gatherSignals → scoreAll → buildSlackMessage", () => {
       settings: {
         effortLevel: "xhigh",
         permissions: { allow: ["Bash(npm run *)", "Bash(gh pr *)"] },
-        hooks: { PostToolUse: [{ command: "echo" }], Stop: [{ command: "echo" }] },
+        hooks: {
+          PostToolUse: [{ command: "echo" }],
+          Stop: [{ command: "echo" }],
+        },
         env: { CLAUDE_CODE_AUTO_COMPACT_WINDOW: "400000" },
         enabledPlugins: {
           "superpowers@1": true,
@@ -90,5 +95,104 @@ describe("pipeline gatherSignals → scoreAll → buildSlackMessage", () => {
     expect(automation.gaps.length).toBeGreaterThan(0);
     // Empty-state contract for fresh users: insights null, dashboard renders.
     expect(signals.insights).toBeNull();
+  });
+
+  it("merges behavioral + config milestones into a single sorted progression", async () => {
+    claudeHome = makeTmpClaudeHome({
+      settings: {
+        permissions: { allow: ["Bash(npm run *)", "Bash(gh pr *)", "Read"] },
+        hooks: { Stop: [{ command: "echo" }] },
+      },
+      claudeMd: true,
+      usageData: {
+        sessions: [
+          {
+            id: "sess-A",
+            meta: {
+              start_time: "2026-04-01T10:00:00Z",
+              uses_task_agent: true,
+              uses_mcp: false,
+              tool_counts: { TaskCreate: 2 },
+            },
+          },
+          {
+            id: "sess-B",
+            meta: {
+              start_time: "2026-04-15T10:00:00Z",
+              uses_task_agent: false,
+              uses_mcp: true,
+            },
+          },
+        ],
+      },
+    });
+    projectRoot = makeTmpProjectRoot();
+    process.env.CLAUDE_HOME = claudeHome;
+
+    const signals = await gatherSignals(projectRoot);
+
+    // Behavioral milestones from session-meta
+    const behavioral = await detectMilestones({
+      claudeHome,
+      now: "2026-05-09T00:00:00Z",
+      lookbackDays: null,
+      includeTranscripts: false,
+    });
+
+    // Config milestones from signalsSummary-shaped derivation
+    const configResult = detectConfigMilestones({
+      signalsSummary: {
+        hasStopHook: true,
+        allowListCount: signals.settings.allowList.length,
+        hasWildcardAllow: signals.settings.allowList.some((e) =>
+          e.includes("*"),
+        ),
+        claudeMdExists: signals.claudeMdExists,
+        plugins: signals.plugins.length,
+      },
+      priorState: {},
+      now: "2026-05-09T00:00:00Z",
+    });
+
+    const merged = [
+      ...(behavioral?.milestones ?? []),
+      ...configResult.milestones,
+    ].sort((a, b) => Date.parse(a.timestamp) - Date.parse(b.timestamp));
+
+    // Expected behavioral milestones from the session-meta fixtures:
+    //   sess-A → "Started using subagents" (uses_task_agent)
+    //   sess-B → "First MCP-powered session" (uses_mcp)
+    expect(merged.some((m) => m.milestone === "Started using subagents")).toBe(
+      true,
+    );
+    expect(
+      merged.some((m) => m.milestone === "First MCP-powered session"),
+    ).toBe(true);
+
+    // Expected config milestones from the settings/permissions fixtures:
+    //   stop-hook, wildcard-allow, claude-md-authored
+    expect(merged.some((m) => m.sessionId === "config:stop-hook")).toBe(true);
+    expect(merged.some((m) => m.sessionId === "config:wildcard-allow")).toBe(
+      true,
+    );
+    expect(
+      merged.some((m) => m.sessionId === "config:claude-md-authored"),
+    ).toBe(true);
+
+    // Sort order is timestamp-ascending across both sources
+    for (let i = 1; i < merged.length; i++) {
+      expect(Date.parse(merged[i].timestamp)).toBeGreaterThanOrEqual(
+        Date.parse(merged[i - 1].timestamp),
+      );
+    }
+
+    // Source provenance: behavioral milestones use real session_id;
+    // config ones use the synthetic "config:<id>" namespace.
+    const configOnes = merged.filter((m) => m.sessionId.startsWith("config:"));
+    const behavioralOnes = merged.filter(
+      (m) => !m.sessionId.startsWith("config:"),
+    );
+    expect(configOnes.length).toBeGreaterThan(0);
+    expect(behavioralOnes.length).toBeGreaterThan(0);
   });
 });

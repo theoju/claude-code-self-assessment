@@ -1,0 +1,205 @@
+import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from "node:fs";
+import { join } from "node:path";
+import { tmpdir } from "node:os";
+import {
+  withinWindow,
+  cutoffFromLookback,
+  loadSessionMeta,
+  loadFacetsMap,
+  buildTranscriptIndex,
+  scanTranscriptModes,
+} from "../_usage-data.mjs";
+
+let tmpHome;
+
+beforeEach(() => {
+  tmpHome = mkdtempSync(join(tmpdir(), "usage-data-test-"));
+});
+
+afterEach(() => {
+  rmSync(tmpHome, { recursive: true, force: true });
+});
+
+describe("cutoffFromLookback", () => {
+  it("returns null for null lookback (full history)", () => {
+    expect(cutoffFromLookback("2026-05-09T00:00:00Z", null)).toBeNull();
+  });
+
+  it("returns null for undefined lookback", () => {
+    expect(cutoffFromLookback("2026-05-09T00:00:00Z", undefined)).toBeNull();
+  });
+
+  it("subtracts N days in ms from now", () => {
+    const now = "2026-05-09T00:00:00Z";
+    const cutoff = cutoffFromLookback(now, 7);
+    expect(cutoff).toBe(Date.parse(now) - 7 * 86_400_000);
+  });
+
+  it("throws when now is unparseable", () => {
+    expect(() => cutoffFromLookback("garbage", 7)).toThrow(/invalid now/);
+  });
+});
+
+describe("withinWindow", () => {
+  it("includes any time when cutoff is null (full history)", () => {
+    expect(withinWindow("2020-01-01T00:00:00Z", null)).toBe(true);
+  });
+
+  it("includes timestamps at or after cutoff", () => {
+    const cutoff = Date.parse("2026-05-01T00:00:00Z");
+    expect(withinWindow("2026-05-09T00:00:00Z", cutoff)).toBe(true);
+    expect(withinWindow("2026-05-01T00:00:00Z", cutoff)).toBe(true);
+  });
+
+  it("excludes timestamps before cutoff", () => {
+    const cutoff = Date.parse("2026-05-01T00:00:00Z");
+    expect(withinWindow("2026-04-30T23:59:59Z", cutoff)).toBe(false);
+  });
+
+  it("returns false for missing or unparseable startTime", () => {
+    expect(withinWindow(null, 0)).toBe(false);
+    expect(withinWindow("not-a-date", 0)).toBe(false);
+  });
+});
+
+describe("loadSessionMeta", () => {
+  it("returns [] when usage-data/session-meta is missing", async () => {
+    expect(await loadSessionMeta(tmpHome)).toEqual([]);
+  });
+
+  it("loads valid session-meta JSONs and skips invalid ones", async () => {
+    const dir = join(tmpHome, "usage-data", "session-meta");
+    mkdirSync(dir, { recursive: true });
+    writeFileSync(
+      join(dir, "a.json"),
+      JSON.stringify({ session_id: "a", start_time: "2026-05-01T00:00:00Z" }),
+    );
+    writeFileSync(join(dir, "broken.json"), "{not valid");
+    writeFileSync(join(dir, "no-id.json"), JSON.stringify({ foo: "bar" }));
+
+    const meta = await loadSessionMeta(tmpHome);
+    expect(meta.map((m) => m.session_id)).toEqual(["a"]);
+  });
+});
+
+describe("loadFacetsMap", () => {
+  it("returns empty Map when facets dir is missing", async () => {
+    const map = await loadFacetsMap(tmpHome);
+    expect(map.size).toBe(0);
+  });
+
+  it("indexes facets by session_id", async () => {
+    const dir = join(tmpHome, "usage-data", "facets");
+    mkdirSync(dir, { recursive: true });
+    writeFileSync(
+      join(dir, "a.json"),
+      JSON.stringify({ session_id: "a", session_type: "multi_task" }),
+    );
+    writeFileSync(
+      join(dir, "b.json"),
+      JSON.stringify({ session_id: "b", session_type: "single" }),
+    );
+
+    const map = await loadFacetsMap(tmpHome);
+    expect(map.get("a").session_type).toBe("multi_task");
+    expect(map.get("b").session_type).toBe("single");
+  });
+});
+
+describe("buildTranscriptIndex", () => {
+  it("returns empty Map when projects/ is missing", async () => {
+    const idx = await buildTranscriptIndex(tmpHome);
+    expect(idx.size).toBe(0);
+  });
+
+  it("indexes one transcript per session_id", async () => {
+    const projects = join(tmpHome, "projects");
+    mkdirSync(join(projects, "p1"), { recursive: true });
+    writeFileSync(join(projects, "p1", "sess-A.jsonl"), "");
+    writeFileSync(join(projects, "p1", "sess-B.jsonl"), "");
+
+    const idx = await buildTranscriptIndex(tmpHome);
+    expect(idx.get("sess-A")).toContain("p1");
+    expect(idx.get("sess-A")).toContain("sess-A.jsonl");
+    expect(idx.size).toBe(2);
+  });
+
+  it("deduplicates a session_id appearing in multiple project dirs (first-wins)", async () => {
+    // p-aaa is alphabetically first, so its copy of sess-X wins.
+    const projects = join(tmpHome, "projects");
+    mkdirSync(join(projects, "p-aaa"), { recursive: true });
+    mkdirSync(join(projects, "p-zzz"), { recursive: true });
+    writeFileSync(join(projects, "p-aaa", "sess-X.jsonl"), "");
+    writeFileSync(join(projects, "p-zzz", "sess-X.jsonl"), "");
+
+    const idx = await buildTranscriptIndex(tmpHome);
+    expect(idx.get("sess-X")).toContain("p-aaa");
+    expect(idx.get("sess-X")).not.toContain("p-zzz");
+  });
+});
+
+describe("scanTranscriptModes", () => {
+  let path;
+
+  beforeEach(() => {
+    path = join(tmpHome, "transcript.jsonl");
+  });
+
+  it("collects permissionMode, attributionSkill, worktree-state, and ★ Insight from a transcript", async () => {
+    const lines = [
+      JSON.stringify({ permissionMode: "auto" }),
+      JSON.stringify({ permissionMode: "plan" }),
+      JSON.stringify({ type: "worktree-state", id: "wt-1" }),
+      JSON.stringify({ attributionSkill: "frontend-design" }),
+      JSON.stringify({
+        type: "assistant",
+        content: "Some output ★ Insight ─── here",
+      }),
+    ];
+    writeFileSync(path, lines.join("\n"));
+
+    const r = await scanTranscriptModes(path);
+    expect(r.modes.has("auto")).toBe(true);
+    expect(r.modes.has("plan")).toBe(true);
+    expect(r.hasWorktreeState).toBe(true);
+    expect(r.skills.has("frontend-design")).toBe(true);
+    expect(r.learningModeMatches).toBe(1);
+  });
+
+  it("ignores malformed lines and continues", async () => {
+    const lines = [
+      "{not json",
+      JSON.stringify({ permissionMode: "auto" }),
+      "",
+      JSON.stringify({ permissionMode: "bypassPermissions" }),
+    ];
+    writeFileSync(path, lines.join("\n"));
+
+    const r = await scanTranscriptModes(path);
+    expect(r.modes.has("auto")).toBe(true);
+    expect(r.modes.has("bypassPermissions")).toBe(true);
+  });
+
+  it("returns empty result for empty file", async () => {
+    writeFileSync(path, "");
+    const r = await scanTranscriptModes(path);
+    expect(r.modes.size).toBe(0);
+    expect(r.skills.size).toBe(0);
+    expect(r.hasWorktreeState).toBe(false);
+    expect(r.learningModeMatches).toBe(0);
+  });
+
+  it("only counts ★ Insight on assistant-typed entries", async () => {
+    const lines = [
+      JSON.stringify({ type: "user", content: "★ Insight is just text" }),
+      JSON.stringify({
+        type: "assistant",
+        content: "★ Insight ─── real one",
+      }),
+    ];
+    writeFileSync(path, lines.join("\n"));
+    const r = await scanTranscriptModes(path);
+    expect(r.learningModeMatches).toBe(1);
+  });
+});
