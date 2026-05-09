@@ -66,7 +66,8 @@ async function isSubstantiveSkill(skillPath) {
     return false;
   }
   for (const e of entries) {
-    if (e.endsWith(".md") && (await isSubstantive(join(skillPath, e)))) return true;
+    if (e.endsWith(".md") && (await isSubstantive(join(skillPath, e))))
+      return true;
   }
   return false;
 }
@@ -107,11 +108,38 @@ async function dirSize(path) {
   return entries.length;
 }
 
+// True if a PostToolUse hook is wired up to run a formatter on Edit|Write
+// (or MultiEdit) tool calls. Distinguishes "I have a formatter feedback loop"
+// from "I have *some* PostToolUse hook" — generic detection would credit
+// notification or logging hooks unfairly. Two-part check:
+//   1. matcher includes Edit or Write (substring, regex-OR-pipe friendly)
+//   2. command references a known formatter or the generic 'format' token
+// Catches both name-based hooks (prettier, ruff, gofmt, rustfmt, shfmt,
+// rubocop, black, eslint) and shell-script wrappers ('format-on-edit.sh',
+// 'bun run format', 'npm run format').
+const FORMATTER_TOKENS =
+  /(prettier|ruff|gofmt|rustfmt|shfmt|rubocop|\bblack\b|eslint|\bformat\b)/i;
+export function detectFormatterHook(hooks) {
+  const postTool = hooks?.PostToolUse || [];
+  for (const entry of postTool) {
+    const matcher = entry.matcher || "";
+    if (!/Edit|Write/i.test(matcher)) continue;
+    for (const h of entry.hooks || []) {
+      if (typeof h.command === "string" && FORMATTER_TOKENS.test(h.command)) {
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
 export async function gatherSignals(projectRoot = process.cwd(), options = {}) {
   const { insightsLookbackDays = 30, includeTranscripts = false } = options;
-  const settings = (await safeReadJson(join(claudeHome(), "settings.json"))) || {};
+  const settings =
+    (await safeReadJson(join(claudeHome(), "settings.json"))) || {};
   const projectSettings =
-    (await safeReadJson(join(projectRoot, ".claude", "settings.local.json"))) || {};
+    (await safeReadJson(join(projectRoot, ".claude", "settings.local.json"))) ||
+    {};
 
   const personalAgentsDir = join(claudeHome(), "agents");
   const personalCommandsDir = join(claudeHome(), "commands");
@@ -119,19 +147,44 @@ export async function gatherSignals(projectRoot = process.cwd(), options = {}) {
   const projectAgentsDir = join(projectRoot, ".claude", "agents");
   const projectCommandsDir = join(projectRoot, ".claude", "commands");
 
-  const personalAgentsRaw = (await safeReaddir(personalAgentsDir)).filter((f) => f.endsWith(".md"));
-  const personalCommandsRaw = (await safeReaddir(personalCommandsDir)).filter((f) => f.endsWith(".md"));
-  const personalSkillsRaw = (await safeReaddir(personalSkillsDir)).filter((f) => !f.startsWith("."));
-  const projectAgentsRaw = (await safeReaddir(projectAgentsDir)).filter((f) => f.endsWith(".md"));
-  const projectCommandsRaw = (await safeReaddir(projectCommandsDir)).filter((f) => f.endsWith(".md"));
+  const personalAgentsRaw = (await safeReaddir(personalAgentsDir)).filter((f) =>
+    f.endsWith(".md"),
+  );
+  const personalCommandsRaw = (await safeReaddir(personalCommandsDir)).filter(
+    (f) => f.endsWith(".md"),
+  );
+  const personalSkillsRaw = (await safeReaddir(personalSkillsDir)).filter(
+    (f) => !f.startsWith("."),
+  );
+  const projectAgentsRaw = (await safeReaddir(projectAgentsDir)).filter((f) =>
+    f.endsWith(".md"),
+  );
+  const projectCommandsRaw = (await safeReaddir(projectCommandsDir)).filter(
+    (f) => f.endsWith(".md"),
+  );
 
   // Substantive filter: count only files with real body content + an action
   // verb. Closes the "spray empty stubs to inflate the score" loophole.
-  const personalAgents = await filterSubstantive(personalAgentsDir, personalAgentsRaw);
-  const personalCommands = await filterSubstantive(personalCommandsDir, personalCommandsRaw);
-  const personalSkills = await filterSubstantiveSkillDirs(personalSkillsDir, personalSkillsRaw);
-  const projectAgents = await filterSubstantive(projectAgentsDir, projectAgentsRaw);
-  const projectCommands = await filterSubstantive(projectCommandsDir, projectCommandsRaw);
+  const personalAgents = await filterSubstantive(
+    personalAgentsDir,
+    personalAgentsRaw,
+  );
+  const personalCommands = await filterSubstantive(
+    personalCommandsDir,
+    personalCommandsRaw,
+  );
+  const personalSkills = await filterSubstantiveSkillDirs(
+    personalSkillsDir,
+    personalSkillsRaw,
+  );
+  const projectAgents = await filterSubstantive(
+    projectAgentsDir,
+    projectAgentsRaw,
+  );
+  const projectCommands = await filterSubstantive(
+    projectCommandsDir,
+    projectCommandsRaw,
+  );
 
   const plugins = Object.entries(settings.enabledPlugins || {})
     .filter(([, v]) => v === true)
@@ -144,6 +197,7 @@ export async function gatherSignals(projectRoot = process.cwd(), options = {}) {
 
   const hooks = settings.hooks || {};
   const env = settings.env || {};
+  const hasFormatterHook = detectFormatterHook(hooks);
 
   const plansDir = join(claudeHome(), "plans");
   const plansCountRaw = await dirSize(plansDir);
@@ -152,7 +206,9 @@ export async function gatherSignals(projectRoot = process.cwd(), options = {}) {
   const plansCount = await countSubstantiveFiles(plansDir);
   const sessionsCount = await dirSize(join(claudeHome(), "sessions"));
   const statuslineConfigured = existsSync(join(claudeHome(), "statusline.sh"));
-  const keybindingsConfigured = existsSync(join(claudeHome(), "keybindings.json"));
+  const keybindingsConfigured = existsSync(
+    join(claudeHome(), "keybindings.json"),
+  );
 
   const hasPlugin = (prefix) => plugins.some((p) => p.startsWith(prefix));
 
@@ -166,17 +222,21 @@ export async function gatherSignals(projectRoot = process.cwd(), options = {}) {
     capturedAt: new Date().toISOString(),
     settings: {
       effortLevel: settings.effortLevel || "unknown",
-      skipDangerousModePermissionPrompt: !!settings.skipDangerousModePermissionPrompt,
+      skipDangerousModePermissionPrompt:
+        !!settings.skipDangerousModePermissionPrompt,
       allowList: (settings.permissions?.allow || []).concat(
-        projectSettings.permissions?.allow || []
+        projectSettings.permissions?.allow || [],
       ),
       denyList: (settings.permissions?.deny || []).concat(
-        projectSettings.permissions?.deny || []
+        projectSettings.permissions?.deny || [],
       ),
       autoCompactWindow:
-        env.CLAUDE_CODE_AUTO_COMPACT_WINDOW || process.env.CLAUDE_CODE_AUTO_COMPACT_WINDOW || null,
+        env.CLAUDE_CODE_AUTO_COMPACT_WINDOW ||
+        process.env.CLAUDE_CODE_AUTO_COMPACT_WINDOW ||
+        null,
       hookEvents: Object.keys(hooks),
       hookTotalCount: Object.values(hooks).flat().length,
+      hasFormatterHook,
     },
     personalAgents,
     personalCommands,
