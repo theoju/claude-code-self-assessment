@@ -31,6 +31,7 @@ const ALL_SATISFIED_SIGNALS = {
   hasVerifyAgent: true,
   hasStopHook: true,
   hasPostToolHook: true,
+  hasFormatterHook: true,
   // model-effort
   effortLevel: "xhigh",
   autoCompactWindow: "400000",

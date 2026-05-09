@@ -55,6 +55,7 @@ export function buildSignalsSummary(signals) {
     hookEvents,
     hasStopHook: hookEvents.includes("Stop"),
     hasPostToolHook: hookEvents.includes("PostToolUse"),
+    hasFormatterHook: !!signals.settings.hasFormatterHook,
     hasShipCommand:
       signals.personalCommands.includes("ship.md") ||
       signals.projectCommands.includes("ship.md"),

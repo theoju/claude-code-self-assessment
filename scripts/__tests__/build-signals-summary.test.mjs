@@ -195,6 +195,7 @@ describe("buildSignalsSummary", () => {
         "autoCompactWindow",
         "claudeMdExists",
         "effortLevel",
+        "hasFormatterHook",
         "hasPostToolHook",
         "hasShipCommand",
         "hasSlackPlugin",

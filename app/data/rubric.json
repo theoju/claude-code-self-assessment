@@ -12,7 +12,8 @@
         {
           "id": "hook-formatter",
           "action": "Add a PostToolUse hook that runs your formatter on Write|Edit — Boris tip 7",
-          "effort": "15min"
+          "effort": "15min",
+          "satisfiedWhen": "hasFormatterHook"
         },
         {
           "id": "ship-command",
