@@ -133,6 +133,48 @@ export function detectFormatterHook(hooks) {
   return false;
 }
 
+// True if a Stop hook fires a system notification when Claude finishes —
+// Boris tip 75. Distinguishes "I get pinged for autonomous runs" from "I
+// have *some* Stop hook" (e.g. a stop-verify.sh check). Tokens cover macOS
+// (osascript display notification, terminal-notifier, say), Linux
+// (notify-send), and the generic `notification` keyword for shell wrappers.
+const STOP_NOTIFICATION_TOKENS =
+  /(osascript[^\n]*display\s+notification|terminal-notifier|notify-send|\bnotification\b|\bsay\b)/i;
+export function detectStopHookNotification(hooks) {
+  const stop = hooks?.Stop || [];
+  for (const entry of stop) {
+    for (const h of entry.hooks || []) {
+      if (
+        typeof h.command === "string" &&
+        STOP_NOTIFICATION_TOKENS.test(h.command)
+      ) {
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
+// True if any agent frontmatter declares `isolation: worktree` — Boris tip
+// 28. Scans personal + project .md agent files. Frontmatter is a simple
+// YAML block at the top; we just grep for the literal key/value pair after
+// stripping CR. Cheap and avoids pulling a YAML parser.
+async function hasWorktreeIsolatedAgent(dirs) {
+  for (const dir of dirs) {
+    const entries = await safeReaddir(dir);
+    for (const name of entries) {
+      if (!name.endsWith(".md")) continue;
+      try {
+        const content = await readFile(join(dir, name), "utf8");
+        if (/^isolation:\s*["']?worktree["']?\s*$/im.test(content)) return true;
+      } catch {
+        // unreadable — skip
+      }
+    }
+  }
+  return false;
+}
+
 export async function gatherSignals(projectRoot = process.cwd(), options = {}) {
   const { insightsLookbackDays = 30, includeTranscripts = false } = options;
   const settings =
@@ -198,6 +240,14 @@ export async function gatherSignals(projectRoot = process.cwd(), options = {}) {
   const hooks = settings.hooks || {};
   const env = settings.env || {};
   const hasFormatterHook = detectFormatterHook(hooks);
+  const hasStopHookNotification = detectStopHookNotification(hooks);
+  const customSpinnerVerbCount = Array.isArray(settings.spinnerVerbs?.verbs)
+    ? settings.spinnerVerbs.verbs.length
+    : 0;
+  const hasIsolatedAgent = await hasWorktreeIsolatedAgent([
+    personalAgentsDir,
+    projectAgentsDir,
+  ]);
 
   const plansDir = join(claudeHome(), "plans");
   const plansCountRaw = await dirSize(plansDir);
@@ -237,6 +287,9 @@ export async function gatherSignals(projectRoot = process.cwd(), options = {}) {
       hookEvents: Object.keys(hooks),
       hookTotalCount: Object.values(hooks).flat().length,
       hasFormatterHook,
+      hasStopHookNotification,
+      customSpinnerVerbCount,
+      hasIsolatedAgent,
     },
     personalAgents,
     personalCommands,

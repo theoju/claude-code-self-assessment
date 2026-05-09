@@ -80,7 +80,8 @@
         {
           "id": "effort-max-reflex",
           "action": "Learn the /effort max reflex for debugging and architecture sessions — Boris tip 34",
-          "effort": "5min"
+          "effort": "5min",
+          "satisfiedWhen": "effortLevel=max"
         },
         {
           "id": "auto-compact-window",
@@ -111,7 +112,8 @@
         {
           "id": "agent-isolation",
           "action": "Add isolation: worktree to any custom agent you build — Boris tip 28",
-          "effort": "5min"
+          "effort": "5min",
+          "satisfiedWhen": "hasIsolatedAgent"
         }
       ]
     },
@@ -228,7 +230,8 @@
         {
           "id": "spinner-verbs",
           "action": "Customize a handful of spinner verbs — Boris tip 25",
-          "effort": "5min"
+          "effort": "5min",
+          "satisfiedWhen": "hasCustomSpinnerVerbs"
         }
       ]
     },
@@ -248,7 +251,8 @@
         {
           "id": "stop-hook-notification",
           "action": "Set up a Stop-hook system notification for autonomous runs — Boris tip 75",
-          "effort": "15min"
+          "effort": "15min",
+          "satisfiedWhen": "hasStopHookNotification"
         },
         {
           "id": "promote-routine",

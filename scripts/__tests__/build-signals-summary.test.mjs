@@ -186,6 +186,37 @@ describe("buildSignalsSummary", () => {
     expect(r.insightsHookFireCount).toBe(12);
   });
 
+  it("forwards new settings flags (formatter/stopNotif/isolatedAgent/spinner)", () => {
+    const r = buildSignalsSummary(
+      makeSignals({
+        settings: {
+          ...makeSignals().settings,
+          hasFormatterHook: true,
+          hasStopHookNotification: true,
+          hasIsolatedAgent: true,
+          customSpinnerVerbCount: 7,
+        },
+      }),
+    );
+    expect(r.hasFormatterHook).toBe(true);
+    expect(r.hasStopHookNotification).toBe(true);
+    expect(r.hasIsolatedAgent).toBe(true);
+    expect(r.hasCustomSpinnerVerbs).toBe(true);
+  });
+
+  it("hasCustomSpinnerVerbs is false when count is 0 or missing", () => {
+    expect(
+      buildSignalsSummary(
+        makeSignals({
+          settings: { ...makeSignals().settings, customSpinnerVerbCount: 0 },
+        }),
+      ).hasCustomSpinnerVerbs,
+    ).toBe(false);
+    expect(buildSignalsSummary(makeSignals()).hasCustomSpinnerVerbs).toBe(
+      false,
+    );
+  });
+
   it("output keys form a stable contract — locked-in by snapshot", () => {
     const r = buildSignalsSummary(makeSignals());
     const sortedKeys = Object.keys(r).sort();
@@ -195,11 +226,14 @@ describe("buildSignalsSummary", () => {
         "autoCompactWindow",
         "claudeMdExists",
         "effortLevel",
+        "hasCustomSpinnerVerbs",
         "hasFormatterHook",
+        "hasIsolatedAgent",
         "hasPostToolHook",
         "hasShipCommand",
         "hasSlackPlugin",
         "hasStopHook",
+        "hasStopHookNotification",
         "hasVercelPlugin",
         "hasVerifyAgent",
         "hasWildcardAllow",
