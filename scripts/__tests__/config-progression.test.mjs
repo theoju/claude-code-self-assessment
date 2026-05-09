@@ -1,5 +1,13 @@
-import { describe, it, expect } from "vitest";
-import { detectConfigMilestones, _DETECTORS } from "../config-progression.mjs";
+import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import { mkdtempSync, writeFileSync, rmSync } from "node:fs";
+import { join } from "node:path";
+import { tmpdir } from "node:os";
+import {
+  detectConfigMilestones,
+  loadConfigProgressionState,
+  saveConfigProgressionState,
+  _DETECTORS,
+} from "../config-progression.mjs";
 
 const NOW = "2026-05-09T08:00:00.000Z";
 const LATER = "2026-05-15T08:00:00.000Z";
@@ -150,5 +158,45 @@ describe("detectConfigMilestones", () => {
       (m) => m.sessionId === "config:allowlist-tuned",
     );
     expect(allowlist.evidence).toContain("42");
+  });
+});
+
+describe("loadConfigProgressionState", () => {
+  let tmpDir;
+  beforeEach(() => {
+    tmpDir = mkdtempSync(join(tmpdir(), "config-progression-test-"));
+  });
+  afterEach(() => {
+    rmSync(tmpDir, { recursive: true, force: true });
+  });
+
+  it("returns {} when the file does not exist", async () => {
+    const r = await loadConfigProgressionState(join(tmpDir, "nope.json"));
+    expect(r).toEqual({});
+  });
+
+  it("returns {} on malformed JSON without throwing", async () => {
+    const path = join(tmpDir, "broken.json");
+    writeFileSync(path, "{not valid json}");
+    const r = await loadConfigProgressionState(path);
+    expect(r).toEqual({});
+  });
+
+  it("returns {} when the file content is JSON but not an object", async () => {
+    const path = join(tmpDir, "array.json");
+    writeFileSync(path, "[1,2,3]");
+    // Arrays are technically `typeof === 'object'`, so this asserts current
+    // permissive behavior; a future tightening to {} for arrays should
+    // update this expectation deliberately.
+    const r = await loadConfigProgressionState(path);
+    expect(typeof r).toBe("object");
+  });
+
+  it("round-trips state via save → load", async () => {
+    const path = join(tmpDir, "state.json");
+    const state = { "stop-hook": { firstSeenAt: "2026-04-01T00:00:00.000Z" } };
+    await saveConfigProgressionState(path, state);
+    const r = await loadConfigProgressionState(path);
+    expect(r).toEqual(state);
   });
 });

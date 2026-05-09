@@ -35,6 +35,46 @@ const RUBRIC_PATH = join(DATA_DIR, "rubric.json");
 const PROGRESSION_PATH = join(DATA_DIR, "progression.json");
 const PROGRESSION_CONFIG_PATH = join(DATA_DIR, "progression-config.json");
 
+// Pure derivation: signals (raw filesystem capture) → signalsSummary (flat
+// scalar map). The predicate engine in app/lib/assessment.ts evaluates
+// rubric satisfiedWhen expressions against this object. Exported so the
+// shape can be unit-tested without spawning the full assessment pipeline.
+export function buildSignalsSummary(signals) {
+  const hookEvents = signals.settings.hookEvents || [];
+  return {
+    plugins: signals.plugins.length,
+    personalAgents: signals.personalAgents.length,
+    personalCommands: signals.personalCommands.length,
+    personalSkills: signals.personalSkills.length,
+    hookTotalCount: signals.settings.hookTotalCount,
+    effortLevel: signals.settings.effortLevel,
+    skipDangerous: signals.settings.skipDangerousModePermissionPrompt,
+    autoCompactWindow: signals.settings.autoCompactWindow,
+    allowListCount: signals.settings.allowList.length,
+    hasWildcardAllow: signals.settings.allowList.some((e) => e.includes("*")),
+    hookEvents,
+    hasStopHook: hookEvents.includes("Stop"),
+    hasPostToolHook: hookEvents.includes("PostToolUse"),
+    hasShipCommand:
+      signals.personalCommands.includes("ship.md") ||
+      signals.projectCommands.includes("ship.md"),
+    hasVerifyAgent:
+      signals.personalAgents.some((f) => /^verify/i.test(f)) ||
+      signals.projectAgents.some((f) => /^verify/i.test(f)),
+    claudeMdExists: signals.claudeMdExists,
+    statuslineConfigured: signals.statuslineConfigured,
+    keybindingsConfigured: signals.keybindingsConfigured,
+    hasSlackPlugin: signals.plugins.some((p) => /slack/i.test(p)),
+    hasVercelPlugin: signals.plugins.some((p) => /vercel/i.test(p)),
+    projectsWithMemory: signals.memory.length,
+    insightsAvailable: !!signals.insights,
+    insightsSessionsAnalyzed: signals.insights?.sessionsAnalyzed ?? 0,
+    insightsLookbackDays: signals.insights?.lookbackDays ?? null,
+    insightsTranscriptsScanned: signals.insights?.transcriptsScanned ?? false,
+    insightsHookFireCount: signals.insights?.hookFireCount ?? 0,
+  };
+}
+
 const argv = process.argv.slice(2);
 const flags = new Set(argv);
 
@@ -149,40 +189,7 @@ async function main() {
   const assessment = {
     ...scored,
     trends,
-    signalsSummary: {
-      plugins: signals.plugins.length,
-      personalAgents: signals.personalAgents.length,
-      personalCommands: signals.personalCommands.length,
-      personalSkills: signals.personalSkills.length,
-      hookTotalCount: signals.settings.hookTotalCount,
-      effortLevel: signals.settings.effortLevel,
-      skipDangerous: signals.settings.skipDangerousModePermissionPrompt,
-      autoCompactWindow: signals.settings.autoCompactWindow,
-      allowListCount: signals.settings.allowList.length,
-      hasWildcardAllow: signals.settings.allowList.some((e) => e.includes("*")),
-      hookEvents: signals.settings.hookEvents,
-      hasStopHook: (signals.settings.hookEvents || []).includes("Stop"),
-      hasPostToolHook: (signals.settings.hookEvents || []).includes(
-        "PostToolUse",
-      ),
-      hasShipCommand:
-        signals.personalCommands.includes("ship.md") ||
-        signals.projectCommands.includes("ship.md"),
-      hasVerifyAgent:
-        signals.personalAgents.some((f) => /^verify/i.test(f)) ||
-        signals.projectAgents.some((f) => /^verify/i.test(f)),
-      claudeMdExists: signals.claudeMdExists,
-      statuslineConfigured: signals.statuslineConfigured,
-      keybindingsConfigured: signals.keybindingsConfigured,
-      hasSlackPlugin: signals.plugins.some((p) => /slack/i.test(p)),
-      hasVercelPlugin: signals.plugins.some((p) => /vercel/i.test(p)),
-      projectsWithMemory: signals.memory.length,
-      insightsAvailable: !!signals.insights,
-      insightsSessionsAnalyzed: signals.insights?.sessionsAnalyzed ?? 0,
-      insightsLookbackDays: signals.insights?.lookbackDays ?? null,
-      insightsTranscriptsScanned: signals.insights?.transcriptsScanned ?? false,
-      insightsHookFireCount: signals.insights?.hookFireCount ?? 0,
-    },
+    signalsSummary: buildSignalsSummary(signals),
     insights: signals.insights,
     claudeMd: claudeMdRuns.length
       ? {
@@ -317,7 +324,15 @@ async function main() {
   return assessment;
 }
 
-main().catch((err) => {
-  console.error(err);
-  process.exit(1);
-});
+// Only run main() when this file is invoked as a CLI (not when imported by
+// tests). The compare-with-resolve dance handles both `node script.mjs`
+// (argv[1] is a path) and direct module-URL invocation.
+if (
+  import.meta.url === `file://${process.argv[1] || ""}` ||
+  import.meta.url === process.argv[1]
+) {
+  main().catch((err) => {
+    console.error(err);
+    process.exit(1);
+  });
+}

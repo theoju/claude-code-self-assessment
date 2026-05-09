@@ -10,16 +10,19 @@ function dim(id: string, score: number, target = 90): Dimension {
     title: id,
     weight: 1,
     target,
+    rawTarget: target,
     rubricArea: "test",
     borisTips: "1",
     nextActions: [],
     score,
+    rawScore: score,
     tier: "developing",
     trend: "flat",
     evidence: [],
     gaps: [],
     summary: "",
     executionScore: null,
+    executionRawScore: null,
     executionEvidence: [],
     executionGaps: [],
     gapReason: null,
@@ -56,7 +59,9 @@ describe("RadarChart", () => {
   it("respects custom size", () => {
     const dims = [dim("a", 50), dim("b", 50), dim("c", 50)];
     const { container } = render(<RadarChart dimensions={dims} size={300} />);
-    expect(container.querySelector("svg")?.getAttribute("viewBox")).toBe("0 0 300 300");
+    expect(container.querySelector("svg")?.getAttribute("viewBox")).toBe(
+      "0 0 300 300",
+    );
   });
 
   it("does not draw an execution polygon when showExecution is false (default)", () => {
@@ -76,7 +81,9 @@ describe("RadarChart", () => {
       { ...dim("c", 80), executionScore: 40 },
       { ...dim("d", 50), executionScore: 20 },
     ];
-    const { container } = render(<RadarChart dimensions={dims} showExecution />);
+    const { container } = render(
+      <RadarChart dimensions={dims} showExecution />,
+    );
     expect(container.querySelectorAll("path").length).toBe(3);
     const execPath = container.querySelectorAll("path")[2];
     expect(execPath.getAttribute("stroke-dasharray")).toBe("3 3");
@@ -91,7 +98,9 @@ describe("RadarChart", () => {
       { ...dim("c", 80), executionScore: 40 },
       { ...dim("d", 50), executionScore: null }, // unmeasured
     ];
-    const { container } = render(<RadarChart dimensions={dims} showExecution />);
+    const { container } = render(
+      <RadarChart dimensions={dims} showExecution />,
+    );
     const italicLabels = Array.from(container.querySelectorAll("text")).filter(
       (t) => t.getAttribute("font-style") === "italic",
     );
@@ -115,7 +124,9 @@ describe("RadarChart", () => {
       { ...dim("b", 70), executionScore: null },
       { ...dim("c", 80), executionScore: null },
     ];
-    const { container } = render(<RadarChart dimensions={dims} showExecution />);
+    const { container } = render(
+      <RadarChart dimensions={dims} showExecution />,
+    );
     // Only 2 paths (target + score). 1 execution dot still drawn.
     expect(container.querySelectorAll("path").length).toBe(2);
     expect(container.querySelectorAll("circle").length).toBe(5 + 3 + 1);
