@@ -6,13 +6,17 @@ import InsightsNarrativeSection from "@/app/components/InsightsNarrative";
 import {
   loadAssessment,
   computeStats,
+  deriveHeadline,
   tierColor,
   tierLabel,
   tierFor,
   trendGlyph,
 } from "@/app/lib/assessment";
 import { loadProgression } from "@/app/lib/progression";
-import { loadInsightsNarrative, detectInsightsReportFile } from "@/app/lib/insights-narrative";
+import {
+  loadInsightsNarrative,
+  detectInsightsReportFile,
+} from "@/app/lib/insights-narrative";
 import { borisTipLink, parseBorisTipList } from "@/app/lib/boris-tips";
 
 export const dynamic = "force-dynamic";
@@ -32,14 +36,24 @@ export default async function Page() {
   const insightsReportFile = detectInsightsReportFile();
   const dims = assessment.dimensions;
   const stats = computeStats(dims);
+  const headline = deriveHeadline(assessment);
   const executionDelta =
     assessment.executionOverall == null
       ? null
       : assessment.overall - assessment.executionOverall;
   const executionMeasured = dims.filter((d) => d.executionScore != null).length;
-  const sorted = [...dims].sort((a, b) => b.weight * (b.target - b.score) - a.weight * (a.target - a.score));
-  const strengths = [...dims].filter((d) => d.score >= 80).sort((a, b) => b.score - a.score);
-  const needsWork = [...dims].filter((d) => d.target - d.score >= 25).sort((a, b) => b.weight * (b.target - b.score) - a.weight * (a.target - a.score));
+  const sorted = [...dims].sort(
+    (a, b) => b.weight * (b.target - b.score) - a.weight * (a.target - a.score),
+  );
+  const strengths = [...dims]
+    .filter((d) => d.score >= 80)
+    .sort((a, b) => b.score - a.score);
+  const needsWork = [...dims]
+    .filter((d) => d.target - d.score >= 25)
+    .sort(
+      (a, b) =>
+        b.weight * (b.target - b.score) - a.weight * (a.target - a.score),
+    );
   const notTouched = dims.filter((d) => d.score < 50);
   const capturedDate = assessment.capturedAt.slice(0, 10);
   const headerName = assessment.user ? `${assessment.user}'s` : "Your";
@@ -58,52 +72,69 @@ export default async function Page() {
           {headerName} Claude Code execution, scored.
         </h1>
         <p className="text-[color:var(--color-mute)] max-w-3xl leading-relaxed">
-          Compared against Boris Cherny's 87 workflow tips (howborisusesclaudecode.com)
-          and the Claude Code Self-Assessment rubric. Scoring is evidence-based — signals pulled from
-          <span className="mono text-[color:var(--color-text)]"> ~/.claude/settings.json</span>,
-          installed plugins, custom agents/commands/skills directories, project memory, and
-          the local <span className="mono text-[color:var(--color-text)]">/insights</span>{" "}
-          telemetry under <span className="mono text-[color:var(--color-text)]">~/.claude/usage-data/</span>.
+          Compared against Boris Cherny's 87 workflow tips
+          (howborisusesclaudecode.com) and the Claude Code Self-Assessment
+          rubric. Scoring is evidence-based — signals pulled from
+          <span className="mono text-[color:var(--color-text)]">
+            {" "}
+            ~/.claude/settings.json
+          </span>
+          , installed plugins, custom agents/commands/skills directories,
+          project memory, and the local{" "}
+          <span className="mono text-[color:var(--color-text)]">
+            /insights
+          </span>{" "}
+          telemetry under{" "}
+          <span className="mono text-[color:var(--color-text)]">
+            ~/.claude/usage-data/
+          </span>
+          .
         </p>
       </header>
 
       <section className="grid grid-cols-12 gap-10 mb-16">
         <div className="col-span-12 md:col-span-7">
-          <RadarChart dimensions={dims} showExecution={assessment.executionOverall != null} />
+          <RadarChart
+            dimensions={dims}
+            showExecution={assessment.executionOverall != null}
+          />
           <div className="flex items-center gap-6 text-xs text-[color:var(--color-mute)] mt-4 justify-center flex-wrap">
             <span className="inline-flex items-center gap-2">
-              <span className="w-3 h-3 rounded-sm bg-[color:var(--color-good)] opacity-70" /> Platform Setup
+              <span className="w-3 h-3 rounded-sm bg-[color:var(--color-good)] opacity-70" />{" "}
+              Platform Setup
             </span>
             {assessment.executionOverall != null && (
               <span className="inline-flex items-center gap-2">
-                <span className="w-3 h-0.5 bg-[color:var(--color-warn)] border-t border-dashed border-[color:var(--color-warn)]" /> Execution
+                <span className="w-3 h-0.5 bg-[color:var(--color-warn)] border-t border-dashed border-[color:var(--color-warn)]" />{" "}
+                Execution
               </span>
             )}
             <span className="inline-flex items-center gap-2">
-              <span className="w-3 h-0.5 bg-[color:var(--color-accent)]" /> Target
+              <span className="w-3 h-0.5 bg-[color:var(--color-accent)]" />{" "}
+              Target
             </span>
           </div>
-          {assessment.executionOverall != null && (() => {
-            const unmeasured = dims.filter((d) => d.executionScore == null);
-            if (unmeasured.length === 0) return null;
-            const labels = unmeasured
-              .map((d) => d.title.split(" — ")[0].split("&")[0].trim())
-              .join(" · ");
-            return (
-              <div className="text-[11px] italic text-[color:var(--color-mute)] mt-2 text-center max-w-2xl mx-auto opacity-75">
-                <sup className="not-italic mr-1">1</sup>
-                Execution unmeasured ({unmeasured.length} dim{unmeasured.length === 1 ? "" : "s"}):{" "}
-                {labels}
-                {" "}—{" "}
-                <Link
-                  href="/methodology"
-                  className="underline decoration-dotted underline-offset-2 hover:text-[color:var(--color-accent)]"
-                >
-                  why?
-                </Link>
-              </div>
-            );
-          })()}
+          {assessment.executionOverall != null &&
+            (() => {
+              const unmeasured = dims.filter((d) => d.executionScore == null);
+              if (unmeasured.length === 0) return null;
+              const labels = unmeasured
+                .map((d) => d.title.split(" — ")[0].split("&")[0].trim())
+                .join(" · ");
+              return (
+                <div className="text-[11px] italic text-[color:var(--color-mute)] mt-2 text-center max-w-2xl mx-auto opacity-75">
+                  <sup className="not-italic mr-1">1</sup>
+                  Execution unmeasured ({unmeasured.length} dim
+                  {unmeasured.length === 1 ? "" : "s"}): {labels} —{" "}
+                  <Link
+                    href="/methodology"
+                    className="underline decoration-dotted underline-offset-2 hover:text-[color:var(--color-accent)]"
+                  >
+                    why?
+                  </Link>
+                </div>
+              );
+            })()}
         </div>
 
         <div className="col-span-12 md:col-span-5 flex flex-col justify-center">
@@ -146,7 +177,10 @@ export default async function Page() {
                 {executionDelta >= EXECUTION_DELTA_HIGHLIGHT && (
                   <>
                     {" "}
-                    <Link href="/methodology" className="underline decoration-dotted underline-offset-2">
+                    <Link
+                      href="/methodology"
+                      className="underline decoration-dotted underline-offset-2"
+                    >
                       Why two axes?
                     </Link>
                   </>
@@ -156,9 +190,22 @@ export default async function Page() {
           </div>
 
           <div className="grid grid-cols-5 gap-2 mb-8 text-center text-xs">
-            {(["advanced", "solid", "developing", "starter", "not-touched"] as const).map((t) => (
-              <div key={t} className="bg-[color:var(--color-panel)] border border-[color:var(--color-line)] rounded-lg py-3">
-                <div className={`text-2xl font-semibold ${tierColor(t)}`}>{stats.byTier[t]}</div>
+            {(
+              [
+                "advanced",
+                "solid",
+                "developing",
+                "starter",
+                "not-touched",
+              ] as const
+            ).map((t) => (
+              <div
+                key={t}
+                className="bg-[color:var(--color-panel)] border border-[color:var(--color-line)] rounded-lg py-3"
+              >
+                <div className={`text-2xl font-semibold ${tierColor(t)}`}>
+                  {stats.byTier[t]}
+                </div>
                 <div className="text-[color:var(--color-mute)] uppercase tracking-wide text-[10px] mt-1">
                   {tierLabel(t)}
                 </div>
@@ -171,11 +218,16 @@ export default async function Page() {
               Headline read
             </div>
             <p className="text-sm leading-relaxed">
-              You are <span className="text-[color:var(--color-accent)] font-medium">advanced on surface-area</span>{" "}
-              (25 plugins, strong memory hygiene, explanatory mode, planning discipline) but{" "}
-              <span className="text-[color:var(--color-bad)] font-medium">starter on codified workflow</span>{" "}
-              — zero personal hooks, commands, or agents — and carrying 4.6-era model/permission settings
-              into the 4.7 era. The biggest wins are a handful of small configuration edits.
+              You are{" "}
+              <span className="text-[color:var(--color-accent)] font-medium">
+                {headline.strengthLabel}
+              </span>
+              {headline.strengthDetails ? ` ${headline.strengthDetails}` : ""}{" "}
+              but{" "}
+              <span className="text-[color:var(--color-bad)] font-medium">
+                {headline.weaknessLabel}
+              </span>{" "}
+              {headline.weaknessDetails}. {headline.closer}
             </p>
           </div>
         </div>
@@ -198,15 +250,19 @@ export default async function Page() {
                 <div className="text-xs uppercase tracking-wider text-[color:var(--color-mute)] mb-1">
                   {a.title} · weight {a.weight} · −{a.deficit} pts gap
                 </div>
-                <div className="text-sm"><LinkifyBoris text={a.action.action} /></div>
+                <div className="text-sm">
+                  <LinkifyBoris text={a.action.action} />
+                </div>
               </div>
             </li>
           ))}
         </ol>
       </section>
 
-      <InsightsNarrativeSection narrative={insightsNarrative} reportFile={insightsReportFile} />
-
+      <InsightsNarrativeSection
+        narrative={insightsNarrative}
+        reportFile={insightsReportFile}
+      />
 
       {assessment.claudeMd && <ClaudeMdHealth report={assessment.claudeMd} />}
 
@@ -219,7 +275,9 @@ export default async function Page() {
                   href={`/dimensions/${d.id}`}
                   className="flex items-baseline gap-2 hover:text-[color:var(--color-accent)] transition-colors"
                 >
-                  <span className="mono text-xs text-[color:var(--color-mute)] w-10">{d.score}</span>
+                  <span className="mono text-xs text-[color:var(--color-mute)] w-10">
+                    {d.score}
+                  </span>
                   <span>{d.title}</span>
                 </Link>
               </li>
@@ -234,7 +292,9 @@ export default async function Page() {
                   href={`/dimensions/${d.id}`}
                   className="flex items-baseline gap-2 hover:text-[color:var(--color-accent)] transition-colors"
                 >
-                  <span className="mono text-xs text-[color:var(--color-bad)] w-10">−{d.target - d.score}</span>
+                  <span className="mono text-xs text-[color:var(--color-bad)] w-10">
+                    −{d.target - d.score}
+                  </span>
                   <span>{d.title}</span>
                 </Link>
               </li>
@@ -249,7 +309,9 @@ export default async function Page() {
                   href={`/dimensions/${d.id}`}
                   className="flex items-baseline gap-2 hover:text-[color:var(--color-accent)] transition-colors"
                 >
-                  <span className="mono text-xs text-[color:var(--color-mute)] w-10">{d.score}</span>
+                  <span className="mono text-xs text-[color:var(--color-mute)] w-10">
+                    {d.score}
+                  </span>
                   <span>{d.title}</span>
                 </Link>
               </li>
@@ -278,81 +340,94 @@ export default async function Page() {
                       {d.title}
                     </Link>
                   </h3>
-                    <div className="text-xs text-[color:var(--color-mute)] mt-1">
-                      Rubric: {d.rubricArea} · Boris <BorisTips csv={d.borisTips} />
-                    </div>
+                  <div className="text-xs text-[color:var(--color-mute)] mt-1">
+                    Rubric: {d.rubricArea} · Boris{" "}
+                    <BorisTips csv={d.borisTips} />
                   </div>
-                  <div className="flex items-baseline gap-4">
-                    <span className="text-sm text-[color:var(--color-mute)]">weight ×{d.weight}</span>
-                    <span className={`text-sm mono ${tierColor(d.tier)}`}>
-                      {tierLabel(d.tier)}
-                    </span>
-                    <span className="text-sm text-[color:var(--color-mute)]">
-                      {trendGlyph(d.trend)} {d.trend}
-                    </span>
-                    <span className="mono text-2xl font-semibold text-[color:var(--color-accent)]">
-                      {d.score}
-                    </span>
-                    <span className="text-sm text-[color:var(--color-mute)]">
-                      / 100 <span className="text-xs">(raw {d.rawScore} of {d.rawTarget})</span>
-                    </span>
-                  </div>
-                </header>
-
-                <div className="relative h-2 rounded-full bg-[color:var(--color-panel-2)] mb-5">
-                  <div
-                    className="absolute top-0 left-0 h-full rounded-full bg-[color:var(--color-good)] opacity-70"
-                    style={{ width: `${d.score}%` }}
-                  />
-                  <div
-                    className="absolute top-0 h-full w-0.5 bg-[color:var(--color-accent)]"
-                    style={{ left: `${d.target}%` }}
-                    title={`target ${d.target}`}
-                  />
                 </div>
-
-                <p className="text-sm text-[color:var(--color-text)] leading-relaxed mb-5">
-                  <LinkifyBoris text={d.summary} />
-                </p>
-
-                <div className="grid md:grid-cols-3 gap-5 text-sm">
-                  <Column label="Evidence observed">
-                    {d.evidence.map((e, i) => (
-                      <li key={i}><LinkifyBoris text={e} /></li>
-                    ))}
-                  </Column>
-                  <Column label="Gaps">
-                    {d.gaps.map((g, i) => (
-                      <li key={i}><LinkifyBoris text={g} /></li>
-                    ))}
-                  </Column>
-                  <Column label="Next actions">
-                    {d.nextActions.map((a) => (
-                      <li
-                        key={a.id}
-                        className={`text-[color:var(--color-text)] ${a.satisfied ? "opacity-60 line-through" : ""}`}
-                      >
-                        <LinkifyBoris text={a.action} />
-                        {a.satisfied ? (
-                          <span className="ml-1 text-[10px] not-italic text-[color:var(--color-good)] no-underline" style={{ textDecoration: "none" }}>
-                            ✓ done
-                          </span>
-                        ) : null}
-                      </li>
-                    ))}
-                  </Column>
+                <div className="flex items-baseline gap-4">
+                  <span className="text-sm text-[color:var(--color-mute)]">
+                    weight ×{d.weight}
+                  </span>
+                  <span className={`text-sm mono ${tierColor(d.tier)}`}>
+                    {tierLabel(d.tier)}
+                  </span>
+                  <span className="text-sm text-[color:var(--color-mute)]">
+                    {trendGlyph(d.trend)} {d.trend}
+                  </span>
+                  <span className="mono text-2xl font-semibold text-[color:var(--color-accent)]">
+                    {d.score}
+                  </span>
+                  <span className="text-sm text-[color:var(--color-mute)]">
+                    / 100{" "}
+                    <span className="text-xs">
+                      (raw {d.rawScore} of {d.rawTarget})
+                    </span>
+                  </span>
                 </div>
+              </header>
 
-                {(d.executionScore != null || d.gapReason) && (
-                  <ExecutionAxis
-                    score={d.executionScore}
-                    evidence={d.executionEvidence}
-                    gaps={d.executionGaps}
-                    gapReason={d.gapReason}
-                  />
-                )}
-              </article>
-            ))}
+              <div className="relative h-2 rounded-full bg-[color:var(--color-panel-2)] mb-5">
+                <div
+                  className="absolute top-0 left-0 h-full rounded-full bg-[color:var(--color-good)] opacity-70"
+                  style={{ width: `${d.score}%` }}
+                />
+                <div
+                  className="absolute top-0 h-full w-0.5 bg-[color:var(--color-accent)]"
+                  style={{ left: `${d.target}%` }}
+                  title={`target ${d.target}`}
+                />
+              </div>
+
+              <p className="text-sm text-[color:var(--color-text)] leading-relaxed mb-5">
+                <LinkifyBoris text={d.summary} />
+              </p>
+
+              <div className="grid md:grid-cols-3 gap-5 text-sm">
+                <Column label="Evidence observed">
+                  {d.evidence.map((e, i) => (
+                    <li key={i}>
+                      <LinkifyBoris text={e} />
+                    </li>
+                  ))}
+                </Column>
+                <Column label="Gaps">
+                  {d.gaps.map((g, i) => (
+                    <li key={i}>
+                      <LinkifyBoris text={g} />
+                    </li>
+                  ))}
+                </Column>
+                <Column label="Next actions">
+                  {d.nextActions.map((a) => (
+                    <li
+                      key={a.id}
+                      className={`text-[color:var(--color-text)] ${a.satisfied ? "opacity-60 line-through" : ""}`}
+                    >
+                      <LinkifyBoris text={a.action} />
+                      {a.satisfied ? (
+                        <span
+                          className="ml-1 text-[10px] not-italic text-[color:var(--color-good)] no-underline"
+                          style={{ textDecoration: "none" }}
+                        >
+                          ✓ done
+                        </span>
+                      ) : null}
+                    </li>
+                  ))}
+                </Column>
+              </div>
+
+              {(d.executionScore != null || d.gapReason) && (
+                <ExecutionAxis
+                  score={d.executionScore}
+                  evidence={d.executionEvidence}
+                  gaps={d.executionGaps}
+                  gapReason={d.gapReason}
+                />
+              )}
+            </article>
+          ))}
         </div>
       </section>
 
@@ -364,8 +439,10 @@ export default async function Page() {
           <ProgressionTimeline progression={progression} />
           {!progression.transcriptsScanned && (
             <p className="text-xs text-[color:var(--color-mute)] mt-4">
-              Transcript-derived milestones (auto/plan mode adoption, worktrees, skills) are skipped — set{" "}
-              <span className="mono">scoring.includeTranscripts</span> to <span className="mono">true</span> in{" "}
+              Transcript-derived milestones (auto/plan mode adoption, worktrees,
+              skills) are skipped — set{" "}
+              <span className="mono">scoring.includeTranscripts</span> to{" "}
+              <span className="mono">true</span> in{" "}
               <span className="mono">assessment.config.json</span> to enable.
             </p>
           )}
@@ -384,10 +461,14 @@ export default async function Page() {
         </h2>
         <dl className="grid gap-4 text-sm md:grid-cols-2">
           <div>
-            <dt className="text-[color:var(--color-mute)] mb-1">Workflow tips</dt>
+            <dt className="text-[color:var(--color-mute)] mb-1">
+              Workflow tips
+            </dt>
             <dd>
-              <strong className="text-[color:var(--color-text)]">Boris Cherny</strong> — author of
-              the 87 tips this rubric weights against.{" "}
+              <strong className="text-[color:var(--color-text)]">
+                Boris Cherny
+              </strong>{" "}
+              — author of the 87 tips this rubric weights against.{" "}
               <a
                 href="https://x.com/bcherny"
                 target="_blank"
@@ -399,9 +480,14 @@ export default async function Page() {
             </dd>
           </div>
           <div>
-            <dt className="text-[color:var(--color-mute)] mb-1">Tip aggregation &amp; /boris skill</dt>
+            <dt className="text-[color:var(--color-mute)] mb-1">
+              Tip aggregation &amp; /boris skill
+            </dt>
             <dd>
-              <strong className="text-[color:var(--color-text)]">Daniel An</strong> (
+              <strong className="text-[color:var(--color-text)]">
+                Daniel An
+              </strong>{" "}
+              (
               <a
                 href="https://github.com/CarolinaCherry"
                 target="_blank"
@@ -419,23 +505,45 @@ export default async function Page() {
               >
                 howborisusesclaudecode.com ↗
               </a>{" "}
-              and compiler of the <span className="mono">/boris</span> skill that
+              and compiler of the <span className="mono">/boris</span> skill
+              that
               <span className="mono"> /self-assessment</span> cross-references.
             </dd>
           </div>
           <div>
-            <dt className="text-[color:var(--color-mute)] mb-1">Local data sources read</dt>
+            <dt className="text-[color:var(--color-mute)] mb-1">
+              Local data sources read
+            </dt>
             <dd className="space-y-0.5">
-              <div><span className="mono">~/.claude/settings.json</span>, <span className="mono">agents/</span>, <span className="mono">commands/</span>, <span className="mono">skills/</span>, <span className="mono">plans/</span></div>
-              <div><span className="mono">~/.claude/projects/*/memory</span></div>
-              <div><span className="mono">~/.claude/usage-data/</span> (same files <span className="mono">/insights</span> reads)</div>
+              <div>
+                <span className="mono">~/.claude/settings.json</span>,{" "}
+                <span className="mono">agents/</span>,{" "}
+                <span className="mono">commands/</span>,{" "}
+                <span className="mono">skills/</span>,{" "}
+                <span className="mono">plans/</span>
+              </div>
+              <div>
+                <span className="mono">~/.claude/projects/*/memory</span>
+              </div>
+              <div>
+                <span className="mono">~/.claude/usage-data/</span> (same files{" "}
+                <span className="mono">/insights</span> reads)
+              </div>
             </dd>
           </div>
           <div>
-            <dt className="text-[color:var(--color-mute)] mb-1">Local tools &amp; skills used</dt>
+            <dt className="text-[color:var(--color-mute)] mb-1">
+              Local tools &amp; skills used
+            </dt>
             <dd className="space-y-0.5">
-              <div>Boris skill snapshot at <span className="mono">~/.claude/skills/boris</span></div>
-              <div>Slash commands: <span className="mono">/self-assessment</span>, <span className="mono">/refresh-insights</span></div>
+              <div>
+                Boris skill snapshot at{" "}
+                <span className="mono">~/.claude/skills/boris</span>
+              </div>
+              <div>
+                Slash commands: <span className="mono">/self-assessment</span>,{" "}
+                <span className="mono">/refresh-insights</span>
+              </div>
               <div>Built with Next.js 16, Tailwind CSS, Vitest</div>
             </dd>
           </div>
@@ -444,21 +552,31 @@ export default async function Page() {
 
       <footer className="mt-8 pt-6 border-t border-[color:var(--color-line)] text-xs text-[color:var(--color-mute)] space-y-2">
         <p>
-          Scoring uses two axes: <strong className="text-[color:var(--color-good)]">Platform Setup</strong> from{" "}
-          <span className="mono">~/.claude</span> config (settings, plugins, agents, commands, skills, memory)
-          and <strong className="text-[color:var(--color-warn)]">Execution</strong> from{" "}
-          <span className="mono">~/.claude/usage-data</span> behavioral signals (the same local files{" "}
-          <span className="mono">/insights</span> reads). Each dimension is weighted 1–3 by leverage. Trends
-          marked <span className="mono">✦ new</span> reflect features shipped in April 2026 (Opus 4.7 family).{" "}
-          <Link href="/methodology" className="underline decoration-dotted underline-offset-2 hover:text-[color:var(--color-accent)]">
+          Scoring uses two axes:{" "}
+          <strong className="text-[color:var(--color-good)]">
+            Platform Setup
+          </strong>{" "}
+          from <span className="mono">~/.claude</span> config (settings,
+          plugins, agents, commands, skills, memory) and{" "}
+          <strong className="text-[color:var(--color-warn)]">Execution</strong>{" "}
+          from <span className="mono">~/.claude/usage-data</span> behavioral
+          signals (the same local files <span className="mono">/insights</span>{" "}
+          reads). Each dimension is weighted 1–3 by leverage. Trends marked{" "}
+          <span className="mono">✦ new</span> reflect features shipped in April
+          2026 (Opus 4.7 family).{" "}
+          <Link
+            href="/methodology"
+            className="underline decoration-dotted underline-offset-2 hover:text-[color:var(--color-accent)]"
+          >
             Full methodology →
           </Link>
         </p>
         <p className="opacity-75">
-          Independent open-source dashboard (MIT). Not affiliated with, endorsed by, or sponsored by Anthropic.
-          &quot;Claude&quot;, &quot;Claude Code&quot;, and <span className="mono">/insights</span> are
-          trademarks of Anthropic, used here only to identify the platform whose locally-stored data this
-          tool analyzes.
+          Independent open-source dashboard (MIT). Not affiliated with, endorsed
+          by, or sponsored by Anthropic. &quot;Claude&quot;, &quot;Claude
+          Code&quot;, and <span className="mono">/insights</span> are trademarks
+          of Anthropic, used here only to identify the platform whose
+          locally-stored data this tool analyzes.
         </p>
       </footer>
     </main>
@@ -478,8 +596,8 @@ function Panel({
     tone === "good"
       ? "var(--color-good)"
       : tone === "warn"
-      ? "var(--color-warn)"
-      : "var(--color-bad)";
+        ? "var(--color-warn)"
+        : "var(--color-bad)";
   return (
     <div
       className="bg-[color:var(--color-panel)] border rounded-xl p-5"
@@ -571,7 +689,7 @@ function LinkifyBoris({ text }: { text: string }) {
       <span key={key++}>
         <TipLink n={firstN} label={prefix} />
         {tailNodes}
-      </span>
+      </span>,
     );
     last = start + m[0].length;
   }
@@ -593,25 +711,35 @@ function SnapshotTile({
   sublabel: string;
 }) {
   const labelColor =
-    tone === "good" ? "text-[color:var(--color-good)]" : "text-[color:var(--color-warn)]";
+    tone === "good"
+      ? "text-[color:var(--color-good)]"
+      : "text-[color:var(--color-warn)]";
   const scoreColor =
     score == null
       ? "text-[color:var(--color-mute)]"
       : tone === "good"
-      ? "text-[color:var(--color-accent)]"
-      : tierColor(tierFor(score));
+        ? "text-[color:var(--color-accent)]"
+        : tierColor(tierFor(score));
   return (
     <div className="bg-[color:var(--color-panel)] border border-[color:var(--color-line)] rounded-lg p-4">
-      <div className={`text-[10px] uppercase tracking-wider mb-1 ${labelColor}`}>{label}</div>
+      <div
+        className={`text-[10px] uppercase tracking-wider mb-1 ${labelColor}`}
+      >
+        {label}
+      </div>
       <div className="flex items-baseline gap-1.5">
         <span className={`text-4xl font-semibold tracking-tight ${scoreColor}`}>
           {score == null ? "—" : score}
         </span>
         {score != null && (
-          <span className="text-sm text-[color:var(--color-mute)]">/ {denom}</span>
+          <span className="text-sm text-[color:var(--color-mute)]">
+            / {denom}
+          </span>
         )}
       </div>
-      <div className="text-[11px] text-[color:var(--color-mute)] mt-1">{sublabel}</div>
+      <div className="text-[11px] text-[color:var(--color-mute)] mt-1">
+        {sublabel}
+      </div>
     </div>
   );
 }
@@ -635,29 +763,41 @@ function ExecutionAxis({
         </div>
         {score != null ? (
           <div className="flex items-baseline gap-2 mono">
-            <span className="text-lg font-semibold text-[color:var(--color-warn)]">{score}</span>
-            <span className="text-xs text-[color:var(--color-mute)]">/ 100</span>
+            <span className="text-lg font-semibold text-[color:var(--color-warn)]">
+              {score}
+            </span>
+            <span className="text-xs text-[color:var(--color-mute)]">
+              / 100
+            </span>
           </div>
         ) : (
-          <div className="text-xs text-[color:var(--color-mute)]">unmeasured</div>
+          <div className="text-xs text-[color:var(--color-mute)]">
+            unmeasured
+          </div>
         )}
       </div>
       {gapReason && (
-        <p className="text-xs text-[color:var(--color-mute)] mb-3 italic">{gapReason}</p>
+        <p className="text-xs text-[color:var(--color-mute)] mb-3 italic">
+          {gapReason}
+        </p>
       )}
       {(evidence.length > 0 || gaps.length > 0) && (
         <div className="grid md:grid-cols-2 gap-5 text-sm">
           {evidence.length > 0 && (
             <Column label="Habit evidence">
               {evidence.map((e, i) => (
-                <li key={i}><LinkifyBoris text={e} /></li>
+                <li key={i}>
+                  <LinkifyBoris text={e} />
+                </li>
               ))}
             </Column>
           )}
           {gaps.length > 0 && (
             <Column label="Habit gaps">
               {gaps.map((g, i) => (
-                <li key={i}><LinkifyBoris text={g} /></li>
+                <li key={i}>
+                  <LinkifyBoris text={g} />
+                </li>
               ))}
             </Column>
           )}

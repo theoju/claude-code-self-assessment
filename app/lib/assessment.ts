@@ -1,7 +1,12 @@
 import { join } from "node:path";
 import { readJson } from "./_read-json";
 
-export type Tier = "not-touched" | "starter" | "developing" | "solid" | "advanced";
+export type Tier =
+  | "not-touched"
+  | "starter"
+  | "developing"
+  | "solid"
+  | "advanced";
 export type Trend = "new" | "flat" | "improving" | "slipping";
 
 export type Effort = "5min" | "15min" | "30min" | "1hr" | "2hr";
@@ -47,7 +52,8 @@ export interface ScoredDimension {
   gapReason: string | null;
 }
 
-export interface Dimension extends Omit<RubricDimension, "target">, ScoredDimension {
+export interface Dimension
+  extends Omit<RubricDimension, "target">, ScoredDimension {
   trend: Trend;
   summary: string;
   // After normalization, each dimension's effective target is 100. The raw
@@ -145,7 +151,11 @@ export interface Assessment {
 
 function readPath(obj: unknown, path: string): unknown {
   return path.split(".").reduce<unknown>((acc, key) => {
-    if (acc && typeof acc === "object" && key in (acc as Record<string, unknown>)) {
+    if (
+      acc &&
+      typeof acc === "object" &&
+      key in (acc as Record<string, unknown>)
+    ) {
       return (acc as Record<string, unknown>)[key];
     }
     return undefined;
@@ -156,16 +166,21 @@ function isTruthy(v: unknown): boolean {
   if (v === null || v === undefined) return false;
   if (typeof v === "boolean") return v;
   if (typeof v === "number") return v !== 0 && !Number.isNaN(v);
-  if (typeof v === "string") return v.length > 0 && v !== "0" && v.toLowerCase() !== "false";
+  if (typeof v === "string")
+    return v.length > 0 && v !== "0" && v.toLowerCase() !== "false";
   if (Array.isArray(v)) return v.length > 0;
   if (typeof v === "object") return Object.keys(v as object).length > 0;
   return Boolean(v);
 }
 
-function evaluateAtomic(expr: string, signals: Record<string, unknown>): boolean {
+function evaluateAtomic(
+  expr: string,
+  signals: Record<string, unknown>,
+): boolean {
   const trimmed = expr.trim();
   if (!trimmed) return false;
-  if (trimmed.startsWith("!")) return !evaluateAtomic(trimmed.slice(1), signals);
+  if (trimmed.startsWith("!"))
+    return !evaluateAtomic(trimmed.slice(1), signals);
   // Order matters: longer operators first so ">=" doesn't match as ">".
   const cmpMatch = trimmed.match(/^(.+?)(>=|<=|!=|=|>|<)(.+)$/);
   if (cmpMatch) {
@@ -182,20 +197,31 @@ function evaluateAtomic(expr: string, signals: Record<string, unknown>): boolean
     const rhsNum = Number(rhs);
     if (Number.isNaN(num) || Number.isNaN(rhsNum)) return false;
     switch (op) {
-      case ">": return num > rhsNum;
-      case ">=": return num >= rhsNum;
-      case "<": return num < rhsNum;
-      case "<=": return num <= rhsNum;
-      default: return false;
+      case ">":
+        return num > rhsNum;
+      case ">=":
+        return num >= rhsNum;
+      case "<":
+        return num < rhsNum;
+      case "<=":
+        return num <= rhsNum;
+      default:
+        return false;
     }
   }
   // No operator → truthy check on the path.
   return isTruthy(readPath(signals, trimmed));
 }
 
-export function evaluatePredicate(expr: string, signals: Record<string, unknown>): boolean {
+export function evaluatePredicate(
+  expr: string,
+  signals: Record<string, unknown>,
+): boolean {
   if (!expr || !expr.trim()) return false;
-  const atoms = expr.split("&").map((s) => s.trim()).filter(Boolean);
+  const atoms = expr
+    .split("&")
+    .map((s) => s.trim())
+    .filter(Boolean);
   if (atoms.length === 0) return false;
   return atoms.every((atom) => evaluateAtomic(atom, signals));
 }
@@ -242,7 +268,9 @@ export function tierFor(score: number): Tier {
 }
 
 export async function loadAssessment(): Promise<Assessment> {
-  const rubric = (await readJson<{ dimensions: RubricDimension[] }>(RUBRIC_PATH)) || {
+  const rubric = (await readJson<{ dimensions: RubricDimension[] }>(
+    RUBRIC_PATH,
+  )) || {
     dimensions: [],
   };
   // Older assessment.json files may not have executionOverall or insights;
@@ -276,7 +304,9 @@ export async function loadAssessment(): Promise<Assessment> {
         rawTarget: d.target,
         tier: "not-touched",
         trend: "new",
-        evidence: ["No assessment.json yet — run /self-assessment or `node scripts/run-assessment.mjs`."],
+        evidence: [
+          "No assessment.json yet — run /self-assessment or `node scripts/run-assessment.mjs`.",
+        ],
         gaps: [],
         executionScore: null,
         executionRawScore: null,
@@ -358,6 +388,114 @@ export interface OverallStats {
   }>;
 }
 
+// Δ ≥ 15 between Setup and Execution = "tools installed, not firing" diagnostic.
+// Mirrors the EXECUTION_DELTA_HIGHLIGHT constant used by app/page.tsx.
+const HEADLINE_DELTA_THRESHOLD = 15;
+
+export interface HeadlineRead {
+  strengthLabel: string;
+  strengthDetails: string;
+  weaknessLabel: string;
+  weaknessDetails: string;
+  closer: string;
+}
+
+export function deriveHeadline(assessment: Assessment): HeadlineRead {
+  const ss = assessment.signalsSummary as {
+    plugins?: number;
+    personalAgents?: number;
+    personalCommands?: number;
+    personalSkills?: number;
+    hookTotalCount?: number;
+    effortLevel?: string;
+    autoCompactWindow?: number;
+    projectsWithMemory?: number;
+  };
+  const setup = assessment.overall;
+  const exec = assessment.executionOverall;
+  const delta = exec == null ? null : setup - exec;
+  const setupTier = tierFor(setup);
+  const execTier = exec == null ? null : tierFor(exec);
+
+  const strengthLabel =
+    setupTier === "advanced"
+      ? "advanced on platform setup"
+      : setupTier === "solid"
+        ? "solid on platform setup"
+        : `${setupTier} on platform setup`;
+
+  const strengthBits: string[] = [];
+  if (ss.plugins) strengthBits.push(`${ss.plugins} plugins`);
+  if ((ss.hookTotalCount ?? 0) > 0)
+    strengthBits.push(`${ss.hookTotalCount} configured hooks`);
+  if ((ss.personalSkills ?? 0) > 0)
+    strengthBits.push(`${ss.personalSkills} personal skills`);
+  if ((ss.projectsWithMemory ?? 0) > 0)
+    strengthBits.push(`memory across ${ss.projectsWithMemory} projects`);
+  const advancedDims = assessment.dimensions
+    .filter((d) => d.tier === "advanced")
+    .map((d) => d.title.split("—")[0].trim().toLowerCase());
+  if (advancedDims.length)
+    strengthBits.push(`advanced ${advancedDims.slice(0, 2).join(" + ")}`);
+  const strengthDetails = strengthBits.length
+    ? `(${strengthBits.join(", ")})`
+    : "";
+
+  // Weakness: the dominant signal is either the Setup-vs-Execution gap or the
+  // weakest setup dims. The gap wins when it's large — that's the diagnostic
+  // case the rubric is built to flag.
+  let weaknessLabel: string;
+  let weaknessDetails: string;
+  if (delta != null && delta >= HEADLINE_DELTA_THRESHOLD) {
+    weaknessLabel = `${execTier} on observed practice`;
+    const lowExecDims = assessment.dimensions
+      .filter((d) => d.executionScore != null && d.executionScore < 50)
+      .sort((a, b) => (a.executionScore ?? 0) - (b.executionScore ?? 0))
+      .slice(0, 2)
+      .map(
+        (d) =>
+          `${d.title.split("—")[0].trim().toLowerCase()} ${d.executionScore}/100`,
+      );
+    weaknessDetails = lowExecDims.length
+      ? `— tools installed but under-firing in sessions: ${lowExecDims.join(", ")}`
+      : `— tools installed but under-firing in sessions (Δ ${delta} between setup and execution)`;
+  } else {
+    const weakSetup = assessment.dimensions
+      .filter((d) => d.tier === "starter" || d.tier === "not-touched")
+      .sort((a, b) => b.weight * (100 - b.score) - a.weight * (100 - a.score))
+      .slice(0, 2);
+    if (weakSetup.length) {
+      weaknessLabel = `${weakSetup[0].tier} on codified workflow`;
+      const empties: string[] = [];
+      if ((ss.personalCommands ?? 0) === 0) empties.push("commands");
+      if ((ss.personalAgents ?? 0) === 0) empties.push("agents");
+      if ((ss.personalSkills ?? 0) === 0) empties.push("skills");
+      weaknessDetails = empties.length
+        ? `— zero personal ${empties.join(" or ")}`
+        : `— ${weakSetup.map((d) => d.title.split("—")[0].trim().toLowerCase()).join(" + ")} need attention`;
+    } else {
+      weaknessLabel = "developing on a few execution edges";
+      weaknessDetails = "— small gaps in habit, not in tooling";
+    }
+  }
+
+  // Closer: name the era-shift if effort/compact are still 4.6-era, otherwise
+  // point at the single highest-leverage action.
+  const era46 =
+    (ss.effortLevel && ss.effortLevel !== "xhigh") || !ss.autoCompactWindow;
+  const closer = era46
+    ? `Carrying 4.6-era model settings (effort: ${ss.effortLevel ?? "unset"}) into the 4.7 era. The biggest wins are a handful of small configuration edits.`
+    : "The biggest wins are habit shifts, not configuration — the platform is already where it needs to be.";
+
+  return {
+    strengthLabel,
+    strengthDetails,
+    weaknessLabel,
+    weaknessDetails,
+    closer,
+  };
+}
+
 export function computeStats(dims: Dimension[]): OverallStats {
   const byTier: Record<Tier, number> = {
     "not-touched": 0,
@@ -376,7 +514,7 @@ export function computeStats(dims: Dimension[]): OverallStats {
         action: a,
         weight: d.weight,
         deficit: d.target - d.score,
-      }))
+      })),
     )
     .filter((a) => a.deficit > 0)
     .filter((a) => !a.action.satisfied)
