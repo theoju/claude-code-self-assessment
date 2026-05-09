@@ -6,21 +6,26 @@ interface Props {
   progression: Progression;
 }
 
-// Keep in sync with DETECTORS in scripts/progression.mjs — every dimension
-// that can emit a milestone needs a glyph here, otherwise it falls back to •.
+// Keep in sync with DETECTORS in scripts/progression.mjs and
+// scripts/config-progression.mjs — every dimension that can emit a milestone
+// needs a glyph here, otherwise it falls back to •.
 const DIMENSION_GLYPH: Record<string, string> = {
   parallel: "‖",
   planning: "△",
   permissions: "◇",
   integrations: "◯",
   automation: "✦",
+  memory: "▣",
+  "model-effort": "◐",
+  learning: "★",
 };
 
 export default function ProgressionTimeline({ progression }: Props) {
   if (progression.milestones.length === 0) {
     return (
       <div className="bg-[color:var(--color-panel)] border border-[color:var(--color-line)] rounded-xl p-6 text-sm text-[color:var(--color-mute)]">
-        No behavioral milestones detected yet — keep using Claude and they&apos;ll appear here.
+        No behavioral milestones detected yet — keep using Claude and
+        they&apos;ll appear here.
       </div>
     );
   }
@@ -49,7 +54,9 @@ function Row({ milestone }: { milestone: Milestone }) {
         className="absolute -left-[6px] top-1 w-3 h-3 rounded-full bg-[color:var(--color-accent)] ring-4 ring-[color:var(--color-bg)]"
       />
       <div className="flex flex-wrap items-baseline gap-3 mb-1">
-        <span className="mono text-xs text-[color:var(--color-mute)]">{date}</span>
+        <span className="mono text-xs text-[color:var(--color-mute)]">
+          {date}
+        </span>
         <span className="text-xs uppercase tracking-wider text-[color:var(--color-mute)]">
           <span aria-hidden>{glyph}</span> {milestone.dimension}
         </span>

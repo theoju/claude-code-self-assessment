@@ -17,17 +17,20 @@
         {
           "id": "ship-command",
           "action": "Create ~/.claude/commands/ship.md that chains test → simplify → commit → PR — Boris tip 5",
-          "effort": "30min"
+          "effort": "30min",
+          "satisfiedWhen": "hasShipCommand"
         },
         {
           "id": "verify-agent",
           "action": "Build one personal ~/.claude/agents/verify-app.md tuned to how you verify features end-to-end — Boris tip 14/73",
-          "effort": "1hr"
+          "effort": "1hr",
+          "satisfiedWhen": "hasVerifyAgent"
         },
         {
           "id": "stop-hook",
           "action": "Wire a Stop hook that pokes Claude to re-verify before yielding on long-running tasks — Boris tip 13",
-          "effort": "15min"
+          "effort": "15min",
+          "satisfiedWhen": "hasStopHook"
         }
       ]
     },
@@ -48,12 +51,14 @@
         {
           "id": "fewer-permission-prompts",
           "action": "Run /fewer-permission-prompts once this week to tune a real allowlist — Boris tip 69",
-          "effort": "15min"
+          "effort": "15min",
+          "satisfiedWhen": "allowListCount>=10"
         },
         {
           "id": "wildcard-allowlist",
           "action": "Add wildcard allowlist entries (e.g. 'Bash(npm run *)', 'Bash(gh pr *)') to settings.json — Boris tip 20",
-          "effort": "15min"
+          "effort": "15min",
+          "satisfiedWhen": "hasWildcardAllow"
         }
       ]
     },
@@ -155,7 +160,8 @@
         {
           "id": "claude-md-corrections",
           "action": "Write a CLAUDE.md for claude-extensions the first time you hit a correction worth remembering — Boris tip 4",
-          "effort": "30min"
+          "effort": "30min",
+          "satisfiedWhen": "claudeMdExists"
         }
       ]
     },
@@ -195,7 +201,8 @@
         {
           "id": "slack-mcp",
           "action": "If your team uses Slack, add the Slack MCP — highest-value MCP per Boris — Boris tip 9",
-          "effort": "15min"
+          "effort": "15min",
+          "satisfiedWhen": "hasSlackPlugin"
         }
       ]
     },

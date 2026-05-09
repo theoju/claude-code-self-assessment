@@ -12,8 +12,18 @@ import { homedir } from "node:os";
 import { gatherSignals } from "./signals.mjs";
 import { scoreAll, computeTrends } from "./score.mjs";
 import { detectMilestones } from "./progression.mjs";
+import {
+  detectConfigMilestones,
+  loadConfigProgressionState,
+  saveConfigProgressionState,
+} from "./config-progression.mjs";
 import { buildSlackMessage, postToSlack } from "./slack.mjs";
-import { auditAll, summarize, CRITERIA, expandHome } from "./claude-md-audit.mjs";
+import {
+  auditAll,
+  summarize,
+  CRITERIA,
+  expandHome,
+} from "./claude-md-audit.mjs";
 
 const ROOT = dirname(dirname(fileURLToPath(import.meta.url)));
 const DATA_DIR = join(ROOT, "app", "data");
@@ -23,6 +33,7 @@ const HISTORY_PATH = join(DATA_DIR, "assessment-history.json");
 const ASSESSMENT_PATH = join(DATA_DIR, "assessment.json");
 const RUBRIC_PATH = join(DATA_DIR, "rubric.json");
 const PROGRESSION_PATH = join(DATA_DIR, "progression.json");
+const PROGRESSION_CONFIG_PATH = join(DATA_DIR, "progression-config.json");
 
 const argv = process.argv.slice(2);
 const flags = new Set(argv);
@@ -53,7 +64,9 @@ function parseLookbackOverride(raw) {
   if (raw === "none" || raw === "null" || raw === "full") return null;
   const n = parseInt(raw, 10);
   if (!Number.isFinite(n) || n <= 0) {
-    throw new Error(`expected a positive integer or 'none', got: ${JSON.stringify(raw)}`);
+    throw new Error(
+      `expected a positive integer or 'none', got: ${JSON.stringify(raw)}`,
+    );
   }
   return n;
 }
@@ -94,18 +107,18 @@ async function main() {
   const insightsLookbackDays =
     insightsLookbackRaw != null
       ? parseLookbackOverride(insightsLookbackRaw)
-      : scoringConfig.insightsLookbackDays ?? 30;
+      : (scoringConfig.insightsLookbackDays ?? 30);
   const progressionLookbackDays =
     progressionLookbackRaw != null
       ? parseLookbackOverride(progressionLookbackRaw)
-      : scoringConfig.progressionLookbackDays ?? null;
+      : (scoringConfig.progressionLookbackDays ?? null);
   // --no-transcripts > --include-transcripts > config. The explicit "off"
   // form lets users skip the expensive scan in one run without editing config.
   const includeTranscripts = flags.has("--no-transcripts")
     ? false
     : flags.has("--include-transcripts")
-    ? true
-    : !!scoringConfig.includeTranscripts;
+      ? true
+      : !!scoringConfig.includeTranscripts;
 
   const claudeHome = process.env.CLAUDE_HOME || join(homedir(), ".claude");
   const signals = await gatherSignals(ROOT, {
@@ -123,11 +136,14 @@ async function main() {
 
   const cliTargets = flagValues("--claude-md-target").map(parseTargetSpec);
   const cmConfig = config?.claudeMd || {};
-  const configTargets = cmConfig.enabled === false ? [] : cmConfig.targets || [];
-  const cmTargets = (cliTargets.length ? cliTargets : configTargets).map((t) => ({
-    name: t.name,
-    path: expandHome(t.path),
-  }));
+  const configTargets =
+    cmConfig.enabled === false ? [] : cmConfig.targets || [];
+  const cmTargets = (cliTargets.length ? cliTargets : configTargets).map(
+    (t) => ({
+      name: t.name,
+      path: expandHome(t.path),
+    }),
+  );
   const claudeMdRuns = cmTargets.length ? await auditAll(cmTargets) : [];
 
   const assessment = {
@@ -142,6 +158,24 @@ async function main() {
       effortLevel: signals.settings.effortLevel,
       skipDangerous: signals.settings.skipDangerousModePermissionPrompt,
       autoCompactWindow: signals.settings.autoCompactWindow,
+      allowListCount: signals.settings.allowList.length,
+      hasWildcardAllow: signals.settings.allowList.some((e) => e.includes("*")),
+      hookEvents: signals.settings.hookEvents,
+      hasStopHook: (signals.settings.hookEvents || []).includes("Stop"),
+      hasPostToolHook: (signals.settings.hookEvents || []).includes(
+        "PostToolUse",
+      ),
+      hasShipCommand:
+        signals.personalCommands.includes("ship.md") ||
+        signals.projectCommands.includes("ship.md"),
+      hasVerifyAgent:
+        signals.personalAgents.some((f) => /^verify/i.test(f)) ||
+        signals.projectAgents.some((f) => /^verify/i.test(f)),
+      claudeMdExists: signals.claudeMdExists,
+      statuslineConfigured: signals.statuslineConfigured,
+      keybindingsConfigured: signals.keybindingsConfigured,
+      hasSlackPlugin: signals.plugins.some((p) => /slack/i.test(p)),
+      hasVercelPlugin: signals.plugins.some((p) => /vercel/i.test(p)),
       projectsWithMemory: signals.memory.length,
       insightsAvailable: !!signals.insights,
       insightsSessionsAnalyzed: signals.insights?.sessionsAnalyzed ?? 0,
@@ -161,23 +195,52 @@ async function main() {
     user: config?.user?.displayName || null,
   };
 
+  // Configuration-side milestones run alongside behavioral ones. They share
+  // the same progression.json schema (timestamp / dimension / milestone /
+  // borisTip / evidence / sessionId) and are sorted into the timeline by
+  // first-seen date. The state file persists firstSeenAt so config milestones
+  // pin permanently — reverting settings later doesn't erase history.
+  const priorConfigState = await loadConfigProgressionState(
+    PROGRESSION_CONFIG_PATH,
+  );
+  const configResult = detectConfigMilestones({
+    signalsSummary: assessment.signalsSummary,
+    priorState: priorConfigState,
+    now: assessment.capturedAt || new Date().toISOString(),
+  });
+  if (progression) {
+    progression.milestones = [
+      ...progression.milestones,
+      ...configResult.milestones,
+    ].sort((a, b) => Date.parse(a.timestamp) - Date.parse(b.timestamp));
+  }
+
   if (!flags.has("--no-write")) {
     await mkdir(DATA_DIR, { recursive: true });
     await writeFile(ASSESSMENT_PATH, JSON.stringify(assessment, null, 2));
     const newHistory = [
       ...history,
-      { capturedAt: assessment.capturedAt, overall: assessment.overall, scores: scored.scores },
+      {
+        capturedAt: assessment.capturedAt,
+        overall: assessment.overall,
+        scores: scored.scores,
+      },
     ].slice(-90);
     await writeFile(HISTORY_PATH, JSON.stringify(newHistory, null, 2));
     if (progression) {
       await writeFile(PROGRESSION_PATH, JSON.stringify(progression, null, 2));
     }
+    await saveConfigProgressionState(
+      PROGRESSION_CONFIG_PATH,
+      configResult.state,
+    );
   }
 
   if (flags.has("--print") || !process.env.CI) {
-    const exHeader = scored.executionOverall == null
-      ? "Execution    n/a / 100 (run /insights to populate)"
-      : `Execution ${scored.executionOverall} / 100 (observed practice)`;
+    const exHeader =
+      scored.executionOverall == null
+        ? "Execution    n/a / 100 (run /insights to populate)"
+        : `Execution ${scored.executionOverall} / 100 (observed practice)`;
     const lines = [
       `Claude Code Self-Assessment — ${assessment.user || "you"}`,
       `Platform Setup  ${assessment.overall} / 100`,
@@ -185,35 +248,55 @@ async function main() {
       ``,
       ...scored.scores.map((s) => {
         const d = rubric.dimensions.find((x) => x.id === s.id);
-        const trend = { improving: "↗", slipping: "↘", flat: "→", new: "✦" }[trends[s.id]] || "?";
-        const ex = typeof s.executionScore === "number"
-          ? ` · ex ${s.executionScore.toString().padStart(3)}`
-          : "";
+        const trend =
+          { improving: "↗", slipping: "↘", flat: "→", new: "✦" }[
+            trends[s.id]
+          ] || "?";
+        const ex =
+          typeof s.executionScore === "number"
+            ? ` · ex ${s.executionScore.toString().padStart(3)}`
+            : "";
         // Show normalized score with raw value as a small hint so the formula
         // (raw / d.target × 100) is auditable from the CLI output.
         return `  ${s.score.toString().padStart(3)} / 100  ${trend}  ${d.title} (raw ${s.rawScore}/${d.target})${ex}`;
       }),
     ];
     if (progression && progression.milestones.length > 0) {
-      lines.push("", `Progression — ${progression.milestones.length} milestone(s):`);
+      lines.push(
+        "",
+        `Progression — ${progression.milestones.length} milestone(s):`,
+      );
       for (const m of progression.milestones) {
-        lines.push(`  ${m.timestamp.slice(0, 10)}  ${m.milestone}  (${m.dimension}, Boris tip ${m.borisTip})`);
+        lines.push(
+          `  ${m.timestamp.slice(0, 10)}  ${m.milestone}  (${m.dimension}, Boris tip ${m.borisTip})`,
+        );
       }
     }
     if (claudeMdRuns.length) {
       const sum = assessment.claudeMd.summary;
       lines.push("", "CLAUDE.md health (report-only):");
-      const avgPart = sum.avgScore == null ? "no scoreable files" : `Avg: ${sum.avgScore} (${sum.avgGrade})`;
-      lines.push(`  Targets: ${sum.targets} · Files: ${sum.files} · ${avgPart}`);
+      const avgPart =
+        sum.avgScore == null
+          ? "no scoreable files"
+          : `Avg: ${sum.avgScore} (${sum.avgGrade})`;
+      lines.push(
+        `  Targets: ${sum.targets} · Files: ${sum.files} · ${avgPart}`,
+      );
       if (sum.files > 0) {
         const dist = sum.distribution;
-        lines.push(`  Distribution: A:${dist.A} B:${dist.B} C:${dist.C} D:${dist.D} F:${dist.F}`);
+        lines.push(
+          `  Distribution: A:${dist.A} B:${dist.B} C:${dist.C} D:${dist.D} F:${dist.F}`,
+        );
       }
-      if (sum.targetsMissing) lines.push(`  Targets without CLAUDE.md: ${sum.targetsMissing}`);
-      if (sum.targetsError) lines.push(`  Targets with errors: ${sum.targetsError}`);
+      if (sum.targetsMissing)
+        lines.push(`  Targets without CLAUDE.md: ${sum.targetsMissing}`);
+      if (sum.targetsError)
+        lines.push(`  Targets with errors: ${sum.targetsError}`);
       if (sum.avgBreakdown) {
         const labelWidth = Math.max(...CRITERIA.map((c) => c.label.length));
-        lines.push(`  Breakdown (avg across ${sum.files} file${sum.files === 1 ? "" : "s"}):`);
+        lines.push(
+          `  Breakdown (avg across ${sum.files} file${sum.files === 1 ? "" : "s"}):`,
+        );
         for (const c of CRITERIA) {
           const v = sum.avgBreakdown[c.key];
           lines.push(`    ${c.label.padEnd(labelWidth)}  ${v}/${c.max}`);
@@ -226,7 +309,8 @@ async function main() {
   if (!flags.has("--no-slack") && config?.slack?.enabled) {
     const msg = buildSlackMessage(assessment, rubric, config);
     const result = await postToSlack(msg);
-    if (result.posted) console.log(`\nPosted to Slack ${config.slack.channel || ""}`.trim());
+    if (result.posted)
+      console.log(`\nPosted to Slack ${config.slack.channel || ""}`.trim());
     else console.log(`\nSlack post skipped: ${result.reason}`);
   }
 
