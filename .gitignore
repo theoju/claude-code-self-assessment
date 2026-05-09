@@ -11,6 +11,7 @@ assessment.config.json
 app/data/assessment.json
 app/data/assessment-history.json
 app/data/progression.json
+app/data/progression-config.json
 app/data/insights-narrative.md
 
 # Snapshot of the /boris skill — third-party content (Boris Cherny / Daniel An).
