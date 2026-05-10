@@ -206,6 +206,12 @@
           "action": "If your team uses Slack, add the Slack MCP — highest-value MCP per Boris — Boris tip 9",
           "effort": "15min",
           "satisfiedWhen": "hasSlackPlugin"
+        },
+        {
+          "id": "claude-in-chrome",
+          "action": "Wire up Claude in Chrome — enables browser-driving agents (mcp__claude-in-chrome__*) — Boris tip 32",
+          "effort": "10min",
+          "satisfiedWhen": "hasClaudeInChrome"
         }
       ]
     },

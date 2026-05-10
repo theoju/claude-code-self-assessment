@@ -204,6 +204,20 @@ describe("buildSignalsSummary", () => {
     expect(r.hasCustomSpinnerVerbs).toBe(true);
   });
 
+  it("forwards hasClaudeInChrome from settings.hasClaudeInChrome", () => {
+    expect(
+      buildSignalsSummary(
+        makeSignals({
+          settings: {
+            ...makeSignals().settings,
+            hasClaudeInChrome: true,
+          },
+        }),
+      ).hasClaudeInChrome,
+    ).toBe(true);
+    expect(buildSignalsSummary(makeSignals()).hasClaudeInChrome).toBe(false);
+  });
+
   it("hasCustomSpinnerVerbs is false when count is 0 or missing", () => {
     expect(
       buildSignalsSummary(
@@ -226,6 +240,7 @@ describe("buildSignalsSummary", () => {
         "autoCompactWindow",
         "claudeMdExists",
         "effortLevel",
+        "hasClaudeInChrome",
         "hasCustomSpinnerVerbs",
         "hasFormatterHook",
         "hasIsolatedAgent",

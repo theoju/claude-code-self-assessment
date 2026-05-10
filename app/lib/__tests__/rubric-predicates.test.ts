@@ -44,6 +44,7 @@ const ALL_SATISFIED_SIGNALS = {
   // integrations
   hasSlackPlugin: true,
   hasVercelPlugin: true,
+  hasClaudeInChrome: true,
   // counts
   plugins: 33,
   personalSkills: 2,

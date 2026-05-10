@@ -59,6 +59,7 @@ export function buildSignalsSummary(signals) {
     hasStopHookNotification: !!signals.settings.hasStopHookNotification,
     hasCustomSpinnerVerbs: (signals.settings.customSpinnerVerbCount || 0) > 0,
     hasIsolatedAgent: !!signals.settings.hasIsolatedAgent,
+    hasClaudeInChrome: !!signals.settings.hasClaudeInChrome,
     hasShipCommand:
       signals.personalCommands.includes("ship.md") ||
       signals.projectCommands.includes("ship.md"),

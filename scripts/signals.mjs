@@ -133,6 +133,15 @@ export function detectFormatterHook(hooks) {
   return false;
 }
 
+// True when the user has explicitly opted in to Claude in Chrome (a built-in
+// Claude Code feature, distinct from MCP plugins). Lives in `~/.claude.json`
+// — NOT `~/.claude/settings.json` — because it is CLI runtime state, not
+// user-editable config. Strict equality on `true`: bare presence of the
+// extension cache or onboarding flag does not imply the integration is on.
+export function detectClaudeInChrome(cliConfig) {
+  return cliConfig?.claudeInChromeDefaultEnabled === true;
+}
+
 // True if a Stop hook fires a system notification when Claude finishes —
 // Boris tip 75. Distinguishes "I get pinged for autonomous runs" from "I
 // have *some* Stop hook" (e.g. a stop-verify.sh check). Tokens cover macOS
@@ -179,6 +188,9 @@ export async function gatherSignals(projectRoot = process.cwd(), options = {}) {
   const { insightsLookbackDays = 30, includeTranscripts = false } = options;
   const settings =
     (await safeReadJson(join(claudeHome(), "settings.json"))) || {};
+  const cliConfig =
+    (await safeReadJson(join(claudeHome(), "..", ".claude.json"))) || {};
+  const hasClaudeInChrome = detectClaudeInChrome(cliConfig);
   const projectSettings =
     (await safeReadJson(join(projectRoot, ".claude", "settings.local.json"))) ||
     {};
@@ -290,6 +302,7 @@ export async function gatherSignals(projectRoot = process.cwd(), options = {}) {
       hasStopHookNotification,
       customSpinnerVerbCount,
       hasIsolatedAgent,
+      hasClaudeInChrome,
     },
     personalAgents,
     personalCommands,
