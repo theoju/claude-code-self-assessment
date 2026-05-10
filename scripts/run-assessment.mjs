@@ -59,15 +59,33 @@ export function buildSignalsSummary(signals) {
     hasFormatterHook: !!signals.settings.hasFormatterHook,
     hasStopHookNotification: !!signals.settings.hasStopHookNotification,
     hasCustomSpinnerVerbs: (signals.settings.customSpinnerVerbCount || 0) > 0,
-    hasIsolatedAgent: !!signals.settings.hasIsolatedAgent,
+    // Probe-Logic Challenger fix (V1.3): the static probe only catches
+    // agents that declare `isolation: worktree` in frontmatter. The rubric
+    // goal is "isolation patterns adopted" — so when execution telemetry
+    // shows the user actually USES worktrees, that's the same end-state
+    // and should satisfy the predicate. OR the static flag with the
+    // execution signal `insights.worktreeUsageSessionCount > 0`.
+    hasIsolatedAgent:
+      !!signals.settings.hasIsolatedAgent ||
+      (signals.insights?.worktreeUsageSessionCount ?? 0) > 0,
     hasClaudeInChrome: !!signals.settings.hasClaudeInChrome,
     hasRemoteControl: !!signals.settings.hasRemoteControl,
     hasShipCommand:
       signals.personalCommands.includes("ship.md") ||
       signals.projectCommands.includes("ship.md"),
+    // Broadened in V1.2 (probe-validation): the original probe matched only
+    // agent FILENAMES starting with "verify" and missed legitimate verify
+    // pipelines like the /ship skill body, the pr-review-toolkit plugin,
+    // and code-reviewer plugin agents. We now OR three signals together.
+    // Body matching is collapsed to a boolean by `gatherSignals` so this
+    // function stays a pure projection.
     hasVerifyAgent:
       signals.personalAgents.some((f) => /^verify/i.test(f)) ||
-      signals.projectAgents.some((f) => /^verify/i.test(f)),
+      signals.projectAgents.some((f) => /^verify/i.test(f)) ||
+      !!signals.verifySignalBodyMatch ||
+      (signals.plugins || []).some((p) =>
+        /(^|-)(pr-review|review-toolkit|reviewer)(-|$|@)/i.test(p),
+      ),
     claudeMdExists: signals.claudeMdExists,
     statuslineConfigured: signals.statuslineConfigured,
     keybindingsConfigured: signals.keybindingsConfigured,
@@ -81,12 +99,14 @@ export function buildSignalsSummary(signals) {
     shipVerifyStageRecent: signals.shipJournal?.stage2Count ?? 0,
     shipsRecent: signals.shipJournal?.totalRuns ?? 0,
     worktreeAliasCount: signals.shellAliases?.worktreeAliasCount ?? 0,
+    worktreeShortcutCount: signals.shellAliases?.worktreeShortcutCount ?? 0,
     goCommandUses: signals.transcriptInvocations?.goCommandUses ?? 0,
     batchCommandUses: signals.transcriptInvocations?.batchCommandUses ?? 0,
     focusCommandUses: signals.transcriptInvocations?.focusCommandUses ?? 0,
     scheduleCommandUses:
       signals.transcriptInvocations?.scheduleCommandUses ?? 0,
     babysitLoopUses: signals.transcriptInvocations?.babysitLoopUses ?? 0,
+    loopCommandUses: signals.transcriptInvocations?.loopCommandUses ?? 0,
     planThenLaunchSessions:
       signals.transcriptInvocations?.planThenLaunchSessions ?? 0,
     rewindCommandUses: signals.transcriptInvocations?.rewindCommandUses ?? 0,

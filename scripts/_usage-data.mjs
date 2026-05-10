@@ -202,6 +202,7 @@ export async function scanTranscriptInvocations(options = {}) {
     focusCommandUses: 0,
     scheduleCommandUses: 0,
     babysitLoopUses: 0,
+    loopCommandUses: 0,
     planThenLaunchSessions: 0,
     rewindCommandUses: 0,
   };
@@ -310,6 +311,14 @@ export async function scanTranscriptInvocations(options = {}) {
       window.shift();
     }
 
+    // loopCommandUses tracks /loop adoption broadly (any session). The
+    // strict babysitLoopUses (BOTH /loop AND /babysit) is preserved for
+    // score.mjs's +10 calibration but under-counts the dominant pattern:
+    // 30-day sampling showed 92% of /loop sessions never paired with
+    // /babysit. The rubric's babysit-loop next-action gates on the
+    // broader signal so we recommend the right next step for solo /loop
+    // users instead of leaving them stuck.
+    if (sessionHasLoop) counts.loopCommandUses++;
     if (sessionHasLoop && sessionHasBabysit) counts.babysitLoopUses++;
   }
   return counts;

@@ -8,6 +8,27 @@ import { claudeHome, safeReadJson, safeReaddir } from "./_fs-utils.mjs";
 import { gatherInsightsSignals } from "./insights-signals.mjs";
 import { scanTranscriptInvocations } from "./_usage-data.mjs";
 
+// Files we scan for worktree-style shortcuts. Keep this list deliberately
+// loose — users wire shell rc fragments many ways (zprofile for login
+// shells, zshenv for non-interactive, .aliases as a portable include,
+// .zshrc.d/* for sourced snippets). Per-file readability is best-effort:
+// missing files and unreadable ones are silently skipped.
+const SHELL_RC_FILENAMES = [
+  ".zshrc",
+  ".zprofile",
+  ".zshenv",
+  ".bashrc",
+  ".bash_profile",
+  ".aliases",
+  ".zsh_aliases",
+];
+const SHELL_RC_FRAGMENT_DIRS = [".zshrc.d", join(".config", "zsh")];
+
+// True if a string body references worktree navigation. Single source of
+// truth for the broad-count predicate so alias and function detection stay
+// in sync.
+const WORKTREE_BODY_RE = /(\bworktree\b|\.worktrees\/|git\s+worktree)/i;
+
 const execFileAsync = promisify(execFile);
 
 // Action verbs that indicate the file actually tells Claude what to DO.
@@ -181,9 +202,16 @@ export function detectStopHookNotification(hooks) {
 }
 
 // True if any agent frontmatter declares `isolation: worktree` — Boris tip
-// 28. Scans personal + project .md agent files. Frontmatter is a simple
-// YAML block at the top; we just grep for the literal key/value pair after
-// stripping CR. Cheap and avoids pulling a YAML parser.
+// 28. Scans personal + project .md agent files AND plugin agents under
+// `~/.claude/plugins/cache/<vendor>/<plugin>/<version>/agents/*.md`.
+// Frontmatter is a simple YAML block at the top; we just grep for the
+// literal key/value pair. Cheap and avoids pulling a YAML parser.
+//
+// Probe-Logic Challenger fix (V1.3): the original probe scanned only
+// personal/project agents. Plugins are the most likely place an
+// `isolation: worktree` declaration would appear, so we also walk the
+// plugins cache.
+const ISOLATION_FRONTMATTER_RE = /^isolation:\s*["']?worktree["']?\s*$/im;
 async function hasWorktreeIsolatedAgent(dirs) {
   for (const dir of dirs) {
     const entries = await safeReaddir(dir);
@@ -191,12 +219,87 @@ async function hasWorktreeIsolatedAgent(dirs) {
       if (!name.endsWith(".md")) continue;
       try {
         const content = await readFile(join(dir, name), "utf8");
-        if (/^isolation:\s*["']?worktree["']?\s*$/im.test(content)) return true;
+        if (ISOLATION_FRONTMATTER_RE.test(content)) return true;
       } catch {
         // unreadable — skip
       }
     }
   }
+  // Plugin agents: walk `<claudeHome>/plugins/cache/<vendor>/<plugin>/<version>/agents/`.
+  // Bound depth so we don't recurse into unrelated plugin assets (skills,
+  // commands, hooks, etc.) — only `agents/` flat .md files matter here.
+  const pluginsRoot = join(claudeHome(), "plugins", "cache");
+  const vendors = await safeReaddir(pluginsRoot);
+  for (const vendor of vendors) {
+    const vendorDir = join(pluginsRoot, vendor);
+    const pluginNames = await safeReaddir(vendorDir);
+    for (const plugin of pluginNames) {
+      const pluginDir = join(vendorDir, plugin);
+      const versions = await safeReaddir(pluginDir);
+      for (const version of versions) {
+        const agentsDir = join(pluginDir, version, "agents");
+        const agentFiles = await safeReaddir(agentsDir);
+        for (const name of agentFiles) {
+          if (!name.endsWith(".md")) continue;
+          try {
+            const content = await readFile(join(agentsDir, name), "utf8");
+            if (ISOLATION_FRONTMATTER_RE.test(content)) return true;
+          } catch {
+            // unreadable — skip
+          }
+        }
+      }
+    }
+  }
+  return false;
+}
+
+// True if any personal/project agent or personal-skill body contains a verify
+// or code-review token. Closes the gap surfaced by Probe-Logic Challenger:
+// the original `hasVerifyAgent` only matched agent FILENAMES starting with
+// "verify" and missed legitimate verify pipelines like the /ship SKILL.md
+// body. The token set is intentionally narrow — `verify`, `reviewer`, and
+// `code-review`/`code_review` — so casual prose like "verify the docs" in
+// an unrelated skill won't false-positive (it would have to match the *exact*
+// token, with word boundaries on `reviewer`/`code-review`). Reads up to 8KB
+// per file to bound the cost on large skill libraries.
+const VERIFY_BODY_RE = /(verify[- _]?agent|code[-_]?review|\breviewer\b)/i;
+const BODY_SCAN_CAP_BYTES = 8 * 1024;
+async function scanBodyForVerifyToken(filePath) {
+  try {
+    const content = await readFile(filePath, "utf8");
+    const head = content.slice(0, BODY_SCAN_CAP_BYTES);
+    return VERIFY_BODY_RE.test(head);
+  } catch {
+    return false;
+  }
+}
+async function hasVerifySignalInBodies({
+  agentDirs,
+  agentNames,
+  skillDirs,
+  skillNames,
+}) {
+  // Agents: flat .md files keyed by name list per dir.
+  for (const { dir, names } of agentDirs) {
+    for (const n of names) {
+      if (!n.endsWith(".md")) continue;
+      if (await scanBodyForVerifyToken(join(dir, n))) return true;
+    }
+  }
+  void agentNames; // (kept for future symmetry with skills shape)
+  // Skills: each entry is a directory with a SKILL.md (and possibly other
+  // .md spokes). Scan SKILL.md primarily.
+  for (const { dir, names } of skillDirs) {
+    for (const n of names) {
+      const skillRoot = join(dir, n);
+      const candidates = ["SKILL.md", "skill.md", `${n}.md`];
+      for (const c of candidates) {
+        if (await scanBodyForVerifyToken(join(skillRoot, c))) return true;
+      }
+    }
+  }
+  void skillNames;
   return false;
 }
 
@@ -213,19 +316,124 @@ const STATUS_TOKEN = {
   "! Needs authentication": "needs-auth",
 };
 
-// Counts distinct worktree-style aliases (za, zb, zc) across the user's
-// shell rc files. Distinct = same alias name in two files counts once.
-// Defaults to ~/.zshrc and ~/.bashrc; tests inject explicit paths.
+// Counts worktree shortcuts across the user's shell config files.
+//
+// Two signals:
+//   - worktreeAliasCount: strict Boris za/zb/zc-named aliases (legacy
+//     count, kept for backward compatibility with rubric predicates).
+//     Distinct alias names are deduped across files so the same alias
+//     defined twice doesn't double-count.
+//   - worktreeShortcutCount: broad count of any alias OR shell function
+//     whose body references `worktree`, `.worktrees/`, or `git worktree`.
+//     Catches non-Boris-named wrappers like `wt-a` or `claude-1` and the
+//     `wt() { cd ~/.worktrees/$1 && claude; }` function form.
+//
+// Inputs (all injectable for tests):
+//   - rcPaths: explicit list of files to scan. When set, fragment-dir
+//     globbing is skipped and `home` is ignored.
+//   - home: alternative home directory; expands to all SHELL_RC_FILENAMES
+//     plus a recursive walk of SHELL_RC_FRAGMENT_DIRS.
 const WORKTREE_ALIAS_RE = /^\s*alias\s+(za|zb|zc)=/;
+const ALIAS_LINE_RE = /^\s*alias\s+([A-Za-z_][\w-]*)=(.*)$/;
+// Function form: `name() { ...body... }`. Bash/zsh tolerate optional
+// whitespace around the parens and the brace-on-next-line. We only need to
+// catch the opening `name() {`; the body extends until the matching `}` or
+// 50 lines, whichever comes first.
+const FUNCTION_OPEN_RE = /^\s*([A-Za-z_][\w-]*)\s*\(\s*\)\s*\{?\s*$/;
+const FUNCTION_OPEN_INLINE_RE = /^\s*([A-Za-z_][\w-]*)\s*\(\s*\)\s*\{(.*)$/;
+const FUNCTION_LOOKAHEAD_LINES = 50;
+
+// Strip a trailing `# comment` from an alias RHS so the broad-body match
+// keys off the actual command, not the explanatory comment. Quote-aware:
+// only strips `#` that appears outside single/double quotes.
+function stripTrailingComment(rhs) {
+  let inSingle = false;
+  let inDouble = false;
+  for (let i = 0; i < rhs.length; i++) {
+    const c = rhs[i];
+    if (c === "'" && !inDouble) inSingle = !inSingle;
+    else if (c === '"' && !inSingle) inDouble = !inDouble;
+    else if (c === "#" && !inSingle && !inDouble) {
+      return rhs.slice(0, i);
+    }
+  }
+  return rhs;
+}
+
+// Strip surrounding single or double quotes from an alias RHS so the body
+// match operates on the actual command text.
+function unquote(rhs) {
+  const trimmed = rhs.trim();
+  if (
+    (trimmed.startsWith("'") && trimmed.endsWith("'")) ||
+    (trimmed.startsWith('"') && trimmed.endsWith('"'))
+  ) {
+    return trimmed.slice(1, -1);
+  }
+  return trimmed;
+}
+
+async function expandRcPaths(home) {
+  const out = [];
+  for (const name of SHELL_RC_FILENAMES) out.push(join(home, name));
+  for (const fragDir of SHELL_RC_FRAGMENT_DIRS) {
+    const abs = join(home, fragDir);
+    let entries = [];
+    try {
+      entries = await readdir(abs);
+    } catch {
+      continue;
+    }
+    for (const e of entries) out.push(join(abs, e));
+  }
+  return out;
+}
+
+// Walks file content and detects worktree-bodied shell functions. Returns
+// the count of unique function names whose body references worktree paths.
+function countWorktreeFunctions(content) {
+  const names = new Set();
+  const lines = content.split("\n");
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    let name = null;
+    let inlineBody = "";
+    const inline = line.match(FUNCTION_OPEN_INLINE_RE);
+    if (inline) {
+      name = inline[1];
+      inlineBody = inline[2];
+    } else {
+      const m = line.match(FUNCTION_OPEN_RE);
+      if (m) name = m[1];
+    }
+    if (!name) continue;
+    let body = inlineBody;
+    const end = Math.min(lines.length, i + 1 + FUNCTION_LOOKAHEAD_LINES);
+    for (let j = i + 1; j < end; j++) {
+      body += "\n" + lines[j];
+      if (lines[j].includes("}")) break;
+    }
+    if (WORKTREE_BODY_RE.test(body)) names.add(name);
+  }
+  return names.size;
+}
+
 export async function gatherShellAliases(options = {}) {
   // Vitest skip: when integration tests run gatherSignals without injecting
-  // rcPaths, don't read the developer's real ~/.zshrc.
-  if (process.env.VITEST && !options.rcPaths) {
-    return { worktreeAliasCount: 0 };
+  // rcPaths or home, don't read the developer's real shell rc files.
+  if (process.env.VITEST && !options.rcPaths && !options.home) {
+    return { worktreeAliasCount: 0, worktreeShortcutCount: 0 };
   }
-  const { rcPaths = [join(homedir(), ".zshrc"), join(homedir(), ".bashrc")] } =
-    options;
-  const found = new Set();
+  let rcPaths;
+  if (options.rcPaths) {
+    rcPaths = options.rcPaths;
+  } else {
+    const home = options.home || homedir();
+    rcPaths = await expandRcPaths(home);
+  }
+  const strictNames = new Set();
+  const broadAliasNames = new Set();
+  let broadFunctionCount = 0;
   for (const p of rcPaths) {
     let content;
     try {
@@ -234,11 +442,21 @@ export async function gatherShellAliases(options = {}) {
       continue;
     }
     for (const line of content.split("\n")) {
-      const m = line.match(WORKTREE_ALIAS_RE);
-      if (m) found.add(m[1]);
+      const strict = line.match(WORKTREE_ALIAS_RE);
+      if (strict) strictNames.add(strict[1]);
+      const aliasMatch = line.match(ALIAS_LINE_RE);
+      if (aliasMatch) {
+        const aliasName = aliasMatch[1];
+        const body = unquote(stripTrailingComment(aliasMatch[2]));
+        if (WORKTREE_BODY_RE.test(body)) broadAliasNames.add(aliasName);
+      }
     }
+    broadFunctionCount += countWorktreeFunctions(content);
   }
-  return { worktreeAliasCount: found.size };
+  return {
+    worktreeAliasCount: strictNames.size,
+    worktreeShortcutCount: broadAliasNames.size + broadFunctionCount,
+  };
 }
 
 // Reads ~/.claude/ship/journal.jsonl line by line. Counts stage:2 entries
@@ -440,6 +658,13 @@ export async function gatherSignals(projectRoot = process.cwd(), options = {}) {
     personalAgentsDir,
     projectAgentsDir,
   ]);
+  const verifySignalBodyMatch = await hasVerifySignalInBodies({
+    agentDirs: [
+      { dir: personalAgentsDir, names: personalAgentsRaw },
+      { dir: projectAgentsDir, names: projectAgentsRaw },
+    ],
+    skillDirs: [{ dir: personalSkillsDir, names: personalSkillsRaw }],
+  });
 
   const plansDir = join(claudeHome(), "plans");
   const plansCountRaw = await dirSize(plansDir);
@@ -509,6 +734,7 @@ export async function gatherSignals(projectRoot = process.cwd(), options = {}) {
       plansCount: plansCountRaw,
     },
     plugins,
+    verifySignalBodyMatch,
     mcpServers,
     shipJournal,
     shellAliases,

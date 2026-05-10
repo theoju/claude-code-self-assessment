@@ -37,13 +37,14 @@ function makeSignals(overrides = {}) {
       totalRuns: 5,
       lastRunAt: "2026-05-09T12:00:00Z",
     },
-    shellAliases: { worktreeAliasCount: 3 },
+    shellAliases: { worktreeAliasCount: 3, worktreeShortcutCount: 5 },
     transcriptInvocations: {
       goCommandUses: 4,
       batchCommandUses: 2,
       focusCommandUses: 1,
       scheduleCommandUses: 1,
       babysitLoopUses: 1,
+      loopCommandUses: 4,
       planThenLaunchSessions: 2,
       rewindCommandUses: 3,
     },
@@ -87,11 +88,13 @@ describe("buildSignalsSummary", () => {
       "shipVerifyStageRecent",
       "shipsRecent",
       "worktreeAliasCount",
+      "worktreeShortcutCount",
       "goCommandUses",
       "batchCommandUses",
       "focusCommandUses",
       "scheduleCommandUses",
       "babysitLoopUses",
+      "loopCommandUses",
       "planThenLaunchSessions",
       "rewindCommandUses",
     ];
@@ -169,20 +172,98 @@ describe("buildSignalsSummary", () => {
 
   it("hasVerifyAgent matches /^verify/i in either scope", () => {
     expect(
-      buildSignalsSummary(makeSignals({ personalAgents: ["verify-app.md"] }))
-        .hasVerifyAgent,
+      buildSignalsSummary(
+        makeSignals({
+          personalAgents: ["verify-app.md"],
+          plugins: [],
+          verifySignalBodyMatch: false,
+        }),
+      ).hasVerifyAgent,
     ).toBe(true);
     expect(
       buildSignalsSummary(
         makeSignals({
           personalAgents: [],
           projectAgents: ["VerifyAuth.md"],
+          plugins: [],
+          verifySignalBodyMatch: false,
         }),
       ).hasVerifyAgent,
     ).toBe(true);
     expect(
-      buildSignalsSummary(makeSignals({ personalAgents: ["other.md"] }))
-        .hasVerifyAgent,
+      buildSignalsSummary(
+        makeSignals({
+          personalAgents: ["other.md"],
+          plugins: [],
+          verifySignalBodyMatch: false,
+        }),
+      ).hasVerifyAgent,
+    ).toBe(false);
+  });
+
+  it("hasVerifyAgent fires when a personal skill/agent body contains 'verify'", () => {
+    expect(
+      buildSignalsSummary(
+        makeSignals({
+          personalAgents: ["other.md"],
+          projectAgents: [],
+          plugins: [],
+          verifySignalBodyMatch: true,
+        }),
+      ).hasVerifyAgent,
+    ).toBe(true);
+  });
+
+  it("hasVerifyAgent fires when an installed plugin matches pr-review-toolkit", () => {
+    expect(
+      buildSignalsSummary(
+        makeSignals({
+          personalAgents: ["other.md"],
+          projectAgents: [],
+          plugins: ["pr-review-toolkit@claude-plugins-official"],
+          verifySignalBodyMatch: false,
+        }),
+      ).hasVerifyAgent,
+    ).toBe(true);
+  });
+
+  it("hasVerifyAgent fires when a body token 'code-reviewer' is present", () => {
+    expect(
+      buildSignalsSummary(
+        makeSignals({
+          personalAgents: ["other.md"],
+          projectAgents: [],
+          plugins: [],
+          // Gather-time scanner already collapsed the body match into a flag.
+          verifySignalBodyMatch: true,
+        }),
+      ).hasVerifyAgent,
+    ).toBe(true);
+  });
+
+  it("hasVerifyAgent is false when filename, body, and plugin all miss", () => {
+    expect(
+      buildSignalsSummary(
+        makeSignals({
+          personalAgents: ["other.md", "build.md"],
+          projectAgents: ["check.md"],
+          plugins: ["slack@1", "vercel@1"],
+          verifySignalBodyMatch: false,
+        }),
+      ).hasVerifyAgent,
+    ).toBe(false);
+  });
+
+  it("hasVerifyAgent does not match plugins where 'reviewer' is a substring of an unrelated word", () => {
+    expect(
+      buildSignalsSummary(
+        makeSignals({
+          personalAgents: ["other.md"],
+          projectAgents: [],
+          plugins: ["previewer-plus@1", "interviewer-bot@2"],
+          verifySignalBodyMatch: false,
+        }),
+      ).hasVerifyAgent,
     ).toBe(false);
   });
 
@@ -237,6 +318,66 @@ describe("buildSignalsSummary", () => {
     expect(r.hasStopHookNotification).toBe(true);
     expect(r.hasIsolatedAgent).toBe(true);
     expect(r.hasCustomSpinnerVerbs).toBe(true);
+  });
+
+  // Probe-Logic Challenger fix: hasIsolatedAgent now ORs the static
+  // settings flag with execution telemetry — if the user actually USES
+  // worktrees (worktreeUsageSessionCount > 0), the rubric's "isolation
+  // patterns adopted" goal is satisfied even when no agent file declares
+  // `isolation: worktree` in frontmatter.
+  it("hasIsolatedAgent fires when settings flag is true (regression)", () => {
+    const r = buildSignalsSummary(
+      makeSignals({
+        settings: {
+          ...makeSignals().settings,
+          hasIsolatedAgent: true,
+        },
+      }),
+    );
+    expect(r.hasIsolatedAgent).toBe(true);
+  });
+
+  it("hasIsolatedAgent fires when worktreeUsageSessionCount > 0 (no static flag)", () => {
+    const r = buildSignalsSummary(
+      makeSignals({
+        settings: {
+          ...makeSignals().settings,
+          hasIsolatedAgent: false,
+        },
+        insights: {
+          worktreeUsageSessionCount: 3,
+        },
+      }),
+    );
+    expect(r.hasIsolatedAgent).toBe(true);
+  });
+
+  it("hasIsolatedAgent is false when no static flag AND worktreeUsageSessionCount === 0", () => {
+    const r = buildSignalsSummary(
+      makeSignals({
+        settings: {
+          ...makeSignals().settings,
+          hasIsolatedAgent: false,
+        },
+        insights: {
+          worktreeUsageSessionCount: 0,
+        },
+      }),
+    );
+    expect(r.hasIsolatedAgent).toBe(false);
+  });
+
+  it("hasIsolatedAgent is false when no static flag AND insights is null/missing", () => {
+    const r = buildSignalsSummary(
+      makeSignals({
+        settings: {
+          ...makeSignals().settings,
+          hasIsolatedAgent: false,
+        },
+        insights: null,
+      }),
+    );
+    expect(r.hasIsolatedAgent).toBe(false);
   });
 
   it("forwards hasClaudeInChrome from settings.hasClaudeInChrome", () => {
@@ -326,6 +467,10 @@ describe("buildSignalsSummary", () => {
     expect(buildSignalsSummary(makeSignals()).worktreeAliasCount).toBe(3);
   });
 
+  it("forwards shell-shortcut count (broad worktree wrapper detection)", () => {
+    expect(buildSignalsSummary(makeSignals()).worktreeShortcutCount).toBe(5);
+  });
+
   it("forwards transcript invocation counts", () => {
     const r = buildSignalsSummary(makeSignals());
     expect(r.goCommandUses).toBe(4);
@@ -333,6 +478,7 @@ describe("buildSignalsSummary", () => {
     expect(r.focusCommandUses).toBe(1);
     expect(r.scheduleCommandUses).toBe(1);
     expect(r.babysitLoopUses).toBe(1);
+    expect(r.loopCommandUses).toBe(4);
     expect(r.planThenLaunchSessions).toBe(2);
     expect(r.rewindCommandUses).toBe(3);
   });
@@ -348,6 +494,7 @@ describe("buildSignalsSummary", () => {
     expect(r.shipVerifyStageRecent).toBe(0);
     expect(r.shipsRecent).toBe(0);
     expect(r.worktreeAliasCount).toBe(0);
+    expect(r.worktreeShortcutCount).toBe(0);
     expect(r.goCommandUses).toBe(0);
     expect(r.planThenLaunchSessions).toBe(0);
   });
@@ -388,6 +535,7 @@ describe("buildSignalsSummary", () => {
         "insightsSessionsAnalyzed",
         "insightsTranscriptsScanned",
         "keybindingsConfigured",
+        "loopCommandUses",
         "mcpServersConnected",
         "personalAgents",
         "personalCommands",
@@ -403,6 +551,7 @@ describe("buildSignalsSummary", () => {
         "skipDangerous",
         "statuslineConfigured",
         "worktreeAliasCount",
+        "worktreeShortcutCount",
       ]
     `);
   });
