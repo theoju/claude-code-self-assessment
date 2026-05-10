@@ -7,6 +7,7 @@ import { promisify } from "node:util";
 import { claudeHome, safeReadJson, safeReaddir } from "./_fs-utils.mjs";
 import { gatherInsightsSignals } from "./insights-signals.mjs";
 import { scanTranscriptInvocations } from "./_usage-data.mjs";
+import { scanHistoryJsonl, HISTORY_COMMAND_LIST } from "./_history-data.mjs";
 
 // Files we scan for worktree-style shortcuts. Keep this list deliberately
 // loose — users wire shell rc fragments many ways (zprofile for login
@@ -687,6 +688,18 @@ export async function gatherSignals(projectRoot = process.cwd(), options = {}) {
     projectsRoot: join(claudeHome(), "projects"),
     lookbackDays: 30,
   });
+  // History scanner reads ~/.claude/history.jsonl directly — the durable
+  // record of typed user prompts. Side-channel commands like /btw never
+  // land in the session JSONL, so we read history.jsonl and merge via
+  // Math.max in buildSignalsSummary. Same 30-day lookback as the
+  // transcript scanner to keep the windows aligned.
+  const historyInvocations = process.env.VITEST
+    ? {}
+    : await scanHistoryJsonl({
+        historyPath: join(claudeHome(), "history.jsonl"),
+        lookbackMs: 30 * 24 * 60 * 60 * 1000,
+        commands: HISTORY_COMMAND_LIST,
+      });
 
   const insights = await gatherInsightsSignals({
     claudeHome: claudeHome(),
@@ -739,6 +752,7 @@ export async function gatherSignals(projectRoot = process.cwd(), options = {}) {
     shipJournal,
     shellAliases,
     transcriptInvocations,
+    historyInvocations,
     memory,
     claudeMdExists,
     plansCount,
