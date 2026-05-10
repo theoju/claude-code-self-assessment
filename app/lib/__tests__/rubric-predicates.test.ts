@@ -75,6 +75,10 @@ const ALL_SATISFIED_SIGNALS = {
   autoMemoryEnabled: true,
   parallelWorktreeAdoption: true,
   personalSkillNames: ["self-assessment", "spaced-repetition-skill", "ship"],
+  // P2.2 — outputStyle (Boris tip 34): predicate satisfies on Explanatory|Learning
+  outputStyle: "Explanatory",
+  // P6.1 — hasCodeReviewPlugin (Boris tip 44)
+  hasCodeReviewPlugin: true,
 };
 
 describe("rubric satisfiedWhen predicates", () => {

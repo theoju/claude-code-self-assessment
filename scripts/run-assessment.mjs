@@ -81,6 +81,9 @@ export function buildSignalsSummary(signals) {
       !!signals.settings.hasIsolatedAgent ||
       (signals.insights?.worktreeUsageSessionCount ?? 0) > 0,
     hasClaudeInChrome: !!signals.settings.hasClaudeInChrome,
+    // P6.1 (Boris tip 44): detected at gather-time by anchored regex on
+    // enabledPlugins keys; here we just project the boolean through.
+    hasCodeReviewPlugin: !!signals.hasCodeReviewPlugin,
     hasRemoteControl: !!signals.settings.hasRemoteControl,
     hasShipCommand:
       signals.personalCommands.includes("ship.md") ||
@@ -154,6 +157,10 @@ export function buildSignalsSummary(signals) {
     insightsLookbackDays: signals.insights?.lookbackDays ?? null,
     insightsTranscriptsScanned: signals.insights?.transcriptsScanned ?? false,
     insightsHookFireCount: signals.insights?.hookFireCount ?? 0,
+    // P2.2 (Boris tip 34): root-level `outputStyle` string from settings.json.
+    // Verbatim — predicates use the `=v|w` literal-match operator (e.g.
+    // `outputStyle=Explanatory|Learning`).
+    outputStyle: signals.settings.outputStyle ?? null,
   };
 }
 

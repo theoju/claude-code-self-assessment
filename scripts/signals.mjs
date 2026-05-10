@@ -643,6 +643,18 @@ export async function gatherSignals(projectRoot = process.cwd(), options = {}) {
     .filter(([, v]) => v === true)
     .map(([k]) => k);
 
+  // P6.1 (Boris tip 44): the code-review plugin auto-reviews PRs as they open.
+  // Anchored regex: name must START with `code-review` followed by either `@`
+  // (marketplace separator) or end-of-string. This intentionally rejects
+  // `pr-review-toolkit@*` (a different plugin, already detected via
+  // hasVerifyAgent), `code-review-helper@*` (unrelated), and
+  // `pre-code-review@*` (unrelated prefix). Only enabled plugins are
+  // considered because `plugins` was already filtered to v === true.
+  const CODE_REVIEW_PLUGIN_RE = /^code-review(@|$)/i;
+  const hasCodeReviewPlugin = plugins.some((p) =>
+    CODE_REVIEW_PLUGIN_RE.test(p),
+  );
+
   const memory = await listProjectMemoryFiles();
   const claudeMdExists =
     existsSync(join(projectRoot, "CLAUDE.md")) ||
@@ -738,6 +750,10 @@ export async function gatherSignals(projectRoot = process.cwd(), options = {}) {
       hasClaudeInChrome,
       hasRemoteControl,
       hasVercelCli,
+      // P2.2 (Boris tip 34): Default | Explanatory | Learning | Concise | custom.
+      // Verbatim string; null when settings.outputStyle is absent.
+      outputStyle:
+        typeof settings.outputStyle === "string" ? settings.outputStyle : null,
     },
     personalAgents,
     personalCommands,
@@ -753,6 +769,7 @@ export async function gatherSignals(projectRoot = process.cwd(), options = {}) {
       plansCount: plansCountRaw,
     },
     plugins,
+    hasCodeReviewPlugin,
     verifySignalBodyMatch,
     mcpServers,
     shipJournal,

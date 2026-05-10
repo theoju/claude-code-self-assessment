@@ -79,6 +79,8 @@ describe("buildSignalsSummary", () => {
       "hasPostToolHook",
       "hasShipCommand",
       "hasVerifyAgent",
+      "hasCodeReviewPlugin",
+      "outputStyle",
       "claudeMdExists",
       "statuslineConfigured",
       "keybindingsConfigured",
@@ -678,6 +680,39 @@ describe("buildSignalsSummary", () => {
     expect(r.planThenLaunchSessions).toBe(0);
   });
 
+  // P2.2 — outputStyle (Boris tip 34)
+  it("buildSignalsSummary forwards outputStyle from settings", () => {
+    const r = buildSignalsSummary(
+      makeSignals({
+        settings: {
+          ...makeSignals().settings,
+          outputStyle: "Explanatory",
+        },
+      }),
+    );
+    expect(r.outputStyle).toBe("Explanatory");
+  });
+
+  it("outputStyle defaults to null when settings absent", () => {
+    // makeSignals() base settings has no outputStyle field.
+    const r = buildSignalsSummary(makeSignals());
+    expect(r.outputStyle).toBeNull();
+  });
+
+  // P6.1 — hasCodeReviewPlugin (Boris tip 44)
+  it("hasCodeReviewPlugin is true when settings.hasCodeReviewPlugin is set", () => {
+    const r = buildSignalsSummary(
+      makeSignals({
+        hasCodeReviewPlugin: true,
+      }),
+    );
+    expect(r.hasCodeReviewPlugin).toBe(true);
+  });
+
+  it("hasCodeReviewPlugin defaults to false when absent", () => {
+    expect(buildSignalsSummary(makeSignals()).hasCodeReviewPlugin).toBe(false);
+  });
+
   it("output keys form a stable contract — locked-in by snapshot", () => {
     const r = buildSignalsSummary(makeSignals());
     const sortedKeys = Object.keys(r).sort();
@@ -697,6 +732,7 @@ describe("buildSignalsSummary", () => {
         "focusCommandUses",
         "goCommandUses",
         "hasClaudeInChrome",
+        "hasCodeReviewPlugin",
         "hasCustomSpinnerVerbs",
         "hasFormatterHook",
         "hasIsolatedAgent",
@@ -721,6 +757,7 @@ describe("buildSignalsSummary", () => {
         "keybindingsConfigured",
         "loopCommandUses",
         "mcpServersConnected",
+        "outputStyle",
         "parallelWorktreeAdoption",
         "personalAgents",
         "personalCommands",
