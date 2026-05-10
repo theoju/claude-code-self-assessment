@@ -1,10 +1,12 @@
 import { existsSync } from "node:fs";
 import { readFile, stat, readdir } from "node:fs/promises";
+import { homedir } from "node:os";
 import { join } from "node:path";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import { claudeHome, safeReadJson, safeReaddir } from "./_fs-utils.mjs";
 import { gatherInsightsSignals } from "./insights-signals.mjs";
+import { scanTranscriptInvocations } from "./_usage-data.mjs";
 
 const execFileAsync = promisify(execFile);
 
@@ -211,6 +213,93 @@ const STATUS_TOKEN = {
   "! Needs authentication": "needs-auth",
 };
 
+// Counts distinct worktree-style aliases (za, zb, zc) across the user's
+// shell rc files. Distinct = same alias name in two files counts once.
+// Defaults to ~/.zshrc and ~/.bashrc; tests inject explicit paths.
+const WORKTREE_ALIAS_RE = /^\s*alias\s+(za|zb|zc)=/;
+export async function gatherShellAliases({
+  rcPaths = [join(homedir(), ".zshrc"), join(homedir(), ".bashrc")],
+} = {}) {
+  // Vitest skip: when integration tests run gatherSignals without injecting
+  // rcPaths, don't read the developer's real ~/.zshrc.
+  if (process.env.VITEST && !arguments[0]?.rcPaths) {
+    return { worktreeAliasCount: 0 };
+  }
+  const found = new Set();
+  for (const p of rcPaths) {
+    let content;
+    try {
+      content = await readFile(p, "utf8");
+    } catch {
+      continue;
+    }
+    for (const line of content.split("\n")) {
+      const m = line.match(WORKTREE_ALIAS_RE);
+      if (m) found.add(m[1]);
+    }
+  }
+  return { worktreeAliasCount: found.size };
+}
+
+// Reads ~/.claude/ship/journal.jsonl line by line. Counts stage:2 entries
+// (verify-agent dispatches) and outcome:"shipped" entries within the
+// lookback window. Empty/missing file returns all zeros. Malformed lines
+// are skipped silently — same fault tolerance as parseJournalLine.
+//
+// Inputs are injected (journalPath, now) so tests can drive temp files
+// without monkey-patching globals.
+export async function gatherShipJournal({
+  journalPath = join(claudeHome(), "ship", "journal.jsonl"),
+  now = new Date(),
+  lookbackDays = 14,
+} = {}) {
+  // Vitest skip: when integration tests run gatherSignals without injecting
+  // journalPath, don't read the developer's real ~/.claude/ship/journal.jsonl.
+  if (process.env.VITEST && !arguments[0]?.journalPath) {
+    return { stage2Count: 0, totalRuns: 0, lastRunAt: null };
+  }
+  let raw;
+  try {
+    raw = await readFile(journalPath, "utf8");
+  } catch {
+    return { stage2Count: 0, totalRuns: 0, lastRunAt: null };
+  }
+  const cutoff = now.getTime() - lookbackDays * 24 * 60 * 60 * 1000;
+  let stage2Count = 0;
+  let totalRuns = 0;
+  let lastRunAt = null;
+  for (const line of raw.split("\n")) {
+    const entry = parseJournalLine(line);
+    if (!entry || typeof entry.ts !== "string") continue;
+    const t = Date.parse(entry.ts);
+    if (Number.isNaN(t) || t < cutoff) continue;
+    if (entry.stage === 2) stage2Count++;
+    if (entry.outcome === "shipped") {
+      totalRuns++;
+      if (!lastRunAt || entry.ts > lastRunAt) lastRunAt = entry.ts;
+    }
+  }
+  return { stage2Count, totalRuns, lastRunAt };
+}
+
+// Parse a single JSONL line from ~/.claude/ship/journal.jsonl. Returns the
+// parsed object on valid JSON object input, null on anything else (empty,
+// malformed, non-object). Mirrors parseMcpListOutput's "skip silently"
+// fault tolerance — the journal is append-only across all sessions and
+// schema may evolve, so the reader stays tolerant.
+export function parseJournalLine(line) {
+  if (!line || !line.trim()) return null;
+  try {
+    const parsed = JSON.parse(line);
+    if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+      return parsed;
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
 export function parseMcpListOutput(stdout) {
   if (!stdout || typeof stdout !== "string") return [];
   const out = [];
@@ -352,6 +441,12 @@ export async function gatherSignals(projectRoot = process.cwd(), options = {}) {
   const hasPlugin = (prefix) => plugins.some((p) => p.startsWith(prefix));
 
   const mcpServers = await gatherMcpServers();
+  const shipJournal = await gatherShipJournal({ lookbackDays: 14 });
+  const shellAliases = await gatherShellAliases();
+  const transcriptInvocations = await scanTranscriptInvocations({
+    projectsRoot: join(claudeHome(), "projects"),
+    lookbackDays: 30,
+  });
 
   const insights = await gatherInsightsSignals({
     claudeHome: claudeHome(),
@@ -399,6 +494,9 @@ export async function gatherSignals(projectRoot = process.cwd(), options = {}) {
     },
     plugins,
     mcpServers,
+    shipJournal,
+    shellAliases,
+    transcriptInvocations,
     memory,
     claudeMdExists,
     plansCount,

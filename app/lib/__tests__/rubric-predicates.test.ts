@@ -52,6 +52,16 @@ const ALL_SATISFIED_SIGNALS = {
   plugins: 33,
   personalSkills: 2,
   hookTotalCount: 4,
+  // bucket b
+  shipVerifyStageRecent: 5,
+  shipsRecent: 8,
+  worktreeAliasCount: 3,
+  goCommandUses: 4,
+  batchCommandUses: 2,
+  focusCommandUses: 1,
+  scheduleCommandUses: 1,
+  babysitLoopUses: 1,
+  planThenLaunchSessions: 2,
 };
 
 describe("rubric satisfiedWhen predicates", () => {
