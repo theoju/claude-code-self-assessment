@@ -74,6 +74,7 @@ describe("buildSignalsSummary", () => {
       "statuslineConfigured",
       "keybindingsConfigured",
       "hasSlackPlugin",
+      "hasVercelCli",
       "hasVercelPlugin",
       "projectsWithMemory",
       "insightsAvailable",
@@ -263,6 +264,17 @@ describe("buildSignalsSummary", () => {
     expect(buildSignalsSummary(makeSignals()).hasRemoteControl).toBe(false);
   });
 
+  it("forwards hasVercelCli from settings.hasVercelCli", () => {
+    expect(
+      buildSignalsSummary(
+        makeSignals({
+          settings: { ...makeSignals().settings, hasVercelCli: true },
+        }),
+      ).hasVercelCli,
+    ).toBe(true);
+    expect(buildSignalsSummary(makeSignals()).hasVercelCli).toBe(false);
+  });
+
   it("computes mcpServersConnected as count of connected entries", () => {
     expect(buildSignalsSummary(makeSignals()).mcpServersConnected).toBe(1);
     expect(
@@ -360,6 +372,7 @@ describe("buildSignalsSummary", () => {
         "hasSlackPlugin",
         "hasStopHook",
         "hasStopHookNotification",
+        "hasVercelCli",
         "hasVercelPlugin",
         "hasVerifyAgent",
         "hasWildcardAllow",

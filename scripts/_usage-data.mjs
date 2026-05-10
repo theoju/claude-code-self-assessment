@@ -193,11 +193,7 @@ function assistantToolUseName(line) {
   return null;
 }
 
-export async function scanTranscriptInvocations({
-  projectsRoot,
-  now = new Date(),
-  lookbackDays = 30,
-} = {}) {
+export async function scanTranscriptInvocations(options = {}) {
   const counts = {
     goCommandUses: 0,
     batchCommandUses: 0,
@@ -208,9 +204,10 @@ export async function scanTranscriptInvocations({
   };
   // Vitest skip: when integration tests run gatherSignals without injecting
   // projectsRoot, don't walk the developer's real ~/.claude/projects/.
-  if (process.env.VITEST && !arguments[0]?.projectsRoot) {
+  if (process.env.VITEST && !options.projectsRoot) {
     return counts;
   }
+  const { projectsRoot, now = new Date(), lookbackDays = 30 } = options;
   if (!projectsRoot) return counts;
   let sessionFiles;
   try {
@@ -231,32 +228,24 @@ export async function scanTranscriptInvocations({
   }
   const cutoff = now.getTime() - lookbackDays * 24 * 60 * 60 * 1000;
 
-  for (const path of sessionFiles) {
-    let raw;
-    try {
-      const { readFile } = await import("node:fs/promises");
-      raw = await readFile(path, "utf8");
-    } catch {
-      continue;
-    }
-    const lines = raw
-      .split("\n")
-      .map((l) => {
-        try {
-          return JSON.parse(l);
-        } catch {
-          return null;
-        }
-      })
-      .filter(Boolean);
+  // Plan-then-launch detection needs a 12-row lookahead from any
+  // ExitPlanMode tool_use, so we maintain a rolling window of the
+  // current line + the next 12 parsed lines. Per-line work happens
+  // against the head of the window once the lookahead is full;
+  // remaining entries drain at end-of-stream.
+  const SCAN_BOUND = 12;
+  const WINDOW_SIZE = SCAN_BOUND + 1;
 
+  for (const path of sessionFiles) {
     let sessionHasLoop = false;
     let sessionHasBabysit = false;
+    const window = [];
 
-    for (let i = 0; i < lines.length; i++) {
-      const line = lines[i];
+    const processCurrent = () => {
+      const line = window[0];
+      if (!line) return;
       const ts = Date.parse(line.timestamp || "");
-      if (!Number.isNaN(ts) && ts < cutoff) continue;
+      if (!Number.isNaN(ts) && ts < cutoff) return;
 
       const uText = userMessageText(line);
       if (uText) {
@@ -273,16 +262,11 @@ export async function scanTranscriptInvocations({
       if (toolName === "ExitPlanMode") {
         // Walk forward past non-semantic rows (attachment/last-prompt/etc.)
         // until the next assistant turn. If that turn has any tool_use
-        // other than ExitPlanMode, the session counts. Bound the walk at
-        // 12 rows so a transcript with no following assistant turn (e.g.
-        // session ended at the plan) doesn't scan the rest of the file.
-        const SCAN_BOUND = 12;
-        for (
-          let j = i + 1;
-          j < Math.min(i + 1 + SCAN_BOUND, lines.length);
-          j++
-        ) {
-          const next = lines[j];
+        // other than ExitPlanMode, the session counts. Bounded by the
+        // 12-entry lookahead so a transcript with no following assistant
+        // turn (e.g. session ended at the plan) doesn't scan further.
+        for (let j = 1; j < window.length; j++) {
+          const next = window[j];
           if (next.type !== "assistant") continue;
           const nextTool = assistantToolUseName(next);
           if (nextTool && nextTool !== "ExitPlanMode") {
@@ -291,6 +275,35 @@ export async function scanTranscriptInvocations({
           break;
         }
       }
+    };
+
+    let rl;
+    try {
+      const stream = createReadStream(path, { encoding: "utf8" });
+      rl = createInterface({ input: stream, crlfDelay: Infinity });
+      for await (const rawLine of rl) {
+        let parsed;
+        try {
+          parsed = JSON.parse(rawLine);
+        } catch {
+          continue;
+        }
+        if (!parsed || typeof parsed !== "object") continue;
+        window.push(parsed);
+        if (window.length > WINDOW_SIZE) {
+          processCurrent();
+          window.shift();
+        }
+      }
+    } catch {
+      if (rl) rl.close();
+      continue;
+    }
+    // Drain the remaining lookahead window — these never reached the
+    // "full window" branch because the file ended.
+    while (window.length > 0) {
+      processCurrent();
+      window.shift();
     }
 
     if (sessionHasLoop && sessionHasBabysit) counts.babysitLoopUses++;

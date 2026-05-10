@@ -73,7 +73,7 @@
       "nextActions": [
         {
           "id": "effort-xhigh",
-          "action": "Change effortLevel to 'xhigh' in settings.json — Boris tip 67, 72",
+          "action": "Set effortLevel to 'xhigh' or 'max' once in ~/.claude/settings.json — Boris tip 67, 72",
           "effort": "5min",
           "satisfiedWhen": "effortLevel=xhigh|max"
         },
@@ -205,7 +205,8 @@
         {
           "id": "vercel-cli",
           "action": "npm i -g vercel to unlock env/deploy/logs agentic flows",
-          "effort": "5min"
+          "effort": "5min",
+          "satisfiedWhen": "hasVercelCli"
         },
         {
           "id": "slack-mcp",
