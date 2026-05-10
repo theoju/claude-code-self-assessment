@@ -32,6 +32,12 @@
           "action": "Wire a Stop hook that pokes Claude to re-verify before yielding on long-running tasks — Boris tip 13",
           "effort": "15min",
           "satisfiedWhen": "hasStopHook"
+        },
+        {
+          "id": "simplify-skill",
+          "action": "Run /simplify on a recent PR — Boris tip 29",
+          "effort": "5min",
+          "satisfiedWhen": "simplifyCommandUses>=1"
         }
       ]
     },
@@ -60,6 +66,12 @@
           "action": "Add wildcard allowlist entries (e.g. 'Bash(npm run *)', 'Bash(gh pr *)') to settings.json — Boris tip 20",
           "effort": "15min",
           "satisfiedWhen": "hasWildcardAllow"
+        },
+        {
+          "id": "fewer-perms-skill",
+          "action": "Run /fewer-permission-prompts to extend your allowlist — Boris tip 69",
+          "effort": "5min",
+          "satisfiedWhen": "fewerPermsCommandUses>=1"
         }
       ]
     },
@@ -171,6 +183,24 @@
           "action": "Write a CLAUDE.md for claude-extensions the first time you hit a correction worth remembering — Boris tip 4",
           "effort": "30min",
           "satisfiedWhen": "claudeMdExists"
+        },
+        {
+          "id": "btw-side-channel",
+          "action": "Use /btw for side questions while Claude works — Boris tip 33+54",
+          "effort": "5min",
+          "satisfiedWhen": "btwCommandUses>=1"
+        },
+        {
+          "id": "compact-clear-balance-compact",
+          "action": "Use /compact when continuing related work — keeps the relevant trail, drops the noise — Boris tip 63",
+          "effort": "5min",
+          "satisfiedWhen": "compactCommandUses>=1"
+        },
+        {
+          "id": "compact-clear-balance-clear",
+          "action": "Use /clear when starting a fresh task — fastest reset for unrelated work — Boris tip 63",
+          "effort": "5min",
+          "satisfiedWhen": "clearCommandUses>=1"
         }
       ]
     },
@@ -253,6 +283,12 @@
           "action": "Customize a handful of spinner verbs — Boris tip 25",
           "effort": "5min",
           "satisfiedWhen": "hasCustomSpinnerVerbs"
+        },
+        {
+          "id": "voice-input",
+          "action": "Try /voice — speak prompts at 3x typing speed — Boris tip 60",
+          "effort": "5min",
+          "satisfiedWhen": "voiceCommandUses>=1"
         }
       ]
     },

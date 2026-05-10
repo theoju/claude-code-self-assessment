@@ -47,6 +47,12 @@ function makeSignals(overrides = {}) {
       loopCommandUses: 4,
       planThenLaunchSessions: 2,
       rewindCommandUses: 3,
+      simplifyCommandUses: 1,
+      btwCommandUses: 2,
+      voiceCommandUses: 1,
+      clearCommandUses: 3,
+      compactCommandUses: 2,
+      fewerPermsCommandUses: 1,
     },
     insights: null,
     ...overrides,
@@ -97,6 +103,12 @@ describe("buildSignalsSummary", () => {
       "loopCommandUses",
       "planThenLaunchSessions",
       "rewindCommandUses",
+      "simplifyCommandUses",
+      "btwCommandUses",
+      "voiceCommandUses",
+      "clearCommandUses",
+      "compactCommandUses",
+      "fewerPermsCommandUses",
     ];
     for (const k of expectedKeys) expect(r).toHaveProperty(k);
   });
@@ -483,6 +495,28 @@ describe("buildSignalsSummary", () => {
     expect(r.rewindCommandUses).toBe(3);
   });
 
+  it("buildSignalsSummary forwards new P1 slash-command counters from transcriptInvocations", () => {
+    const r = buildSignalsSummary(makeSignals());
+    expect(r.simplifyCommandUses).toBe(1);
+    expect(r.btwCommandUses).toBe(2);
+    expect(r.voiceCommandUses).toBe(1);
+    expect(r.clearCommandUses).toBe(3);
+    expect(r.compactCommandUses).toBe(2);
+    expect(r.fewerPermsCommandUses).toBe(1);
+  });
+
+  it("defaults missing P1 slash-command counters to 0", () => {
+    const r = buildSignalsSummary(
+      makeSignals({ transcriptInvocations: undefined }),
+    );
+    expect(r.simplifyCommandUses).toBe(0);
+    expect(r.btwCommandUses).toBe(0);
+    expect(r.voiceCommandUses).toBe(0);
+    expect(r.clearCommandUses).toBe(0);
+    expect(r.compactCommandUses).toBe(0);
+    expect(r.fewerPermsCommandUses).toBe(0);
+  });
+
   it("defaults missing gatherer outputs to 0", () => {
     const r = buildSignalsSummary(
       makeSignals({
@@ -508,8 +542,12 @@ describe("buildSignalsSummary", () => {
         "autoCompactWindow",
         "babysitLoopUses",
         "batchCommandUses",
+        "btwCommandUses",
         "claudeMdExists",
+        "clearCommandUses",
+        "compactCommandUses",
         "effortLevel",
+        "fewerPermsCommandUses",
         "focusCommandUses",
         "goCommandUses",
         "hasClaudeInChrome",
@@ -548,8 +586,10 @@ describe("buildSignalsSummary", () => {
         "scheduleCommandUses",
         "shipVerifyStageRecent",
         "shipsRecent",
+        "simplifyCommandUses",
         "skipDangerous",
         "statuslineConfigured",
+        "voiceCommandUses",
         "worktreeAliasCount",
         "worktreeShortcutCount",
       ]

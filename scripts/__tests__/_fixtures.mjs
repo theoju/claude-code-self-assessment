@@ -39,6 +39,12 @@ export function makeSignals(overrides = {}) {
     loopCommandUses: 0,
     planThenLaunchSessions: 0,
     rewindCommandUses: 0,
+    simplifyCommandUses: 0,
+    btwCommandUses: 0,
+    voiceCommandUses: 0,
+    clearCommandUses: 0,
+    compactCommandUses: 0,
+    fewerPermsCommandUses: 0,
     worktreeAliasCount: 0,
     worktreeShortcutCount: 0,
     has: {

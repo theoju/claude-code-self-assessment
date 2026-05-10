@@ -110,6 +110,14 @@ export function buildSignalsSummary(signals) {
     planThenLaunchSessions:
       signals.transcriptInvocations?.planThenLaunchSessions ?? 0,
     rewindCommandUses: signals.transcriptInvocations?.rewindCommandUses ?? 0,
+    simplifyCommandUses:
+      signals.transcriptInvocations?.simplifyCommandUses ?? 0,
+    btwCommandUses: signals.transcriptInvocations?.btwCommandUses ?? 0,
+    voiceCommandUses: signals.transcriptInvocations?.voiceCommandUses ?? 0,
+    clearCommandUses: signals.transcriptInvocations?.clearCommandUses ?? 0,
+    compactCommandUses: signals.transcriptInvocations?.compactCommandUses ?? 0,
+    fewerPermsCommandUses:
+      signals.transcriptInvocations?.fewerPermsCommandUses ?? 0,
     projectsWithMemory: signals.memory.length,
     insightsAvailable: !!signals.insights,
     insightsSessionsAnalyzed: signals.insights?.sessionsAnalyzed ?? 0,
