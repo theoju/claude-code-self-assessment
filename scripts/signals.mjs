@@ -350,6 +350,19 @@ async function gatherMcpServers() {
   }
 }
 
+// True if the `vercel` CLI is on PATH. Boris tip 18 (Vercel CLI unlocks
+// env/deploy/logs agentic flows). Uses `which` so we get a path on
+// success, ENOENT on failure. The injectable execFile parameter exists
+// purely for tests — production callers always use the default.
+export async function detectVercelCli({ execFile = execFileAsync } = {}) {
+  try {
+    const { stdout } = await execFile("which", ["vercel"], { timeout: 2000 });
+    return typeof stdout === "string" && stdout.trim().length > 0;
+  } catch {
+    return false;
+  }
+}
+
 export async function gatherSignals(projectRoot = process.cwd(), options = {}) {
   const { insightsLookbackDays = 30, includeTranscripts = false } = options;
   const settings =
@@ -442,6 +455,7 @@ export async function gatherSignals(projectRoot = process.cwd(), options = {}) {
   const hasPlugin = (prefix) => plugins.some((p) => p.startsWith(prefix));
 
   const mcpServers = await gatherMcpServers();
+  const hasVercelCli = process.env.VITEST ? false : await detectVercelCli();
   const shipJournal = await gatherShipJournal({ lookbackDays: 14 });
   const shellAliases = await gatherShellAliases();
   const transcriptInvocations = await scanTranscriptInvocations({
@@ -479,6 +493,7 @@ export async function gatherSignals(projectRoot = process.cwd(), options = {}) {
       hasIsolatedAgent,
       hasClaudeInChrome,
       hasRemoteControl,
+      hasVercelCli,
     },
     personalAgents,
     personalCommands,

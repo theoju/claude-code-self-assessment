@@ -205,7 +205,8 @@
         {
           "id": "vercel-cli",
           "action": "npm i -g vercel to unlock env/deploy/logs agentic flows",
-          "effort": "5min"
+          "effort": "5min",
+          "satisfiedWhen": "hasVercelCli"
         },
         {
           "id": "slack-mcp",

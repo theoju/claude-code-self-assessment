@@ -44,6 +44,7 @@ const ALL_SATISFIED_SIGNALS = {
   // integrations
   hasSlackPlugin: true,
   hasVercelPlugin: true,
+  hasVercelCli: true,
   hasClaudeInChrome: true,
   mcpServersConnected: 5,
   // remote

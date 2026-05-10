@@ -71,6 +71,7 @@ export function buildSignalsSummary(signals) {
     statuslineConfigured: signals.statuslineConfigured,
     keybindingsConfigured: signals.keybindingsConfigured,
     hasSlackPlugin: signals.plugins.some((p) => /slack/i.test(p)),
+    hasVercelCli: !!signals.settings.hasVercelCli,
     hasVercelPlugin: signals.plugins.some((p) => /vercel/i.test(p)),
     mcpServersConnected: (signals.mcpServers || []).filter(
       (s) => s.status === "connected",
