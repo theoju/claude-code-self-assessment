@@ -102,12 +102,14 @@
         {
           "id": "worktree-aliases",
           "action": "Set up 3 named worktree shell aliases (za/zb/zc) for your most active repo — Boris tip 1",
-          "effort": "15min"
+          "effort": "15min",
+          "satisfiedWhen": "worktreeAliasCount>=3"
         },
         {
           "id": "batch-sweep",
           "action": "Next migration or sweep: phrase it as 'use /batch with worktree isolation, put up PRs'",
-          "effort": "5min"
+          "effort": "5min",
+          "satisfiedWhen": "batchCommandUses>=1"
         },
         {
           "id": "agent-isolation",
@@ -134,12 +136,14 @@
         {
           "id": "go-reflex",
           "action": "Adopt 'Claude do X, then /go' as your default closing prompt — Boris tip 73",
-          "effort": "5min"
+          "effort": "5min",
+          "satisfiedWhen": "goCommandUses>=3"
         },
         {
           "id": "branch-diff",
           "action": "Ask Claude to diff behavior between main and the feature branch after any non-trivial change — Boris tip 10",
-          "effort": "5min"
+          "effort": "5min",
+          "satisfiedWhen": "shipVerifyStageRecent>=1"
         }
       ]
     },
@@ -185,7 +189,8 @@
         {
           "id": "plan-then-launch",
           "action": "After plan mode, resist the urge to narrate step by step — launch and come back — Boris tip 65",
-          "effort": "5min"
+          "effort": "5min",
+          "satisfiedWhen": "planThenLaunchSessions>=1"
         }
       ]
     },
@@ -238,7 +243,8 @@
         {
           "id": "focus-mode",
           "action": "Try /focus for autonomous runs once auto mode is on — Boris tip 71",
-          "effort": "5min"
+          "effort": "5min",
+          "satisfiedWhen": "focusCommandUses>=1"
         },
         {
           "id": "spinner-verbs",
@@ -259,7 +265,8 @@
         {
           "id": "babysit-loop",
           "action": "Start with one loop: /loop 30m /babysit — Boris tip 48",
-          "effort": "5min"
+          "effort": "5min",
+          "satisfiedWhen": "babysitLoopUses>=1"
         },
         {
           "id": "stop-hook-notification",
@@ -270,7 +277,8 @@
         {
           "id": "promote-routine",
           "action": "Promote repeating patterns to a Routine (cloud-hosted, laptop-closed) — Boris tip 61",
-          "effort": "30min"
+          "effort": "30min",
+          "satisfiedWhen": "scheduleCommandUses>=1"
         }
       ]
     },
