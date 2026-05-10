@@ -65,9 +65,19 @@ export function buildSignalsSummary(signals) {
     hasShipCommand:
       signals.personalCommands.includes("ship.md") ||
       signals.projectCommands.includes("ship.md"),
+    // Broadened in V1.2 (probe-validation): the original probe matched only
+    // agent FILENAMES starting with "verify" and missed legitimate verify
+    // pipelines like the /ship skill body, the pr-review-toolkit plugin,
+    // and code-reviewer plugin agents. We now OR three signals together.
+    // Body matching is collapsed to a boolean by `gatherSignals` so this
+    // function stays a pure projection.
     hasVerifyAgent:
       signals.personalAgents.some((f) => /^verify/i.test(f)) ||
-      signals.projectAgents.some((f) => /^verify/i.test(f)),
+      signals.projectAgents.some((f) => /^verify/i.test(f)) ||
+      !!signals.verifySignalBodyMatch ||
+      (signals.plugins || []).some((p) =>
+        /pr-review|review-toolkit|reviewer/i.test(p),
+      ),
     claudeMdExists: signals.claudeMdExists,
     statuslineConfigured: signals.statuslineConfigured,
     keybindingsConfigured: signals.keybindingsConfigured,

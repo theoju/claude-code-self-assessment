@@ -170,20 +170,85 @@ describe("buildSignalsSummary", () => {
 
   it("hasVerifyAgent matches /^verify/i in either scope", () => {
     expect(
-      buildSignalsSummary(makeSignals({ personalAgents: ["verify-app.md"] }))
-        .hasVerifyAgent,
+      buildSignalsSummary(
+        makeSignals({
+          personalAgents: ["verify-app.md"],
+          plugins: [],
+          verifySignalBodyMatch: false,
+        }),
+      ).hasVerifyAgent,
     ).toBe(true);
     expect(
       buildSignalsSummary(
         makeSignals({
           personalAgents: [],
           projectAgents: ["VerifyAuth.md"],
+          plugins: [],
+          verifySignalBodyMatch: false,
         }),
       ).hasVerifyAgent,
     ).toBe(true);
     expect(
-      buildSignalsSummary(makeSignals({ personalAgents: ["other.md"] }))
-        .hasVerifyAgent,
+      buildSignalsSummary(
+        makeSignals({
+          personalAgents: ["other.md"],
+          plugins: [],
+          verifySignalBodyMatch: false,
+        }),
+      ).hasVerifyAgent,
+    ).toBe(false);
+  });
+
+  it("hasVerifyAgent fires when a personal skill/agent body contains 'verify'", () => {
+    expect(
+      buildSignalsSummary(
+        makeSignals({
+          personalAgents: ["other.md"],
+          projectAgents: [],
+          plugins: [],
+          verifySignalBodyMatch: true,
+        }),
+      ).hasVerifyAgent,
+    ).toBe(true);
+  });
+
+  it("hasVerifyAgent fires when an installed plugin matches pr-review-toolkit", () => {
+    expect(
+      buildSignalsSummary(
+        makeSignals({
+          personalAgents: ["other.md"],
+          projectAgents: [],
+          plugins: ["pr-review-toolkit@claude-plugins-official"],
+          verifySignalBodyMatch: false,
+        }),
+      ).hasVerifyAgent,
+    ).toBe(true);
+  });
+
+  it("hasVerifyAgent fires when a body token 'code-reviewer' is present", () => {
+    expect(
+      buildSignalsSummary(
+        makeSignals({
+          personalAgents: ["other.md"],
+          projectAgents: [],
+          plugins: [],
+          // Gather-time scanner already collapsed the body match into a flag.
+          verifySignalBodyMatch: true,
+        }),
+      ).hasVerifyAgent,
+    ).toBe(true);
+  });
+
+  it("hasVerifyAgent is false when filename, body, and plugin all miss", () => {
+    expect(
+      buildSignalsSummary(
+        makeSignals({
+          personalAgents: ["other.md", "build.md"],
+          projectAgents: ["check.md"],
+          plugins: ["slack@1", "vercel@1"],
+          verifySignalBodyMatch: false,
+        }),
+      ).hasVerifyAgent,
     ).toBe(false);
   });
 

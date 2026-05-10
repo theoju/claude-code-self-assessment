@@ -221,6 +221,55 @@ async function hasWorktreeIsolatedAgent(dirs) {
   return false;
 }
 
+// True if any personal/project agent or personal-skill body contains a verify
+// or code-review token. Closes the gap surfaced by Probe-Logic Challenger:
+// the original `hasVerifyAgent` only matched agent FILENAMES starting with
+// "verify" and missed legitimate verify pipelines like the /ship SKILL.md
+// body. The token set is intentionally narrow — `verify`, `reviewer`, and
+// `code-review`/`code_review` — so casual prose like "verify the docs" in
+// an unrelated skill won't false-positive (it would have to match the *exact*
+// token, with word boundaries on `reviewer`/`code-review`). Reads up to 8KB
+// per file to bound the cost on large skill libraries.
+const VERIFY_BODY_RE = /(verify[- _]?agent|code[-_]?review|\breviewer\b)/i;
+const BODY_SCAN_CAP_BYTES = 8 * 1024;
+async function scanBodyForVerifyToken(filePath) {
+  try {
+    const content = await readFile(filePath, "utf8");
+    const head = content.slice(0, BODY_SCAN_CAP_BYTES);
+    return VERIFY_BODY_RE.test(head);
+  } catch {
+    return false;
+  }
+}
+async function hasVerifySignalInBodies({
+  agentDirs,
+  agentNames,
+  skillDirs,
+  skillNames,
+}) {
+  // Agents: flat .md files keyed by name list per dir.
+  for (const { dir, names } of agentDirs) {
+    for (const n of names) {
+      if (!n.endsWith(".md")) continue;
+      if (await scanBodyForVerifyToken(join(dir, n))) return true;
+    }
+  }
+  void agentNames; // (kept for future symmetry with skills shape)
+  // Skills: each entry is a directory with a SKILL.md (and possibly other
+  // .md spokes). Scan SKILL.md primarily.
+  for (const { dir, names } of skillDirs) {
+    for (const n of names) {
+      const skillRoot = join(dir, n);
+      const candidates = ["SKILL.md", "skill.md", `${n}.md`];
+      for (const c of candidates) {
+        if (await scanBodyForVerifyToken(join(skillRoot, c))) return true;
+      }
+    }
+  }
+  void skillNames;
+  return false;
+}
+
 // Pure parser for `claude mcp list` stdout. Returns one record per MCP
 // server with name, scope (`plugin` | `claude.ai` | `user`) and status
 // (`connected` | `failed` | `needs-auth`). Output format from the Claude
@@ -576,6 +625,13 @@ export async function gatherSignals(projectRoot = process.cwd(), options = {}) {
     personalAgentsDir,
     projectAgentsDir,
   ]);
+  const verifySignalBodyMatch = await hasVerifySignalInBodies({
+    agentDirs: [
+      { dir: personalAgentsDir, names: personalAgentsRaw },
+      { dir: projectAgentsDir, names: projectAgentsRaw },
+    ],
+    skillDirs: [{ dir: personalSkillsDir, names: personalSkillsRaw }],
+  });
 
   const plansDir = join(claudeHome(), "plans");
   const plansCountRaw = await dirSize(plansDir);
@@ -645,6 +701,7 @@ export async function gatherSignals(projectRoot = process.cwd(), options = {}) {
       plansCount: plansCountRaw,
     },
     plugins,
+    verifySignalBodyMatch,
     mcpServers,
     shipJournal,
     shellAliases,
