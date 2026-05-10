@@ -79,7 +79,25 @@ describe("scanTranscriptInvocations", () => {
       scheduleCommandUses: 0,
       babysitLoopUses: 0,
       planThenLaunchSessions: 0,
+      rewindCommandUses: 0,
     });
+  });
+
+  it("counts /rewind invocations (markup + start-of-line)", async () => {
+    // /rewind is a top-level slash invocation (Boris tip 62) — only the
+    // markup form and start-of-line form count, not mid-prose mentions
+    // (e.g. "I should /rewind here" in a planning prompt).
+    writeSession("s1", [
+      userMarkup("/rewind"),
+      userText("/rewind"),
+      userText("we should /rewind that misstep"), // mid-sentence — does NOT count
+    ]);
+    const r = await scanTranscriptInvocations({
+      projectsRoot,
+      now: new Date("2026-05-10T00:00:00Z"),
+      lookbackDays: 30,
+    });
+    expect(r.rewindCommandUses).toBe(2);
   });
 
   it("counts bare-text /go, /batch, /focus, /schedule at start of message", async () => {

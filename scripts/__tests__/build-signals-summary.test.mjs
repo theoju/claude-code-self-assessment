@@ -45,6 +45,7 @@ function makeSignals(overrides = {}) {
       scheduleCommandUses: 1,
       babysitLoopUses: 1,
       planThenLaunchSessions: 2,
+      rewindCommandUses: 3,
     },
     insights: null,
     ...overrides,
@@ -59,6 +60,7 @@ describe("buildSignalsSummary", () => {
       "personalAgents",
       "personalCommands",
       "personalSkills",
+      "personalSkillNames",
       "hookTotalCount",
       "effortLevel",
       "skipDangerous",
@@ -91,6 +93,7 @@ describe("buildSignalsSummary", () => {
       "scheduleCommandUses",
       "babysitLoopUses",
       "planThenLaunchSessions",
+      "rewindCommandUses",
     ];
     for (const k of expectedKeys) expect(r).toHaveProperty(k);
   });
@@ -331,6 +334,7 @@ describe("buildSignalsSummary", () => {
     expect(r.scheduleCommandUses).toBe(1);
     expect(r.babysitLoopUses).toBe(1);
     expect(r.planThenLaunchSessions).toBe(2);
+    expect(r.rewindCommandUses).toBe(3);
   });
 
   it("defaults missing gatherer outputs to 0", () => {
@@ -387,10 +391,12 @@ describe("buildSignalsSummary", () => {
         "mcpServersConnected",
         "personalAgents",
         "personalCommands",
+        "personalSkillNames",
         "personalSkills",
         "planThenLaunchSessions",
         "plugins",
         "projectsWithMemory",
+        "rewindCommandUses",
         "scheduleCommandUses",
         "shipVerifyStageRecent",
         "shipsRecent",

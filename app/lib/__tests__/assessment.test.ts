@@ -49,7 +49,13 @@ describe("tierFor", () => {
 
 describe("tierColor", () => {
   it("returns a CSS class string for every tier", () => {
-    for (const t of ["not-touched", "starter", "developing", "solid", "advanced"] as const) {
+    for (const t of [
+      "not-touched",
+      "starter",
+      "developing",
+      "solid",
+      "advanced",
+    ] as const) {
       expect(tierColor(t)).toMatch(/text-/);
     }
   });
@@ -69,7 +75,9 @@ describe("trendGlyph", () => {
     ["flat", "→"],
     ["new", "✦"],
   ])("%s → %s", (trend, glyph) => {
-    expect(trendGlyph(trend as "improving" | "slipping" | "flat" | "new")).toBe(glyph);
+    expect(trendGlyph(trend as "improving" | "slipping" | "flat" | "new")).toBe(
+      glyph,
+    );
   });
 });
 
@@ -91,9 +99,27 @@ describe("computeStats", () => {
 
   it("orders priorityActions by weight × deficit and caps at 6", () => {
     const dims = [
-      dim({ id: "low", weight: 1, target: 80, score: 70, nextActions: [{ id: "small", action: "small", effort: "5min" }] }),
-      dim({ id: "high", weight: 3, target: 90, score: 30, nextActions: [{ id: "big", action: "big", effort: "5min" }] }),
-      dim({ id: "mid", weight: 2, target: 80, score: 60, nextActions: [{ id: "mid", action: "mid", effort: "5min" }] }),
+      dim({
+        id: "low",
+        weight: 1,
+        target: 80,
+        score: 70,
+        nextActions: [{ id: "small", action: "small", effort: "5min" }],
+      }),
+      dim({
+        id: "high",
+        weight: 3,
+        target: 90,
+        score: 30,
+        nextActions: [{ id: "big", action: "big", effort: "5min" }],
+      }),
+      dim({
+        id: "mid",
+        weight: 2,
+        target: 80,
+        score: 60,
+        nextActions: [{ id: "mid", action: "mid", effort: "5min" }],
+      }),
     ];
     const stats = computeStats(dims);
     // weight × deficit: high=180, mid=40, low=10 → high first
@@ -105,9 +131,24 @@ describe("computeStats", () => {
 
   it("excludes dimensions already at or above target", () => {
     const dims = [
-      dim({ id: "done", target: 80, score: 80, nextActions: [{ id: "x", action: "x", effort: "5min" }] }),
-      dim({ id: "exceeds", target: 70, score: 90, nextActions: [{ id: "y", action: "y", effort: "5min" }] }),
-      dim({ id: "behind", target: 80, score: 50, nextActions: [{ id: "z", action: "z", effort: "5min" }] }),
+      dim({
+        id: "done",
+        target: 80,
+        score: 80,
+        nextActions: [{ id: "x", action: "x", effort: "5min" }],
+      }),
+      dim({
+        id: "exceeds",
+        target: 70,
+        score: 90,
+        nextActions: [{ id: "y", action: "y", effort: "5min" }],
+      }),
+      dim({
+        id: "behind",
+        target: 80,
+        score: 50,
+        nextActions: [{ id: "z", action: "z", effort: "5min" }],
+      }),
     ];
     const stats = computeStats(dims);
     expect(stats.priorityActions.map((a) => a.dimensionId)).toEqual(["behind"]);
@@ -115,15 +156,24 @@ describe("computeStats", () => {
 
   it("flattens multiple nextActions per dimension", () => {
     const dims = [
-      dim({ id: "x", target: 90, score: 30, nextActions: [
-        { id: "a1", action: "a1", effort: "5min" },
-        { id: "a2", action: "a2", effort: "5min" },
-        { id: "a3", action: "a3", effort: "5min" },
-      ]}),
+      dim({
+        id: "x",
+        target: 90,
+        score: 30,
+        nextActions: [
+          { id: "a1", action: "a1", effort: "5min" },
+          { id: "a2", action: "a2", effort: "5min" },
+          { id: "a3", action: "a3", effort: "5min" },
+        ],
+      }),
     ];
     const stats = computeStats(dims);
     expect(stats.priorityActions).toHaveLength(3);
-    expect(stats.priorityActions.map((a) => a.action.action)).toEqual(["a1", "a2", "a3"]);
+    expect(stats.priorityActions.map((a) => a.action.action)).toEqual([
+      "a1",
+      "a2",
+      "a3",
+    ]);
   });
 
   it("filters out actions whose satisfied flag is true from priorityActions", () => {
@@ -133,13 +183,18 @@ describe("computeStats", () => {
         target: 90,
         score: 30,
         nextActions: [
-          { id: "done", action: "Already done", effort: "5min", satisfied: true },
+          {
+            id: "done",
+            action: "Already done",
+            effort: "5min",
+            satisfied: true,
+          },
           { id: "open", action: "Still actionable", effort: "5min" },
         ],
       }),
     ];
     const stats = computeStats(dims);
-    const ids = stats.priorityActions.map(a => a.action.id);
+    const ids = stats.priorityActions.map((a) => a.action.id);
     expect(ids).toContain("open");
     expect(ids).not.toContain("done");
   });
@@ -202,7 +257,55 @@ describe("evaluatePredicate", () => {
   it("supports AND via &", () => {
     expect(evaluatePredicate("!skipDangerous & plugins>0", sig)).toBe(true);
     expect(evaluatePredicate("!skipDangerous & plugins>100", sig)).toBe(false);
-    expect(evaluatePredicate("effortLevel=xhigh & autoCompactWindow", sig)).toBe(true);
+    expect(
+      evaluatePredicate("effortLevel=xhigh & autoCompactWindow", sig),
+    ).toBe(true);
+  });
+
+  // Array-regex operator (~): true when LHS is a string array AND any element
+  // matches the RHS regex (case-insensitive). Added to predicate the
+  // `learning/spaced-repetition-skill` action against the user's
+  // personalSkills array without baking specific skill names into the rubric.
+  // Falls back to false for non-array LHS or unparseable regex — never throws.
+  it("supports array-regex via ~", () => {
+    const arrSig = {
+      personalSkills: ["self-assessment", "spaced-repetition-skill", "ship"],
+      otherSkills: ["unrelated", "another"],
+      empty: [],
+      notArray: "ship",
+    };
+    expect(evaluatePredicate("personalSkills~spaced|repetition", arrSig)).toBe(
+      true,
+    );
+    expect(evaluatePredicate("personalSkills~SPACED", arrSig)).toBe(true); // case-insensitive
+    expect(evaluatePredicate("personalSkills~retain|recall", arrSig)).toBe(
+      false,
+    );
+    expect(evaluatePredicate("otherSkills~spaced|repetition", arrSig)).toBe(
+      false,
+    );
+    expect(evaluatePredicate("empty~anything", arrSig)).toBe(false);
+    expect(evaluatePredicate("notArray~ship", arrSig)).toBe(false); // non-array LHS
+    expect(evaluatePredicate("missing~anything", arrSig)).toBe(false);
+  });
+
+  it("array-regex composes with & like other operators", () => {
+    const arrSig = {
+      personalSkills: ["self-assessment", "spaced-repetition-skill"],
+      effortLevel: "max",
+    };
+    expect(
+      evaluatePredicate(
+        "personalSkills~spaced|repetition & effortLevel=max",
+        arrSig,
+      ),
+    ).toBe(true);
+    expect(
+      evaluatePredicate(
+        "personalSkills~spaced|repetition & effortLevel=high",
+        arrSig,
+      ),
+    ).toBe(false);
   });
 
   it("returns false for empty or malformed predicates", () => {

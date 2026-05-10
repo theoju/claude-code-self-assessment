@@ -181,6 +181,25 @@ function evaluateAtomic(
   if (!trimmed) return false;
   if (trimmed.startsWith("!"))
     return !evaluateAtomic(trimmed.slice(1), signals);
+  // Array-regex (~): RHS is treated as a regex source, matched
+  // case-insensitively against each element of the (string-array) LHS.
+  // Returns false for non-array LHS or unparseable regex — never throws.
+  // Used by the rubric to predicate against `personalSkills` without
+  // baking specific skill names into the rubric file.
+  const arrMatch = trimmed.match(/^(.+?)~(.+)$/);
+  if (arrMatch) {
+    const path = arrMatch[1].trim();
+    const rhs = arrMatch[2].trim();
+    const value = readPath(signals, path);
+    if (!Array.isArray(value)) return false;
+    let re: RegExp;
+    try {
+      re = new RegExp(rhs, "i");
+    } catch {
+      return false;
+    }
+    return value.some((el) => typeof el === "string" && re.test(el));
+  }
   // Order matters: longer operators first so ">=" doesn't match as ">".
   const cmpMatch = trimmed.match(/^(.+?)(>=|<=|!=|=|>|<)(.+)$/);
   if (cmpMatch) {

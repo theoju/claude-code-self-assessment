@@ -63,6 +63,8 @@ const ALL_SATISFIED_SIGNALS = {
   scheduleCommandUses: 1,
   babysitLoopUses: 1,
   planThenLaunchSessions: 2,
+  rewindCommandUses: 2,
+  personalSkillNames: ["self-assessment", "spaced-repetition-skill", "ship"],
 };
 
 describe("rubric satisfiedWhen predicates", () => {
