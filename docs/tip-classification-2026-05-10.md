@@ -1,0 +1,256 @@
+# Boris-Tip Classification & 30-day Habit Counts (2026-05-10, v3)
+
+**Source:** `app/data/boris-tip-index.json` + `boris-tips-content.json` (75 tips loaded; canonical post has 87). Tips 76–87 appear as placeholder rows because the repo data file is short by 12 entries.
+**Captured:** 2026-05-10T15:40:56.690Z
+**Lookback:** 30 days for transcript-derived counts.
+
+## Why this artifact exists
+
+Execution overall trajectory across the assessment-history snapshots:
+
+```
+05-07 → 05-08 (4 runs)                            EX = 62  ← "60ish" baseline
+05-09 06:43+                                      EX = 57-59  (first drop)
+05-10 07:16+ (manual, --insights-lookback 14)     EX = 49  (today's floor)
+05-10 14:15  (cron, default lookback 30)          EX = 54  (partial recovery)
+05-10 15:18  (manual, --insights-lookback 30)     EX = 54  (this run, 30-day basis)
+```
+
+The 60→49 drop is **real** but **not caused by today's PRs** (#41–#44 only modified Platform-Setup formulas). Three interacting factors explain it: (1) lookback narrowing from 30→14 days; (2) 14-day behavior shift toward meta-engineering with TDD-driven friction events that tank Verification, Planning, and Learning exec; (3) older non-meta sessions sliding out of the rolling window.
+
+**This run uses the 30-day window**, which restores Execution to **54** (vs 49 at 14 days). Notable signal differences vs the morning's 14-day snapshot: `mcpServersConnected` reads **7** here (was **0** at 14 days — likely an MCP-server availability blip in the narrower window), `goCommandUses` is **270** vs 257, and `batchCommandUses` is **208** vs 197.
+
+This table classifies all 87 tips so the pattern reads directly across the 30-day window: **Habit-only and Both tips are where Execution lives**. The rubric only credits practice that happens in the lookback window, regardless of how well-configured the platform is.
+
+## Column legend
+
+- **#** — tip number (1–87).
+- **Description** — first heading + lead paragraph from `boris-tips-content.json`. Truncated to ~140 chars.
+- **Validation criteria** — the concrete condition that means "the user has adopted this tip." Either the rubric's predicate, the implied signal threshold, or the human-readable criterion if no probe exists yet.
+- **Dim(s)** — rubric dimensions (the 12 scoring axes). `—` = not in any dimension.
+- **Tip Type** — exactly one of:
+  - **Setup only** — one-time config flip, then it's done.
+  - **Habit only** — pure recurring behavior, no install needed.
+  - **Both** — needs configuration AND ongoing practice.
+  - **Coaching only** — qualitative practice / awareness content; not directly measurable.
+- **Judgement** — short reasoning for the type assignment.
+- **Probe** — does a signal collector exist and is it tested?
+  - **Yes** — signal collected + has unit tests + flowing in production.
+  - **Partial** — signal partially implemented, experimental, or no test coverage.
+  - **No** — no probe yet (could be measured in principle).
+  - **N/A** — inherently unmeasurable (Coaching-only).
+- **Threshold** — the value or shape that means "satisfied" (predicate RHS).
+- **30d count** — actual measured value in the 30-day window, or `—` if no probe.
+- **Hit** — exactly one of:
+  - **Passed** — probe reads at or above threshold.
+  - **Missed** — probe reads below threshold.
+  - **No probe yet** — tip is measurable in principle but no probe is built. _This is a TODO for instrumentation._
+  - **Does not apply** — Coaching-only tip; can never be measured.
+
+### On using 4 Hit values vs 3
+
+The 4-value set distinguishes "we haven't built the probe" from "this is permanently un-measurable." That matters for the dashboard's roadmap: the first becomes an instrumentation TODO (build the signal); the second becomes a coaching surface (display as guidance, not as a TODO). Collapsing them to a single "Does not apply" loses that signal — which is the gap the Bucket C decision spec (PR #43) tried to make explicit.
+
+## Aggregates
+
+**Tip Type** distribution (across all 87 rows):
+
+| Type | Count | % |
+|---|---|---|
+| Setup only | 21 | 24% |
+| Habit only | 33 | 38% |
+| Both | 18 | 21% |
+| Coaching only | 3 | 3% |
+| (missing) | 12 | 14% |
+
+**Probe** status:
+
+| Probe | Count | % |
+|---|---|---|
+| Yes | 31 | 36% |
+| Partial | 9 | 10% |
+| No | 32 | 37% |
+| N/A | 3 | 3% |
+| (missing) | 12 | 14% |
+
+**Hit** distribution:
+
+| Hit | Count | % |
+|---|---|---|
+| Passed | 23 | 26% |
+| Missed | 14 | 16% |
+| No probe yet | 35 | 40% |
+| Does not apply | 3 | 3% |
+| (missing) | 12 | 14% |
+
+## Full table (all 87 tips)
+
+| # | Description | Validation criteria | Dim(s) | Tip Type | Judgement | Probe | Threshold | 30d count | Hit |
+|---|---|---|---|---|---|---|---|---|---|
+| 1 | **Run Multiple Claude Sessions in Parallel** — The single biggest productivity unlock. Spin up 3-5 git worktrees at once, each running its own Claude session. | Has ≥3 worktree aliases (`za`, `zb`, `zc`) in `~/.zshrc` AND multiple Claude sessions running in parallel. | parallel | Both | Worktree shell aliases (one-time setup) + actually running parallel sessions (recurring habit). Both halves needed for full adoption. | Yes | ≥ 3 | 0 | Missed |
+| 2 | **Use Opus 4.5 with Thinking for Everything** — Boris's reasoning: "It's the best coding model I've ever used, and even though it's bigger & slower than Sonnet, since you have to steer… | Recent sessions show Opus model selection. | model-effort | Habit only | Selecting Opus over Sonnet is a per-task decision in /model. No persistent flag worth tracking. | No | — | — | No probe yet |
+| 3 | **Start Every Complex Task in Plan Mode** — Press `shift+tab` to cycle to plan mode. Pour your energy into the plan so Claude can 1-shot the implementation. | Plan-mode entries detected in transcripts (lookback window). | planning | Habit only | Plan mode is entered with shift+tab per task. Adoption = invoked frequently. | No | — | — | No probe yet |
+| 4 | **Invest in Your CLAUDE.md** — Share a single CLAUDE.md file for your repo, checked into git. The whole team should contribute. | `./CLAUDE.md` exists in active project AND its content is current (CLAUDE.md health audit). | memory | Both | Authoring CLAUDE.md is the setup; keeping it accurate and current is the habit. | Yes | true | true | Passed |
+| 5 | **Create Your Own Skills** — Create skills and commit them to git. Reuse across every project. | `~/.claude/skills/*/SKILL.md` exists AND skills appear in transcript invocations. | automation | Both | Authoring skill files is setup; invoking them is the habit. | Partial | ≥ 1 | 3 | Passed |
+| 6 | **Use Subagents for Common Workflows** — Think of subagents as automations for the most common PR workflows: | Personal agents authored AND subagent dispatch events recorded in usage data. | parallel | Both | Defining subagents is setup; dispatching them in sessions is the habit. | Partial | ≥ 1 | 0 | Missed |
+| 7 | **PostToolUse Hooks for Formatting** — Use a PostToolUse hook to auto-format Claude's code. While Claude generates well-formatted code 90% of the time, the hook catches edge ca… | `hasPostToolHook` true in `~/.claude/settings.json`. | automation | Setup only | Once the PostToolUse formatter hook is configured, it fires automatically. No habit to track. | Yes | true | true | Passed |
+| 8 | **Pre-Allow Safe Permissions** — Instead of `--dangerously-skip-permissions`, use `/permissions` to pre-allow common safe commands. Most are shared in `.claude/settings.j… | `allowList` has substantive entries in `~/.claude/settings.json`. | permissions | Setup only | Allowlist tuning is one-time. The list lives in `settings.json`. | Yes | ≥ 10 | 38 | Passed |
+| 9 | **Tool Integrations** — Claude Code uses your tools autonomously: | Plugins/MCPs installed AND `mcpServersConnected` ≥ 1. | integrations | Both | Installing MCPs is setup; actively using their tools is the habit. | Yes | ≥ 1 | 7 | Passed |
+| 10 | **Challenge Claude** — Say: "Knowing everything you know now, scrap this and implement the elegant solution." | Prompts containing 'are you sure', 'reconsider', or behavior-diff requests appear in lookback window. | planning | Habit only | Challenging Claude is a per-prompt behavioral pattern. Hard to detect without prompt-text analysis. | Partial | ≥ 1 | 1 | Passed |
+| 11 | **Recommended Tools** — Use voice dictation! You speak 3x faster than you type, and your prompts get way more detailed as a result. Hit `fn x2` on macOS. | Voice dictation enabled AND used in recent prompts. | customization | Both | Voice dictation requires enabling on macOS (setup) and using it (habit). Other terminal tools are setup-side. | No | — | — | No probe yet |
+| 12 | **Let Claude Fix Bugs** — Enable the Slack MCP, then paste a Slack bug thread into Claude and just say "fix." Zero context switching required. | Sessions originating from Slack-pasted threads. | — | Habit only | Pasting Slack threads + 'fix' is a workflow habit. Setup is captured under tip 9 (MCP install). | No | — | — | No probe yet |
+| 13 | **Handle Long-Running Tasks** — For very long-running tasks, ensure Claude can work uninterrupted: | Auto-mode flags configured AND long-running sessions in usage data. | — | Both | Long-running task config (auto-mode, --no-bell, etc.) is setup; running them is the habit. | No | — | — | No probe yet |
+| 14 | **Give Claude a Way to Verify Its Work** — "Probably the most important thing to get great results out of Claude Code - give Claude a way to verify its work. If Claude has that fee… | `~/.claude/agents/verify-app.md` exists AND verify dispatches in transcripts. | verification | Both | Authoring a verify-app agent is setup; running it before merge is the habit. | Yes | true | false | Missed |
+| 15 | **Use Claude for Learning** | Explanatory-mode sessions in transcripts (`★ Insight` banner). | learning | Habit only | Using Claude for learning is a per-session behavioral choice. Not directly observable beyond explanatory-mode adoption. | Partial | — | — | No probe yet |
+| 16 | **Configure Your Terminal** — A few quick settings to make Claude Code feel right: | Specific terminal-config keys present in `~/.claude/settings.json`. | customization | Setup only | Terminal config is one-time. | Yes | true | false | Missed |
+| 17 | **Adjust Effort Level** — Run `/model` to pick your preferred effort level: | `effortLevel` field present and non-default in `~/.claude/settings.json`. | model-effort | Setup only | Effort level is set in `/model` and persisted in `settings.json`. | Yes | ∈ {high / xhigh / max} | high | Passed |
+| 18 | **Install Plugins, MCPs, and Skills** — Plugins let you install LSPs (now available for every major language), MCPs, skills, agents, and custom hooks. | `plugins` count > 0 AND signals from plugin tools (e.g. MCP usage). | integrations | Both | Installing plugins is setup; using their commands is the habit. | Yes | ≥ 1 | 33 | Passed |
+| 19 | **Create Custom Agents** — Drop `.md` files in `.claude/agents`. Each agent can have a custom name, color, tool set, pre-allowed and pre-disallowed tools, permissio… | Agent files exist AND --agent / dispatch events in usage data. | automation | Both | Authoring agent files is setup; invoking via --agent or subagent dispatch is the habit. | Partial | ≥ 1 | 0 | Missed |
+| 20 | **Pre-Approve Common Permissions** — Claude Code uses a sophisticated permission system with prompt injection detection, static analysis, sandboxing, and human oversight. | `hasWildcardAllow` true. | permissions | Setup only | Wildcard allowlist entries are config. | Yes | true | true | Passed |
+| 21 | **Enable Sandboxing** — Opt into Claude Code's open source sandbox runtime to improve safety while reducing permission prompts. | Sandboxing enabled in `~/.claude/settings.json`. | permissions | Setup only | Sandboxing is a binary opt-in. | No | — | — | No probe yet |
+| 22 | **Add a Status Line** — Custom status lines show up right below the composer. Show model, directory, remaining context, cost, and anything else you want to see w… | `statusLine` configured in `~/.claude/settings.json`. | customization | Setup only | Status line is config. | Yes | true | true | Passed |
+| 23 | **Customize Your Keybindings** — Every key binding in Claude Code is customizable. Run `/keybindings` to re-map any key. Settings live reload so you can see how it feels… | `keyBindings` non-default in `~/.claude/settings.json`. | customization | Setup only | Keybindings are config. | Yes | true | false | Missed |
+| 24 | **Set Up Hooks** — Hooks are a way to deterministically hook into Claude's lifecycle. Use them to: | Multiple hook events configured in `~/.claude/settings.json`. | automation | Setup only | Hook composition is one-time configuration. | Yes | ≥ 2 | 7 | Passed |
+| 25 | **Customize Your Spinner Verbs** — It's the little things that make CC feel personal. Ask Claude to customize your spinner verbs to add or replace the default list with you… | `hasCustomSpinnerVerbs` true. | customization | Setup only | Custom spinner verbs are config. | Yes | true | true | Passed |
+| 26 | **Use Output Styles** — Run `/config` and set an output style to have Claude respond using a different tone or format. | `outputStyle` present and non-default in `~/.claude/settings.json`. | customization/learning | Setup only | Output style is set via /config; persists in settings. | No | — | — | No probe yet |
+| 27 | **Customize All the Things!** — Claude Code is built to work great out of the box. When you do customize, check your `settings.json` into git so your team can benefit, too. | Multiple customization fields populated; subjective. | customization | Coaching only | Meta-tip — 'customize everything' is a stance, not a discrete action. | N/A | — | — | Does not apply |
+| 28 | **Use `claude --worktree` for Isolation** — Claude Code now has built-in git worktree support. Each agent gets its own worktree and can work independently, without interfering with… | `hasIsolatedAgent` true AND worktree-tagged transcripts present. | parallel | Both | Adding `isolation: worktree` to agents is setup; running them in worktrees is the habit. | Yes | true | false | Missed |
+| 29 | **/simplify** — Use parallel agents to improve code quality, tune code efficiency, and ensure CLAUDE.md compliance. Append `/simplify` to any prompt afte… | `/simplify` invocations in transcripts. | — | Habit only | /simplify is a habit appended to prompts after changes. | No | — | — | No probe yet |
+| 30 | **/batch** — Interactively plan out code migrations, then execute in parallel using dozens of agents. Each agent runs with full isolation using git wo… | `batchCommandUses ≥ 1` (markup or prompt-phrase). | parallel | Habit only | /batch is a habit — phrasing migrations as batch jobs. | Yes | ≥ 1 | 208 | Passed |
+| 31 | **/loop** — Use `/loop` to schedule recurring tasks for up to 3 days at a time. Claude runs your prompt on an interval, handling long-running workflo… | `/loop` invocations in transcripts. | scheduled | Habit only | /loop is a habit — schedule recurring tasks. | Partial | ≥ 1 | 0 | Missed |
+| 32 | **Code Review Agents** — When a PR opens, Claude dispatches a team of agents to hunt for bugs. Anthropic built it for themselves first — code output per engineer… | `pr-review-toolkit` plugin installed. | — | Both | Code-review agent team is setup; the team firing per PR is automatic. | No | — | — | No probe yet |
+| 33 | **/btw** — A slash command for side-chain conversations while Claude is actively working. Single-turn, no tool calls, but has full context of the co… | `/btw` invocations in transcripts. | — | Habit only | /btw is a habit — side-chain conversations during work. | No | — | — | No probe yet |
+| 34 | **/effort max** — Set effort to 'max' and Claude reasons for longer, using as many tokens as needed. Burns through usage limits faster, so you activate it… | `/effort max` invocations OR effortLevel=max sessions. | model-effort | Habit only | /effort max is per-session. | Partial | ∈ {max} | high | Missed |
+| 35 | **Remote Control** — Run `claude remote-control` and spawn a new local session from the mobile app. Available on Max, Team, and Enterprise (v2.1.74+). | `hasUsedRemoteControl` true in `~/.claude.json`. | remote | Setup only | Remote Control is enabled once. | Yes | true | true | Passed |
+| 36 | **Voice** — Voice mode is now rolled out to 100% of users, including Claude Code Desktop and Cowork. Click the microphone icon and talk naturally. | Voice-originated turns in transcripts. | — | Habit only | Voice mode is per-session — click the mic. | No | — | — | No probe yet |
+| 37 | **Setup Scripts** — Add a setup script in Claude Code on web and desktop. It runs before Claude Code launches on a cloud environment — install dependencies… | Setup script defined in cloud project config. | — | Setup only | Setup scripts are one-time configuration on web/desktop. | No | — | — | No probe yet |
+| 38 | **Session Naming** — Name your session at launch with the `--name` flag. | `--name` used at session launches. | customization | Habit only | --name is a per-launch habit. | No | — | — | No probe yet |
+| 39 | **Auto Session Naming** — After plan mode, Claude automatically names your session based on what you're working on. No manual naming needed. | Sessions have non-empty names from auto-naming. | — | Setup only | Auto-naming is a default — once enabled, fires for every plan-mode session. | No | — | — | No probe yet |
+| 40 | **/color** — Change the color of the prompt input with `/color`. When you have 3-5 sessions open in different terminals, color-coding them makes it in… | Per-worktree color set in project settings.local.json. | customization | Habit only | /color is per-worktree, set per session. | No | — | — | No probe yet |
+| 41 | **PostCompact Hook** — A new hook event that fires after Claude compresses its conversation context. Use it to re-inject critical instructions that might get lo… | PostCompact entry in `~/.claude/settings.json` hooks. | automation | Setup only | PostCompact hook is configuration. | No | — | — | No probe yet |
+| 42 | **Auto Mode** — Instead of approving every file write and bash command, or skipping permissions entirely, auto mode lets Claude make permission decisions… | Auto-mode adoption + sessions actually using it. | permissions | Both | Auto mode is a config flag, but the value comes from actively running sessions in auto mode (skipDangerous=false + acceptEdits gives auto mode). | Partial | — | — | No probe yet |
+| 43 | **/schedule** — Use `/schedule` to create recurring cloud-based jobs for Claude, directly from the terminal. Unlike `/loop` (which runs locally for up to… | `scheduleCommandUses ≥ 1`. | scheduled | Habit only | /schedule is a habit — kick off recurring cloud tasks. | Yes | ≥ 1 | 0 | Missed |
+| 44 | **iMessage Plugin** — iMessage is now available as a Claude Code channel. Install the plugin and text Claude like you'd text a friend — from any Apple device. | iMessage plugin installed AND iMessage-originated sessions detected. | integrations/remote | Both | iMessage plugin install is setup; texting Claude from iOS is the habit. | No | — | — | No probe yet |
+| 45 | **Auto-Memory & Auto-Dream** — Claude Code has a built-in memory system. Run `/memory` to configure it. | Auto-dream config flag present in claude state. | memory | Setup only | Auto-dream is enabled in /memory once. | No | — | — | No probe yet |
+| 46 | **Mobile App** — Claude Code has a mobile app. Download the Claude app for iOS/Android, then tap the Code tab on the left. Boris writes a lot of his code… | Mobile-originated `origin.kind` shape in transcripts. | remote | Both | Mobile app install is setup; kicking off iOS tasks is the habit. | No | — | — | No probe yet |
+| 47 | **Session Teleporting** — Move sessions back and forth between mobile/web/desktop and terminal. | `hasUsedRemoteControl` true (correlated proxy). | remote | Setup only | Session teleporting requires a one-time enable, then is automatic across surfaces. | Yes | true | true | Passed |
+| 48 | **/loop & /schedule** — Two of the most powerful features in Claude Code. Use these to schedule Claude to run automatically at a set interval, for up to a week a… | Sessions with both `/loop` AND `/babysit` user turns. | scheduled | Habit only | /loop /babysit cadence is a habit. | Yes | ≥ 1 | 0 | Missed |
+| 49 | **Hooks Lifecycle** — Use hooks to deterministically run logic as part of the agent lifecycle: | Multiple hook events configured. | automation | Setup only | Hook lifecycle understanding leads to one-time hook setup. | Yes | ≥ 2 | 7 | Passed |
+| 50 | **Cowork Dispatch** — Boris uses Dispatch every day to catch up on Slack and emails, manage files, and do things on his laptop when he's not at a computer. "Wh… | iOS-originated dispatch sessions in usage data. | remote | Habit only | Cowork dispatch from iPhone is a behavioral habit. | No | — | — | No probe yet |
+| 51 | **Chrome Extension** — The most important tip for using Claude Code: give Claude a way to verify its output. Once you do that, Claude will iterate until the res… | `claudeInChromeDefaultEnabled` true AND web-verification sessions. | verification/integrations | Both | Chrome extension install is setup; using it for web verification is the habit. | Yes | true | true | Passed |
+| 52 | **Desktop App** — Use the Claude Desktop app to have Claude automatically start and test web servers. The Desktop app bundles in the ability for Claude to… | Desktop-app sessions detected. | verification | Both | Desktop app install is setup; using it to test web servers is the habit. | No | — | — | No probe yet |
+| 53 | **Fork Sessions** — People often ask how to fork an existing session. Two ways: | Session-fork events in usage data. | — | Habit only | Forking sessions is a per-need habit. | No | — | — | No probe yet |
+| 54 | **/btw (deep dive)** — Use /btw all the time to answer quick questions while the agent works. Single-turn, no tool calls, but has full context of the conversati… | `/btw` invocations in transcripts. | — | Habit only | /btw — side-chain habit. | No | — | — | No probe yet |
+| 55 | **Git Worktrees (deep dive)** — Claude Code ships with deep support for git worktrees. Worktrees are essential for doing lots of parallel work in the same repository. Bo… | Multiple worktree-tagged sessions in usage data. | parallel | Habit only | Worktrees deep dive — habit of running parallel work in worktrees. | Partial | — | — | No probe yet |
+| 56 | **/batch (deep dive)** — /batch interviews you, then has Claude fan out the work to as many worktree agents as it takes (dozens, hundreds, even thousands) to get… | N/A — coaching content. | parallel | Coaching only | Mental-model deep-dive on /batch. Action signal handled by tip 30. | N/A | — | — | Does not apply |
+| 57 | **--bare** — By default, when you run `claude -p` (or the TypeScript or Python SDKs) it searches for local CLAUDE.md's, settings, and MCPs. But for no… | `--bare` flag usage in CLI invocations. | — | Habit only | --bare is a per-invocation flag for non-interactive use. | No | — | — | No probe yet |
+| 58 | **--add-dir** — When working across multiple repositories, start Claude in one repo and use `--add-dir` (or `/add-dir`) to let Claude see the other repo… | `--add-dir` usage in CLI invocations. | integrations | Habit only | --add-dir is a per-session habit when working across repos. | No | — | — | No probe yet |
+| 59 | **--agent** — Custom agents are a powerful primitive that often gets overlooked. Define a new agent in .claude/agents, then run `claude --agent=<your a… | `--agent=<name>` usage in CLI invocations. | automation | Habit only | --agent flag is per-launch — invoke a specific custom agent. | No | — | — | No probe yet |
+| 60 | **/voice** — Boris does most of his coding by speaking to Claude, rather than typing. To do the same: | Voice-originated turns in transcripts. | — | Habit only | /voice — speaking to Claude is a per-session habit. | No | — | — | No probe yet |
+| 61 | **Routines** — Configure a routine once (prompt, repo, connectors), and it runs on a schedule, from an API call, or in response to a GitHub event. Runs… | Routine configured + scheduled-run executions. | scheduled | Both | Configuring a Routine is setup; running it on a schedule is the habit. | Yes | ≥ 1 | 0 | Missed |
+| 62 | **/rewind over correcting** — The single habit that signals good context management is rewind, not correction. | `rewindCommandUses ≥ 1`. | memory | Habit only | /rewind is a behavioral reflex when Claude goes sideways. | Yes | ≥ 1 | 6 | Passed |
+| 63 | **/compact vs /clear** — Two ways to shed weight from a long session. They feel similar but behave very differently. | `/compact` and `/clear` invocations balanced reasonably (no thresholding yet). | memory | Habit only | /compact vs /clear is a per-session decision habit. | No | — | — | No probe yet |
+| 64 | **Auto-Compact Window** — Context rot — model performance degrading as context grows — kicks in around 300-400k tokens on the 1M context model. You can set your au… | `autoCompactWindow` non-null in settings. | memory | Setup only | Auto-compact window value is set once in settings. | Yes | non-null | 400000 | Passed |
+| 65 | **Delegation over Guidance** — Mental model shift from Cat Wu (Apr 16, 2026) on Opus 4.7 in Claude Code: | `planThenLaunchSessions ≥ 1` (first assistant turn after ExitPlanMode is a tool_use). | planning | Habit only | Delegating after plan mode (instead of narrating) is a behavioral habit. | Yes | ≥ 1 | 3 | Passed |
+| 66 | **Full Task Context Upfront** — The delegation model (tip 65) only works if Claude has what it needs. Cat's second tip: | Prompts containing 'Goal', 'Constraints', 'Acceptance Criteria' near top. | planning | Habit only | Goal/Constraints/Acceptance template is a prompt-shape habit. | No | — | — | No probe yet |
+| 67 | **xhigh effort level** — Opus 4.7 in Claude Code defaults to `xhigh` — a new effort level beyond the low/medium/high/max scale tip 34 described. The model reasons… | `effortLevel` ∈ {xhigh, max} in `~/.claude/settings.json`. | model-effort | Setup only | `effortLevel: xhigh` is set in settings.json once and persists. | Yes | ∈ {xhigh / max} | high | Missed |
+| 68 | **Auto Mode + Parallel** — Opus 4.7 loves complex, long-running tasks — deep research, refactoring code, building complex features, iterating until it hits a perfor… | Auto-mode sessions running in worktrees, multi-hour duration. | parallel | Habit only | Auto-mode + parallel is the habit of leaving long autonomous tasks running in worktrees. | No | — | — | No probe yet |
+| 69 | **/fewer-permission-prompts** — A new skill that scans through your session history to find common bash and MCP commands that are safe but caused repeated permission pro… | `/fewer-permission-prompts` invocations in transcripts. | permissions | Habit only | /fewer-permission-prompts is a habit — run the skill periodically to extend allowlist. | No | — | — | No probe yet |
+| 70 | **Recaps** — Shipped alongside Opus 4.7. Recaps are short summaries of what an agent did and what's next. Very useful when returning to a long-running… | Recap-request prompts in transcripts. | memory | Habit only | Recaps are auto-generated; the habit is asking for them when returning to a session. | No | — | — | No probe yet |
+| 71 | **Focus Mode** — Boris: "I've been loving the new focus mode in the CLI, which hides all the intermediate work to just focus on the final result. The mode… | `focusCommandUses ≥ 1`. | customization | Habit only | /focus mode hides intermediate work — toggled per session. | Yes | ≥ 1 | 1 | Passed |
+| 72 | **Effort Mastery** — Opus 4.7 uses adaptive thinking instead of fixed thinking budgets. The model decides when thinking is beneficial — less overthinking, sma… | Sessions running at effortLevel=xhigh. | model-effort | Habit only | Adaptive thinking — the habit of letting xhigh decide when to think. | Yes | ∈ {xhigh / max} | high | Missed |
+| 73 | **/go composite skill** — "Give Claude a way to verify its work. This has always been a way to 2-3x what you get out of Claude, and with 4.7 it's more important th… | `goCommandUses ≥ 1`. | verification | Habit only | `Claude do X, then /go` closing prompt is a verification habit. | Yes | ≥ 1 | 270 | Passed |
+| 74 | **4.6→4.7 Behavioral Shifts** — If you're upgrading from 4.6, three changes matter. Don't assume old habits carry over. | N/A — coaching. | — | Coaching only | 4.6→4.7 behavioral shifts is awareness/knowledge content. | N/A | — | — | Does not apply |
+| 75 | **Task Notifications** — With auto mode + focus mode, you spend less time watching Claude work. Set up notifications so you know when it finishes: | `hasStopHookNotification` true. | automation/scheduled | Setup only | Stop-hook task notifications are configured once. | Yes | true | true | Passed |
+| 76 | (not in repo data) | — | — | (missing) | Repo data file holds only 75 tips; canonical post has 87. Source the missing rows externally to fill. | (missing) | — | — | (missing) |
+| 77 | (not in repo data) | — | — | (missing) | Repo data file holds only 75 tips; canonical post has 87. Source the missing rows externally to fill. | (missing) | — | — | (missing) |
+| 78 | (not in repo data) | — | — | (missing) | Repo data file holds only 75 tips; canonical post has 87. Source the missing rows externally to fill. | (missing) | — | — | (missing) |
+| 79 | (not in repo data) | — | — | (missing) | Repo data file holds only 75 tips; canonical post has 87. Source the missing rows externally to fill. | (missing) | — | — | (missing) |
+| 80 | (not in repo data) | — | — | (missing) | Repo data file holds only 75 tips; canonical post has 87. Source the missing rows externally to fill. | (missing) | — | — | (missing) |
+| 81 | (not in repo data) | — | — | (missing) | Repo data file holds only 75 tips; canonical post has 87. Source the missing rows externally to fill. | (missing) | — | — | (missing) |
+| 82 | (not in repo data) | — | — | (missing) | Repo data file holds only 75 tips; canonical post has 87. Source the missing rows externally to fill. | (missing) | — | — | (missing) |
+| 83 | (not in repo data) | — | — | (missing) | Repo data file holds only 75 tips; canonical post has 87. Source the missing rows externally to fill. | (missing) | — | — | (missing) |
+| 84 | (not in repo data) | — | — | (missing) | Repo data file holds only 75 tips; canonical post has 87. Source the missing rows externally to fill. | (missing) | — | — | (missing) |
+| 85 | (not in repo data) | — | — | (missing) | Repo data file holds only 75 tips; canonical post has 87. Source the missing rows externally to fill. | (missing) | — | — | (missing) |
+| 86 | (not in repo data) | — | — | (missing) | Repo data file holds only 75 tips; canonical post has 87. Source the missing rows externally to fill. | (missing) | — | — | (missing) |
+| 87 | (not in repo data) | — | — | (missing) | Repo data file holds only 75 tips; canonical post has 87. Source the missing rows externally to fill. | (missing) | — | — | (missing) |
+
+## Reading the drop
+
+**Habits dry in the 30-day window** (probe says Missed; these are score-drop drivers):
+
+- **Tip 1** — Run Multiple Claude Sessions in Parallel: Worktree shell aliases (one-time setup) + actually running parallel sessions (recurring habit).
+- **Tip 6** — Use Subagents for Common Workflows: Defining subagents is setup; dispatching them in sessions is the habit.
+- **Tip 14** — Give Claude a Way to Verify Its Work: Authoring a verify-app agent is setup; running it before merge is the habit.
+- **Tip 19** — Create Custom Agents: Authoring agent files is setup; invoking via --agent or subagent dispatch is the habit.
+- **Tip 28** — Use `claude --worktree` for Isolation: Adding `isolation: worktree` to agents is setup; running them in worktrees is the habit.
+- **Tip 31** — /loop: /loop is a habit — schedule recurring tasks.
+- **Tip 34** — /effort max: /effort max is per-session.
+- **Tip 43** — /schedule: /schedule is a habit — kick off recurring cloud tasks.
+- **Tip 48** — /loop & /schedule: /loop /babysit cadence is a habit.
+- **Tip 61** — Routines: Configuring a Routine is setup; running it on a schedule is the habit.
+- **Tip 72** — Effort Mastery: Adaptive thinking — the habit of letting xhigh decide when to think.
+
+**Habits firing in the 30-day window** (probe says Passed; these are saving your score):
+
+- **Tip 73** — /go composite skill: 270.
+- **Tip 30** — /batch: 208.
+- **Tip 18** — Install Plugins, MCPs, and Skills: 33.
+- **Tip 9** — Tool Integrations: 7.
+- **Tip 62** — /rewind over correcting: 6.
+- **Tip 5** — Create Your Own Skills: 3.
+- **Tip 65** — Delegation over Guidance: 3.
+- **Tip 10** — Challenge Claude: 1.
+- **Tip 71** — Focus Mode: 1.
+- **Tip 4** — Invest in Your CLAUDE.md: true.
+- **Tip 51** — Chrome Extension: true.
+
+**Measurable but no probe yet** (instrument-roadmap candidates — Habit-only/Both tips with no signal collector):
+
+- **Tip 2** — Use Opus 4.5 with Thinking for Everything.
+- **Tip 3** — Start Every Complex Task in Plan Mode.
+- **Tip 11** — Recommended Tools.
+- **Tip 12** — Let Claude Fix Bugs.
+- **Tip 13** — Handle Long-Running Tasks.
+- **Tip 15** — **Use Claude for Learning**.
+- **Tip 29** — /simplify.
+- **Tip 32** — Code Review Agents.
+- **Tip 33** — /btw.
+- **Tip 36** — Voice.
+- **Tip 38** — Session Naming.
+- **Tip 40** — /color.
+- **Tip 42** — Auto Mode.
+- **Tip 44** — iMessage Plugin.
+- **Tip 46** — Mobile App.
+- **Tip 50** — Cowork Dispatch.
+- **Tip 52** — Desktop App.
+- **Tip 53** — Fork Sessions.
+- **Tip 54** — /btw (deep dive).
+- **Tip 55** — Git Worktrees (deep dive).
+- **Tip 57** — --bare.
+- **Tip 58** — --add-dir.
+- **Tip 59** — --agent.
+- **Tip 60** — /voice.
+- **Tip 63** — /compact vs /clear.
+- **Tip 66** — Full Task Context Upfront.
+- **Tip 68** — Auto Mode + Parallel.
+- **Tip 69** — /fewer-permission-prompts.
+- **Tip 70** — Recaps.
+
+## Recommendation
+
+Execution will recover when meta-engineering wraps and you go back to **practicing what's installed**:
+
+1. **One `/loop 30m /babysit` session** — 5min cost. Closes tip 48 + tip 75.
+2. **Use plan mode for the next non-trivial PR** — keeps planThenLaunchSessions ≥1. Lifts Planning exec.
+3. **Set up 3 worktree shell aliases** (`za`/`zb`/`zc`) — 5min once. Closes tip 1.
+4. **Promote one repeating workflow to a Routine** (`/schedule`) — closes tip 31 + 43 + 61.
+5. **Stop using `--insights-lookback 14`** — the default 30-day window is the canonical view; 14 is a stress test.
+
+Almost every habit-tip threshold is **≥ 1 in 14 days**. Non-zero touchpoints close the gap.
+
+## Open work surfaced by this audit
+
+- **29 measurable tips have no probe yet.** These are instrumentation candidates if/when investment is justified.
+- **9 tips have partial probes** (signal exists but no test coverage or experimental). Hardening these is cheap.
+- **12 tips (76–87) are missing from the repo data file.** Source them from the canonical Boris post and append to `boris-tip-index.json` + `boris-tips-content.json`.
