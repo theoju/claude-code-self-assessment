@@ -28,12 +28,11 @@ const COMMAND_TO_FIELD = {
   compact: "compactCommandUses",
   "fewer-permission-prompts": "fewerPermsCommandUses",
   loop: "loopCommandUses",
-  // /babysit feeds the babysitLoopUses field. The transcript scanner
-  // requires BOTH /loop and /babysit in a session for the pair signal,
-  // but the user's intent when typing /babysit alone is the same
-  // adoption marker the rubric tip 50 is testing for. Treat history-
-  // observed /babysit as a positive babysitLoopUses signal.
-  babysit: "babysitLoopUses",
+  // /babysit is intentionally NOT mapped here. babysitLoopUses must keep
+  // its strict per-session AND-gate (both /loop AND /babysit in the same
+  // session) per the V1.4 audit (PR #46). Counting /babysit alone from
+  // history would defeat that audit's intent — loopCommandUses already
+  // captures the looser "any /loop session" signal.
   focus: "focusCommandUses",
   schedule: "scheduleCommandUses",
   batch: "batchCommandUses",
@@ -143,7 +142,6 @@ export const HISTORY_COMMAND_LIST = [
   "compact",
   "fewer-permission-prompts",
   "loop",
-  "babysit",
   "focus",
   "schedule",
   "batch",

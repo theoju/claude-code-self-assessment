@@ -15,7 +15,6 @@ const COMMANDS = [
   "compact",
   "fewer-permission-prompts",
   "loop",
-  "babysit",
   "focus",
   "schedule",
   "batch",
@@ -60,7 +59,6 @@ describe("scanHistoryJsonl", () => {
       compactCommandUses: 0,
       fewerPermsCommandUses: 0,
       loopCommandUses: 0,
-      babysitLoopUses: 0,
       focusCommandUses: 0,
       scheduleCommandUses: 0,
       batchCommandUses: 0,
@@ -175,7 +173,7 @@ describe("scanHistoryJsonl", () => {
       commands: COMMANDS,
     });
     expect(r.btwCommandUses).toBe(0);
-    expect(r.babysitLoopUses).toBe(0);
+    expect(r.babysitLoopUses ?? 0).toBe(0);
   });
 
   it("skips malformed JSON lines gracefully", async () => {
@@ -207,7 +205,7 @@ describe("scanHistoryJsonl", () => {
     expect(r.simplifyCommandUses).toBe(1);
   });
 
-  it("maps /babysit to babysitLoopUses and /fewer-permission-prompts to fewerPermsCommandUses", async () => {
+  it("does NOT map /babysit to babysitLoopUses (strict pairing preserved per V1.4)", async () => {
     writeFileSync(
       historyPath,
       [
@@ -229,7 +227,7 @@ describe("scanHistoryJsonl", () => {
       lookbackMs: 14 * 24 * 60 * 60 * 1000,
       commands: COMMANDS,
     });
-    expect(r.babysitLoopUses).toBe(1);
+    expect(r.babysitLoopUses ?? 0).toBe(0);
     expect(r.fewerPermsCommandUses).toBe(1);
   });
 
