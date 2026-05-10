@@ -1,5 +1,13 @@
 import { describe, it, expect } from "vitest";
-import { SCORERS, EXECUTION_SCORERS, tierFor, clamp, scoreAll, computeTrends, DEFAULT_NOISE_FLOOR } from "../score.mjs";
+import {
+  SCORERS,
+  EXECUTION_SCORERS,
+  tierFor,
+  clamp,
+  scoreAll,
+  computeTrends,
+  DEFAULT_NOISE_FLOOR,
+} from "../score.mjs";
 import { makeSignals, makeRubric, makeInsights } from "./_fixtures.mjs";
 
 describe("clamp", () => {
@@ -91,13 +99,18 @@ describe("SCORERS.permissions", () => {
       }),
     );
     expect(r.score).toBeGreaterThanOrEqual(70);
-    expect(r.evidence.some((e) => /3 permission allowlist/i.test(e))).toBe(true);
+    expect(r.evidence.some((e) => /3 permission allowlist/i.test(e))).toBe(
+      true,
+    );
   });
   it("amplifies penalty when transcripts show bypassPermissions usage", () => {
     const clean = SCORERS.permissions(makeSignals());
     const bypassed = SCORERS.permissions(
       makeSignals({
-        insights: makeInsights({ transcriptsScanned: true, bypassPermissionsSessionCount: 5 }),
+        insights: makeInsights({
+          transcriptsScanned: true,
+          bypassPermissionsSessionCount: 5,
+        }),
       }),
     );
     expect(bypassed.score).toBe(clean.score - 5);
@@ -115,7 +128,9 @@ describe("SCORERS.permissions", () => {
 describe("SCORERS['model-effort']", () => {
   it("rewards xhigh/max effort", () => {
     const xhigh = SCORERS["model-effort"](
-      makeSignals({ settings: { effortLevel: "xhigh", autoCompactWindow: "400000" } }),
+      makeSignals({
+        settings: { effortLevel: "xhigh", autoCompactWindow: "400000" },
+      }),
     );
     expect(xhigh.score).toBeGreaterThanOrEqual(85);
     expect(xhigh.gaps.length).toBe(0);
@@ -155,7 +170,12 @@ describe("SCORERS.verification", () => {
   it("rewards playwright + /go composite + review plugins", () => {
     const r = SCORERS.verification(
       makeSignals({
-        has: { playwright: true, semgrep: true, prReviewToolkit: true, superpowers: true },
+        has: {
+          playwright: true,
+          semgrep: true,
+          prReviewToolkit: true,
+          superpowers: true,
+        },
         personalCommands: ["go.md"],
       }),
     );
@@ -173,7 +193,10 @@ describe("SCORERS.memory", () => {
   it("rewards memory files + claudeMd + plans + plugin", () => {
     const r = SCORERS.memory(
       makeSignals({
-        memory: [{ project: "x", fileCount: 3 }, { project: "y", fileCount: 2 }],
+        memory: [
+          { project: "x", fileCount: 3 },
+          { project: "y", fileCount: 2 },
+        ],
         claudeMdExists: true,
         plansCount: 15,
         has: { claudeMdMgmt: true },
@@ -336,7 +359,9 @@ describe("EXECUTION_SCORERS", () => {
     });
     it("scales inversely with buggy_code + wrong_approach rate", () => {
       const clean = EXECUTION_SCORERS.verification(
-        makeSignals({ insights: makeInsights({ sessionsAnalyzed: 100, frictionCounts: {} }) }),
+        makeSignals({
+          insights: makeInsights({ sessionsAnalyzed: 100, frictionCounts: {} }),
+        }),
       );
       const messy = EXECUTION_SCORERS.verification(
         makeSignals({
@@ -407,7 +432,10 @@ describe("EXECUTION_SCORERS", () => {
     it("flags low subagent dispatch as a gap", () => {
       const r = EXECUTION_SCORERS.parallel(
         makeSignals({
-          insights: makeInsights({ sessionsAnalyzed: 100, subagentSessionCount: 5 }),
+          insights: makeInsights({
+            sessionsAnalyzed: 100,
+            subagentSessionCount: 5,
+          }),
         }),
       );
       expect(r.gaps.join(" ")).toMatch(/Subagent dispatch/);
@@ -440,10 +468,14 @@ describe("EXECUTION_SCORERS", () => {
   describe("automation", () => {
     it("scales with hook fire count", () => {
       const cold = EXECUTION_SCORERS.automation(
-        makeSignals({ insights: makeInsights({ sessionsAnalyzed: 100, hookFireCount: 0 }) }),
+        makeSignals({
+          insights: makeInsights({ sessionsAnalyzed: 100, hookFireCount: 0 }),
+        }),
       );
       const warm = EXECUTION_SCORERS.automation(
-        makeSignals({ insights: makeInsights({ sessionsAnalyzed: 100, hookFireCount: 100 }) }),
+        makeSignals({
+          insights: makeInsights({ sessionsAnalyzed: 100, hookFireCount: 100 }),
+        }),
       );
       expect(warm.score).toBeGreaterThan(cold.score);
       expect(cold.gaps.join(" ")).toMatch(/dormant/i);
@@ -452,7 +484,11 @@ describe("EXECUTION_SCORERS", () => {
       const r = EXECUTION_SCORERS.automation(
         makeSignals({
           personalAgents: ["mine.md"],
-          insights: makeInsights({ sessionsAnalyzed: 100, hookFireCount: 0, subagentSessionCount: 50 }),
+          insights: makeInsights({
+            sessionsAnalyzed: 100,
+            hookFireCount: 0,
+            subagentSessionCount: 50,
+          }),
         }),
       );
       expect(r.score).toBe(20);
@@ -463,7 +499,10 @@ describe("EXECUTION_SCORERS", () => {
       // legitimate score of 0; the former must surface as unmeasured.
       const r = EXECUTION_SCORERS.automation(
         makeSignals({
-          insights: makeInsights({ sessionsAnalyzed: 100, hookFireCount: null }),
+          insights: makeInsights({
+            sessionsAnalyzed: 100,
+            hookFireCount: null,
+          }),
         }),
       );
       expect(r.score).toBeNull();
@@ -526,7 +565,9 @@ describe("EXECUTION_SCORERS", () => {
   describe("scheduled", () => {
     it("scores 0 with dormant gap when no scheduled-tool invocations", () => {
       const r = EXECUTION_SCORERS.scheduled(
-        makeSignals({ insights: makeInsights({ scheduledInvocationsTotal: 0 }) }),
+        makeSignals({
+          insights: makeInsights({ scheduledInvocationsTotal: 0 }),
+        }),
       );
       expect(r.score).toBe(0);
       expect(r.gaps.join(" ")).toMatch(/dormant/);
@@ -534,13 +575,19 @@ describe("EXECUTION_SCORERS", () => {
     });
     it("uses presence-and-intensity: 1=50, 2=75, 3+=100", () => {
       const one = EXECUTION_SCORERS.scheduled(
-        makeSignals({ insights: makeInsights({ scheduledInvocationsTotal: 1 }) }),
+        makeSignals({
+          insights: makeInsights({ scheduledInvocationsTotal: 1 }),
+        }),
       );
       const two = EXECUTION_SCORERS.scheduled(
-        makeSignals({ insights: makeInsights({ scheduledInvocationsTotal: 2 }) }),
+        makeSignals({
+          insights: makeInsights({ scheduledInvocationsTotal: 2 }),
+        }),
       );
       const five = EXECUTION_SCORERS.scheduled(
-        makeSignals({ insights: makeInsights({ scheduledInvocationsTotal: 5 }) }),
+        makeSignals({
+          insights: makeInsights({ scheduledInvocationsTotal: 5 }),
+        }),
       );
       expect(one.score).toBe(50);
       expect(two.score).toBe(75);
@@ -572,7 +619,9 @@ describe("EXECUTION_SCORERS", () => {
     it.each(["model-effort", "memory", "customization"])(
       "%s returns null with NO_TELEMETRY_FOR_DIMENSION reason",
       (id) => {
-        const r = EXECUTION_SCORERS[id](makeSignals({ insights: makeInsights() }));
+        const r = EXECUTION_SCORERS[id](
+          makeSignals({ insights: makeInsights() }),
+        );
         expect(r.score).toBeNull();
         expect(r.gapReason).toMatch(/no \/insights telemetry/);
       },
@@ -627,7 +676,13 @@ describe("scoreAll", () => {
     for (const s of result.scores) {
       expect(s.score).toBeGreaterThanOrEqual(0);
       expect(s.score).toBeLessThanOrEqual(100);
-      expect(["not-touched", "starter", "developing", "solid", "advanced"]).toContain(s.tier);
+      expect([
+        "not-touched",
+        "starter",
+        "developing",
+        "solid",
+        "advanced",
+      ]).toContain(s.tier);
     }
   });
   it("computes weight-normalized overall and target", () => {
@@ -643,9 +698,15 @@ describe("scoreAll", () => {
     expect(() => new Date(result.capturedAt).toISOString()).not.toThrow();
   });
   it("zeroes out scores for unknown rubric ids", () => {
-    const rubric = { dimensions: [{ id: "made-up", title: "X", weight: 1, target: 50 }] };
+    const rubric = {
+      dimensions: [{ id: "made-up", title: "X", weight: 1, target: 50 }],
+    };
     const result = scoreAll(rubric, makeSignals());
-    expect(result.scores[0]).toMatchObject({ id: "made-up", score: 0, tier: "not-touched" });
+    expect(result.scores[0]).toMatchObject({
+      id: "made-up",
+      score: 0,
+      tier: "not-touched",
+    });
   });
 
   it("emits null executionOverall when no execution data is available", () => {
@@ -659,12 +720,18 @@ describe("scoreAll", () => {
       makeRubric(),
       makeSignals({
         plugins: ["a@1", "b@1"],
-        insights: makeInsights({ sessionsAnalyzed: 100, subagentSessionCount: 50, frictionCounts: {} }),
+        insights: makeInsights({
+          sessionsAnalyzed: 100,
+          subagentSessionCount: 50,
+          frictionCounts: {},
+        }),
       }),
     );
     expect(typeof result.executionOverall).toBe("number");
     expect(result.executionOverall).toBeGreaterThan(0);
-    const exScored = result.scores.filter((s) => typeof s.executionScore === "number");
+    const exScored = result.scores.filter(
+      (s) => typeof s.executionScore === "number",
+    );
     expect(exScored.length).toBeGreaterThan(0);
   });
 });
@@ -700,9 +767,9 @@ describe("computeTrends (legacy — no rubric arg)", () => {
     const curWithEvidence = {
       scores: [
         { id: "a", score: 70, evidence: ["base", "new-signal"], gaps: [] }, // +5, evidence added → improving
-        { id: "b", score: 50, evidence: ["base"], gaps: ["gap1"] },         // -5, gaps added → slipping
-        { id: "c", score: 80, evidence: ["base"], gaps: [] },               // flat
-        { id: "d", score: 40, evidence: [], gaps: [] },                     // new
+        { id: "b", score: 50, evidence: ["base"], gaps: ["gap1"] }, // -5, gaps added → slipping
+        { id: "c", score: 80, evidence: ["base"], gaps: [] }, // flat
+        { id: "d", score: 40, evidence: [], gaps: [] }, // new
       ],
     };
     const trends = computeTrends(curWithEvidence, history);
@@ -714,10 +781,22 @@ describe("computeTrends (legacy — no rubric arg)", () => {
 
   it("treats ±1 as flat (within noise band)", () => {
     const history = [
-      { capturedAt: "x", overall: 60, scores: [{ id: "a", score: 71 }, { id: "b", score: 49 }] },
+      {
+        capturedAt: "x",
+        overall: 60,
+        scores: [
+          { id: "a", score: 71 },
+          { id: "b", score: 49 },
+        ],
+      },
     ];
     const trends = computeTrends(
-      { scores: [{ id: "a", score: 70 }, { id: "b", score: 50 }] },
+      {
+        scores: [
+          { id: "a", score: 70 },
+          { id: "b", score: 50 },
+        ],
+      },
       history,
     );
     expect(trends.a).toBe("flat");
@@ -738,37 +817,94 @@ describe("computeTrends", () => {
   }
 
   it("returns 'new' for any dimension on first run", () => {
-    const t = computeTrends(snapshot([{ id: "automation", score: 60, evidence: [], gaps: [] }]), [], rubric);
+    const t = computeTrends(
+      snapshot([{ id: "automation", score: 60, evidence: [], gaps: [] }]),
+      [],
+      rubric,
+    );
     expect(t.automation).toBe("new");
   });
 
   it("flags 'flat' for sub-noise-floor wobbles", () => {
-    const prev = snapshot([{ id: "automation", score: 60, evidence: ["a"], gaps: ["b"] }]);
-    const cur = snapshot([{ id: "automation", score: 63, evidence: ["a"], gaps: ["b"] }]);
+    const prev = snapshot([
+      { id: "automation", score: 60, evidence: ["a"], gaps: ["b"] },
+    ]);
+    const cur = snapshot([
+      { id: "automation", score: 63, evidence: ["a"], gaps: ["b"] },
+    ]);
     const t = computeTrends(cur, [prev], rubric);
     expect(t.automation).toBe("flat");
   });
 
   it("flags 'flat' when score moved past floor but evidence/gaps unchanged", () => {
-    const prev = snapshot([{ id: "automation", score: 60, evidence: ["x"], gaps: [] }]);
-    const cur = snapshot([{ id: "automation", score: 70, evidence: ["x"], gaps: [] }]);
+    const prev = snapshot([
+      { id: "automation", score: 60, evidence: ["x"], gaps: [] },
+    ]);
+    const cur = snapshot([
+      { id: "automation", score: 70, evidence: ["x"], gaps: [] },
+    ]);
     const t = computeTrends(cur, [prev], rubric);
     expect(t.automation).toBe("flat");
   });
 
   it("flags 'improving' when score and evidence both move up", () => {
-    const prev = snapshot([{ id: "automation", score: 60, evidence: ["x"], gaps: ["y"] }]);
-    const cur = snapshot([{ id: "automation", score: 75, evidence: ["x", "z"], gaps: [] }]);
+    const prev = snapshot([
+      { id: "automation", score: 60, evidence: ["x"], gaps: ["y"] },
+    ]);
+    const cur = snapshot([
+      { id: "automation", score: 75, evidence: ["x", "z"], gaps: [] },
+    ]);
     const t = computeTrends(cur, [prev], rubric);
     expect(t.automation).toBe("improving");
   });
 
   it("uses DEFAULT_NOISE_FLOOR when dimension has no override", () => {
-    const prev = snapshot([{ id: "permissions", score: 60, evidence: ["x"], gaps: [] }]);
+    const prev = snapshot([
+      { id: "permissions", score: 60, evidence: ["x"], gaps: [] },
+    ]);
     const cur = snapshot([
-      { id: "permissions", score: 60 + DEFAULT_NOISE_FLOOR - 1, evidence: ["x"], gaps: [] },
+      {
+        id: "permissions",
+        score: 60 + DEFAULT_NOISE_FLOOR - 1,
+        evidence: ["x"],
+        gaps: [],
+      },
     ]);
     const t = computeTrends(cur, [prev], rubric);
     expect(t.permissions).toBe("flat");
+  });
+});
+
+describe("SCORERS.integrations — v0.8 bonuses", () => {
+  it("adds bonus for mcpServersConnected (capped at +15)", () => {
+    const baseline = SCORERS.integrations(makeSignals()).score;
+    const oneMcp = SCORERS.integrations(
+      makeSignals({ mcpServersConnected: 1 }),
+    ).score;
+    const fiveMcp = SCORERS.integrations(
+      makeSignals({ mcpServersConnected: 5 }),
+    ).score;
+    const tenMcp = SCORERS.integrations(
+      makeSignals({ mcpServersConnected: 10 }),
+    ).score;
+    expect(oneMcp).toBe(Math.min(100, baseline + 3));
+    expect(fiveMcp).toBe(Math.min(100, baseline + 15));
+    expect(tenMcp).toBe(Math.min(100, baseline + 15)); // capped
+  });
+
+  it("adds +5 for hasClaudeInChrome", () => {
+    const baseline = SCORERS.integrations(makeSignals()).score;
+    const withChrome = SCORERS.integrations(
+      makeSignals({ hasClaudeInChrome: true }),
+    ).score;
+    expect(withChrome).toBe(Math.min(100, baseline + 5));
+  });
+
+  it("evidence reflects new credits", () => {
+    const r = SCORERS.integrations(
+      makeSignals({ mcpServersConnected: 3, hasClaudeInChrome: true }),
+    );
+    expect(r.evidence.some((e) => e.includes("MCP server"))).toBe(true);
+    expect(r.evidence.some((e) => e.includes("Claude in Chrome"))).toBe(true);
   });
 });
