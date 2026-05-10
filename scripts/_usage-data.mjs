@@ -365,6 +365,30 @@ export async function scanTranscriptInvocations(options = {}) {
   return counts;
 }
 
+// Skill invocations that are structurally equivalent to native plan mode.
+// The Planning Setup scorer already credits the user for having these
+// (see score.mjs#planning: "brainstorming / writing-plans / executing-plans
+// skills"). Mirroring the signal here lets the Execution scorer count the
+// user's actual planning ritual instead of only the rare shift+tab+enter
+// keystroke.
+const PLANNING_SKILL_COMMANDS = new Set([
+  "superpowers:brainstorming",
+  "superpowers:writing-plans",
+  "superpowers:executing-plans",
+  "superpowers:subagent-driven-development",
+  "ultraplan",
+]);
+
+// Coaching/skill-learning surfaces. The existing ★ Insight banner detection
+// only fires for Explanatory output mode; users on Concise/Default get 0
+// banners regardless of real learning activity. These skill invocations
+// union with the banner signal so the Learning Exec scorer sees both.
+const LEARNING_SKILL_COMMANDS = new Set(["thariq-skills", "boris"]);
+
+// Match <command-name>cmd</command-name> with optional leading slash. Some
+// commands (e.g. /btw) emit the markup without the slash; most include it.
+const COMMAND_NAME_RE = /<command-name>\/?([\w:-]+)<\/command-name>/g;
+
 // Single transcript scan that surfaces every behavioral signal both consumers
 // need (permissionMode set, worktree-state flag, attributionSkill set). Keeps
 // transcript parsing in one place even if today both insights-signals.mjs and
@@ -397,6 +421,17 @@ export async function scanTranscriptModes(path) {
       skills.add(entry.attributionSkill);
     if (entry.type === "assistant" && raw.includes("★ Insight ")) {
       learningModeMatches += 1;
+    }
+    // Mode-equivalent skill detection — scan raw line text for the
+    // <command-name> markup. Lenient on leading slash; compares against
+    // the FULL namespaced form (don't strip plugin prefix) since the
+    // planning skills are namespaced as `superpowers:writing-plans`.
+    if (raw.includes("<command-name>")) {
+      for (const m of raw.matchAll(COMMAND_NAME_RE)) {
+        const cmd = m[1];
+        if (PLANNING_SKILL_COMMANDS.has(cmd)) modes.add("plan");
+        if (LEARNING_SKILL_COMMANDS.has(cmd)) modes.add("learning");
+      }
     }
   }
   return { modes, hasWorktreeState, skills, learningModeMatches };
