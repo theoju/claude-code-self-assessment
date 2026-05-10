@@ -106,6 +106,7 @@ export function buildSignalsSummary(signals) {
     scheduleCommandUses:
       signals.transcriptInvocations?.scheduleCommandUses ?? 0,
     babysitLoopUses: signals.transcriptInvocations?.babysitLoopUses ?? 0,
+    loopCommandUses: signals.transcriptInvocations?.loopCommandUses ?? 0,
     planThenLaunchSessions:
       signals.transcriptInvocations?.planThenLaunchSessions ?? 0,
     rewindCommandUses: signals.transcriptInvocations?.rewindCommandUses ?? 0,

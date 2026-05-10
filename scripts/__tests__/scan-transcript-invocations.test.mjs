@@ -78,6 +78,7 @@ describe("scanTranscriptInvocations", () => {
       focusCommandUses: 0,
       scheduleCommandUses: 0,
       babysitLoopUses: 0,
+      loopCommandUses: 0,
       planThenLaunchSessions: 0,
       rewindCommandUses: 0,
     });
@@ -181,6 +182,50 @@ describe("scanTranscriptInvocations", () => {
       lookbackDays: 30,
     });
     expect(r.babysitLoopUses).toBe(2);
+  });
+
+  it("counts loopCommandUses for any session containing /loop (even without /babysit)", async () => {
+    // 30-day sampling: 92% of /loop adoption is unpaired with /babysit.
+    // The strict babysitLoopUses counter under-counts the dominant pattern.
+    // loopCommandUses captures /loop alone — what users actually do.
+    writeSession("s1", [userText("/loop 30m")]);
+    writeSession("s2", [userText("hello"), userText("no slash here")]);
+    const r = await scanTranscriptInvocations({
+      projectsRoot,
+      now: new Date("2026-05-10T00:00:00Z"),
+      lookbackDays: 30,
+    });
+    expect(r.loopCommandUses).toBe(1);
+  });
+
+  it("loopCommandUses is 1-per-session, not per-message", async () => {
+    writeSession("s1", [
+      userText("/loop 30m"),
+      userText("/loop 5m /babysit-prs"),
+      userText("/loop"),
+    ]);
+    const r = await scanTranscriptInvocations({
+      projectsRoot,
+      now: new Date("2026-05-10T00:00:00Z"),
+      lookbackDays: 30,
+    });
+    expect(r.loopCommandUses).toBe(1);
+  });
+
+  it("loopCommandUses and babysitLoopUses are independent counters", async () => {
+    // s1: /loop alone → loopCommandUses++, babysitLoopUses unchanged
+    writeSession("s1", [userText("/loop 30m")]);
+    // s2: both → both increment
+    writeSession("s2", [userText("/loop"), userText("/babysit")]);
+    // s3: /babysit alone → neither increments (no /loop in the session)
+    writeSession("s3", [userText("/babysit")]);
+    const r = await scanTranscriptInvocations({
+      projectsRoot,
+      now: new Date("2026-05-10T00:00:00Z"),
+      lookbackDays: 30,
+    });
+    expect(r.loopCommandUses).toBe(2);
+    expect(r.babysitLoopUses).toBe(1);
   });
 
   it("detects plan-then-launch: counts when first assistant turn after ExitPlanMode is a tool_use", async () => {

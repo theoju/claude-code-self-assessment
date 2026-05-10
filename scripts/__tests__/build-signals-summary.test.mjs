@@ -44,6 +44,7 @@ function makeSignals(overrides = {}) {
       focusCommandUses: 1,
       scheduleCommandUses: 1,
       babysitLoopUses: 1,
+      loopCommandUses: 4,
       planThenLaunchSessions: 2,
       rewindCommandUses: 3,
     },
@@ -93,6 +94,7 @@ describe("buildSignalsSummary", () => {
       "focusCommandUses",
       "scheduleCommandUses",
       "babysitLoopUses",
+      "loopCommandUses",
       "planThenLaunchSessions",
       "rewindCommandUses",
     ];
@@ -463,6 +465,7 @@ describe("buildSignalsSummary", () => {
     expect(r.focusCommandUses).toBe(1);
     expect(r.scheduleCommandUses).toBe(1);
     expect(r.babysitLoopUses).toBe(1);
+    expect(r.loopCommandUses).toBe(4);
     expect(r.planThenLaunchSessions).toBe(2);
     expect(r.rewindCommandUses).toBe(3);
   });
@@ -519,6 +522,7 @@ describe("buildSignalsSummary", () => {
         "insightsSessionsAnalyzed",
         "insightsTranscriptsScanned",
         "keybindingsConfigured",
+        "loopCommandUses",
         "mcpServersConnected",
         "personalAgents",
         "personalCommands",

@@ -268,7 +268,7 @@
           "id": "babysit-loop",
           "action": "Start with one loop: /loop 30m /babysit — Boris tip 48",
           "effort": "5min",
-          "satisfiedWhen": "babysitLoopUses>=1"
+          "satisfiedWhen": "loopCommandUses>=1"
         },
         {
           "id": "stop-hook-notification",
