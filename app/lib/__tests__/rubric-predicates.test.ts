@@ -45,6 +45,7 @@ const ALL_SATISFIED_SIGNALS = {
   hasSlackPlugin: true,
   hasVercelPlugin: true,
   hasClaudeInChrome: true,
+  mcpServersConnected: 5,
   // counts
   plugins: 33,
   personalSkills: 2,

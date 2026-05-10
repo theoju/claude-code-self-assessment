@@ -71,6 +71,10 @@ export function buildSignalsSummary(signals) {
     keybindingsConfigured: signals.keybindingsConfigured,
     hasSlackPlugin: signals.plugins.some((p) => /slack/i.test(p)),
     hasVercelPlugin: signals.plugins.some((p) => /vercel/i.test(p)),
+    mcpServersConnected: (signals.mcpServers || []).filter(
+      (s) => s.status === "connected",
+    ).length,
+    hasMcpServers: (signals.mcpServers || []).length > 0,
     projectsWithMemory: signals.memory.length,
     insightsAvailable: !!signals.insights,
     insightsSessionsAnalyzed: signals.insights?.sessionsAnalyzed ?? 0,
