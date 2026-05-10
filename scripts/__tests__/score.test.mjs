@@ -964,14 +964,32 @@ describe("SCORERS.parallel — v0.8 bonuses", () => {
 });
 
 describe("SCORERS — v0.8 small bonuses across remaining dims", () => {
-  it("scheduled: +15 for babysitLoopUses, +10 for scheduleCommandUses", () => {
+  it("scheduled: +10 for babysitLoopUses, +5 for scheduleCommandUses", () => {
     const baseline = SCORERS.scheduled(makeSignals()).score;
     expect(SCORERS.scheduled(makeSignals({ babysitLoopUses: 1 })).score).toBe(
-      Math.min(100, baseline + 15),
+      Math.min(100, baseline + 10),
     );
     expect(
       SCORERS.scheduled(makeSignals({ scheduleCommandUses: 1 })).score,
-    ).toBe(Math.min(100, baseline + 10));
+    ).toBe(Math.min(100, baseline + 5));
+  });
+
+  it("scheduled: combined v9 bonuses cap at +15", () => {
+    const baseline = SCORERS.scheduled(makeSignals()).score;
+    const both = SCORERS.scheduled(
+      makeSignals({ babysitLoopUses: 1, scheduleCommandUses: 1 }),
+    ).score;
+    // 10 + 5 = 15 → exactly at cap
+    expect(both).toBe(Math.min(100, baseline + 15));
+  });
+
+  it("parallel: combined v9 bonuses cap at +15", () => {
+    const baseline = SCORERS.parallel(makeSignals()).score;
+    const both = SCORERS.parallel(
+      makeSignals({ worktreeAliasCount: 3, batchCommandUses: 1 }),
+    ).score;
+    // 8 + 10 = 18 → capped to 15
+    expect(both).toBe(Math.min(100, baseline + 15));
   });
 
   it("customization: +5 for focusCommandUses >= 1", () => {

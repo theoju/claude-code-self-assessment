@@ -180,16 +180,21 @@ export const SCORERS = {
       );
     const worktreeAliasCount =
       s.worktreeAliasCount ?? s.shellAliases?.worktreeAliasCount ?? 0;
-    if (worktreeAliasCount >= 3) {
-      score += 8;
-      ev.push(`${worktreeAliasCount} worktree alias(es) (za/zb/zc) configured`);
-    }
     const batchCommandUses =
       s.batchCommandUses ?? s.transcriptInvocations?.batchCommandUses ?? 0;
+    // v0.9 bonuses cap at +15 combined per the calibration design (see
+    // docs/superpowers/plans/2026-05-09-score-formula-update.md). Each
+    // signal still contributes its full weight when fired alone.
+    let v9Bonus = 0;
+    if (worktreeAliasCount >= 3) {
+      v9Bonus += 8;
+      ev.push(`${worktreeAliasCount} worktree alias(es) (za/zb/zc) configured`);
+    }
     if (batchCommandUses >= 1) {
-      score += 10;
+      v9Bonus += 10;
       ev.push(`/batch prompt phrasing adopted (${batchCommandUses} uses)`);
     }
+    score += Math.min(15, v9Bonus);
     return { score: clamp(score), evidence: ev, gaps };
   },
 
@@ -401,18 +406,21 @@ export const SCORERS = {
       );
     const babysitLoopUses =
       s.babysitLoopUses ?? s.transcriptInvocations?.babysitLoopUses ?? 0;
-    if (babysitLoopUses >= 1) {
-      score += 15;
-      ev.push(`/loop /babysit pattern adopted (${babysitLoopUses} session(s))`);
-    }
     const scheduleCommandUses =
       s.scheduleCommandUses ??
       s.transcriptInvocations?.scheduleCommandUses ??
       0;
+    // v0.9 bonuses cap at +15 combined per the calibration design.
+    let v9Bonus = 0;
+    if (babysitLoopUses >= 1) {
+      v9Bonus += 10;
+      ev.push(`/loop /babysit pattern adopted (${babysitLoopUses} session(s))`);
+    }
     if (scheduleCommandUses >= 1) {
-      score += 10;
+      v9Bonus += 5;
       ev.push(`/schedule routine adopted (${scheduleCommandUses} use(s))`);
     }
+    score += Math.min(15, v9Bonus);
     return { score: clamp(score), evidence: ev, gaps };
   },
 
