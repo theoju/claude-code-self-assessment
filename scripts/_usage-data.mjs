@@ -103,6 +103,7 @@ const TARGET_COMMANDS = new Set([
   "schedule",
   "loop",
   "babysit",
+  "rewind",
 ]);
 
 // Commands whose Boris-tip semantics is "phrase it inside the prompt"
@@ -132,6 +133,7 @@ const SLASH_RE = {
   schedule: /^\/schedule(?![\w-])/,
   loop: /^\/loop(?![\w-])/,
   babysit: /^\/babysit(?![\w-])/,
+  rewind: /^\/rewind(?![\w-])/,
 };
 // Anywhere-in-text shapes — used only for prompt-phrase commands.
 // Negative lookbehind `(?<![/\w])` rejects URL/path context (e.g.
@@ -201,6 +203,7 @@ export async function scanTranscriptInvocations(options = {}) {
     scheduleCommandUses: 0,
     babysitLoopUses: 0,
     planThenLaunchSessions: 0,
+    rewindCommandUses: 0,
   };
   // Vitest skip: when integration tests run gatherSignals without injecting
   // projectsRoot, don't walk the developer's real ~/.claude/projects/.
@@ -254,6 +257,7 @@ export async function scanTranscriptInvocations(options = {}) {
         if (found.has("batch")) counts.batchCommandUses++;
         if (found.has("focus")) counts.focusCommandUses++;
         if (found.has("schedule")) counts.scheduleCommandUses++;
+        if (found.has("rewind")) counts.rewindCommandUses++;
         if (found.has("loop")) sessionHasLoop = true;
         if (found.has("babysit")) sessionHasBabysit = true;
       }

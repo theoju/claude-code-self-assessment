@@ -163,7 +163,8 @@
         {
           "id": "rewind-reflex",
           "action": "Get into the /rewind reflex when Claude goes sideways — keeps failed attempts out of context — Boris tip 62",
-          "effort": "5min"
+          "effort": "5min",
+          "satisfiedWhen": "rewindCommandUses>=1"
         },
         {
           "id": "claude-md-corrections",
@@ -315,7 +316,8 @@
         {
           "id": "spaced-repetition-skill",
           "action": "Optional: build a spaced-repetition skill for parts of the codebase you want to retain — Boris tip 15",
-          "effort": "2hr"
+          "effort": "2hr",
+          "satisfiedWhen": "personalSkillNames~spaced|repetition|review|retain|recall|flashcard"
         }
       ]
     }

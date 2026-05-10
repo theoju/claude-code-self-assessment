@@ -46,6 +46,7 @@ export function buildSignalsSummary(signals) {
     personalAgents: signals.personalAgents.length,
     personalCommands: signals.personalCommands.length,
     personalSkills: signals.personalSkills.length,
+    personalSkillNames: signals.personalSkills.slice(),
     hookTotalCount: signals.settings.hookTotalCount,
     effortLevel: signals.settings.effortLevel,
     skipDangerous: signals.settings.skipDangerousModePermissionPrompt,
@@ -88,6 +89,7 @@ export function buildSignalsSummary(signals) {
     babysitLoopUses: signals.transcriptInvocations?.babysitLoopUses ?? 0,
     planThenLaunchSessions:
       signals.transcriptInvocations?.planThenLaunchSessions ?? 0,
+    rewindCommandUses: signals.transcriptInvocations?.rewindCommandUses ?? 0,
     projectsWithMemory: signals.memory.length,
     insightsAvailable: !!signals.insights,
     insightsSessionsAnalyzed: signals.insights?.sessionsAnalyzed ?? 0,
