@@ -81,6 +81,15 @@ describe("buildSignalsSummary", () => {
       "insightsLookbackDays",
       "insightsTranscriptsScanned",
       "insightsHookFireCount",
+      "shipVerifyStageRecent",
+      "shipsRecent",
+      "worktreeAliasCount",
+      "goCommandUses",
+      "batchCommandUses",
+      "focusCommandUses",
+      "scheduleCommandUses",
+      "babysitLoopUses",
+      "planThenLaunchSessions",
     ];
     for (const k of expectedKeys) expect(r).toHaveProperty(k);
   });
