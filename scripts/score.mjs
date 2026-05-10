@@ -70,6 +70,11 @@ export const SCORERS = {
     }
     if (s.has.prReviewToolkit || s.has.codeReview)
       ev.push("Review/simplify plugins cover PR lifecycle");
+    const shipsRecent = s.shipsRecent ?? s.shipJournal?.totalRuns ?? 0;
+    if (shipsRecent >= 1) {
+      score += 5;
+      ev.push(`${shipsRecent} /ship run(s) recently`);
+    }
     return { score: clamp(score), evidence: ev, gaps };
   },
 
@@ -294,6 +299,16 @@ export const SCORERS = {
     gaps.push(
       "Behavioral check: does every non-trivial prompt include Goal / Constraints / Acceptance Criteria upfront?",
     );
+    const planThenLaunchSessions =
+      s.planThenLaunchSessions ??
+      s.transcriptInvocations?.planThenLaunchSessions ??
+      0;
+    if (planThenLaunchSessions >= 1) {
+      score += 5;
+      ev.push(
+        `Plan-then-launch discipline detected (${planThenLaunchSessions} session(s))`,
+      );
+    }
     return { score: clamp(score), evidence: ev, gaps };
   },
 
@@ -345,6 +360,12 @@ export const SCORERS = {
       score += 10;
       ev.push("Custom keybindings.json");
     } else gaps.push("No custom ~/.claude/keybindings.json");
+    const focusCommandUses =
+      s.focusCommandUses ?? s.transcriptInvocations?.focusCommandUses ?? 0;
+    if (focusCommandUses >= 1) {
+      score += 5;
+      ev.push(`/focus adopted (${focusCommandUses} use(s))`);
+    }
     return { score: clamp(score), evidence: ev, gaps };
   },
 
@@ -378,6 +399,20 @@ export const SCORERS = {
       gaps.push(
         "No Stop hook for task-completion notifications — Boris tip 75",
       );
+    const babysitLoopUses =
+      s.babysitLoopUses ?? s.transcriptInvocations?.babysitLoopUses ?? 0;
+    if (babysitLoopUses >= 1) {
+      score += 15;
+      ev.push(`/loop /babysit pattern adopted (${babysitLoopUses} session(s))`);
+    }
+    const scheduleCommandUses =
+      s.scheduleCommandUses ??
+      s.transcriptInvocations?.scheduleCommandUses ??
+      0;
+    if (scheduleCommandUses >= 1) {
+      score += 10;
+      ev.push(`/schedule routine adopted (${scheduleCommandUses} use(s))`);
+    }
     return { score: clamp(score), evidence: ev, gaps };
   },
 
@@ -389,6 +424,12 @@ export const SCORERS = {
       score += 20;
       ev.push("imessage plugin installed");
     } else gaps.push("No imessage plugin — Boris tip 44");
+    const hasRemoteControl =
+      s.hasRemoteControl ?? !!s.settings?.hasRemoteControl;
+    if (hasRemoteControl) {
+      score += 25;
+      ev.push("Remote Control opted in (Boris tip 47)");
+    }
     return { score: clamp(score), evidence: ev, gaps };
   },
 

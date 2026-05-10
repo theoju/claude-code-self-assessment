@@ -962,3 +962,43 @@ describe("SCORERS.parallel — v0.8 bonuses", () => {
     expect(withBatch).toBe(Math.min(100, baseline + 10));
   });
 });
+
+describe("SCORERS — v0.8 small bonuses across remaining dims", () => {
+  it("scheduled: +15 for babysitLoopUses, +10 for scheduleCommandUses", () => {
+    const baseline = SCORERS.scheduled(makeSignals()).score;
+    expect(SCORERS.scheduled(makeSignals({ babysitLoopUses: 1 })).score).toBe(
+      Math.min(100, baseline + 15),
+    );
+    expect(
+      SCORERS.scheduled(makeSignals({ scheduleCommandUses: 1 })).score,
+    ).toBe(Math.min(100, baseline + 10));
+  });
+
+  it("customization: +5 for focusCommandUses >= 1", () => {
+    const baseline = SCORERS.customization(makeSignals()).score;
+    expect(
+      SCORERS.customization(makeSignals({ focusCommandUses: 1 })).score,
+    ).toBe(Math.min(100, baseline + 5));
+  });
+
+  it("planning: +5 for planThenLaunchSessions >= 1", () => {
+    const baseline = SCORERS.planning(makeSignals()).score;
+    expect(
+      SCORERS.planning(makeSignals({ planThenLaunchSessions: 1 })).score,
+    ).toBe(Math.min(100, baseline + 5));
+  });
+
+  it("automation: +5 for shipsRecent >= 1", () => {
+    const baseline = SCORERS.automation(makeSignals()).score;
+    expect(SCORERS.automation(makeSignals({ shipsRecent: 1 })).score).toBe(
+      Math.min(100, baseline + 5),
+    );
+  });
+
+  it("remote: +25 for hasRemoteControl", () => {
+    const baseline = SCORERS.remote(makeSignals()).score;
+    expect(SCORERS.remote(makeSignals({ hasRemoteControl: true })).score).toBe(
+      Math.min(100, baseline + 25),
+    );
+  });
+});
