@@ -305,6 +305,66 @@ describe("buildSignalsSummary", () => {
     expect(r.hasCustomSpinnerVerbs).toBe(true);
   });
 
+  // Probe-Logic Challenger fix: hasIsolatedAgent now ORs the static
+  // settings flag with execution telemetry — if the user actually USES
+  // worktrees (worktreeUsageSessionCount > 0), the rubric's "isolation
+  // patterns adopted" goal is satisfied even when no agent file declares
+  // `isolation: worktree` in frontmatter.
+  it("hasIsolatedAgent fires when settings flag is true (regression)", () => {
+    const r = buildSignalsSummary(
+      makeSignals({
+        settings: {
+          ...makeSignals().settings,
+          hasIsolatedAgent: true,
+        },
+      }),
+    );
+    expect(r.hasIsolatedAgent).toBe(true);
+  });
+
+  it("hasIsolatedAgent fires when worktreeUsageSessionCount > 0 (no static flag)", () => {
+    const r = buildSignalsSummary(
+      makeSignals({
+        settings: {
+          ...makeSignals().settings,
+          hasIsolatedAgent: false,
+        },
+        insights: {
+          worktreeUsageSessionCount: 3,
+        },
+      }),
+    );
+    expect(r.hasIsolatedAgent).toBe(true);
+  });
+
+  it("hasIsolatedAgent is false when no static flag AND worktreeUsageSessionCount === 0", () => {
+    const r = buildSignalsSummary(
+      makeSignals({
+        settings: {
+          ...makeSignals().settings,
+          hasIsolatedAgent: false,
+        },
+        insights: {
+          worktreeUsageSessionCount: 0,
+        },
+      }),
+    );
+    expect(r.hasIsolatedAgent).toBe(false);
+  });
+
+  it("hasIsolatedAgent is false when no static flag AND insights is null/missing", () => {
+    const r = buildSignalsSummary(
+      makeSignals({
+        settings: {
+          ...makeSignals().settings,
+          hasIsolatedAgent: false,
+        },
+        insights: null,
+      }),
+    );
+    expect(r.hasIsolatedAgent).toBe(false);
+  });
+
   it("forwards hasClaudeInChrome from settings.hasClaudeInChrome", () => {
     expect(
       buildSignalsSummary(

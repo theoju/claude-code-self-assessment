@@ -59,7 +59,15 @@ export function buildSignalsSummary(signals) {
     hasFormatterHook: !!signals.settings.hasFormatterHook,
     hasStopHookNotification: !!signals.settings.hasStopHookNotification,
     hasCustomSpinnerVerbs: (signals.settings.customSpinnerVerbCount || 0) > 0,
-    hasIsolatedAgent: !!signals.settings.hasIsolatedAgent,
+    // Probe-Logic Challenger fix (V1.3): the static probe only catches
+    // agents that declare `isolation: worktree` in frontmatter. The rubric
+    // goal is "isolation patterns adopted" — so when execution telemetry
+    // shows the user actually USES worktrees, that's the same end-state
+    // and should satisfy the predicate. OR the static flag with the
+    // execution signal `insights.worktreeUsageSessionCount > 0`.
+    hasIsolatedAgent:
+      !!signals.settings.hasIsolatedAgent ||
+      (signals.insights?.worktreeUsageSessionCount ?? 0) > 0,
     hasClaudeInChrome: !!signals.settings.hasClaudeInChrome,
     hasRemoteControl: !!signals.settings.hasRemoteControl,
     hasShipCommand:

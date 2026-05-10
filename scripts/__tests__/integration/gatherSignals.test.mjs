@@ -113,7 +113,10 @@ describe("gatherSignals (integration)", () => {
               uses_task_agent: true,
               tool_counts: { Bash: 4, TaskCreate: 2 },
             },
-            facet: { outcome: "fully_achieved", friction_counts: { buggy_code: 1 } },
+            facet: {
+              outcome: "fully_achieved",
+              friction_counts: { buggy_code: 1 },
+            },
           },
         ],
       },
@@ -121,13 +124,75 @@ describe("gatherSignals (integration)", () => {
     projectRoot = makeTmpProjectRoot();
     process.env.CLAUDE_HOME = claudeHome;
 
-    const signals = await gatherSignals(projectRoot, { insightsLookbackDays: 30 });
+    const signals = await gatherSignals(projectRoot, {
+      insightsLookbackDays: 30,
+    });
     expect(signals.insights).not.toBeNull();
     expect(signals.insights.sessionsAnalyzed).toBe(1);
     expect(signals.insights.subagentSessionCount).toBe(1);
     expect(signals.insights.taskInvocationsTotal).toBe(2);
     expect(signals.insights.frictionCounts).toEqual({ buggy_code: 1 });
     expect(signals.insights.outcomeCounts).toEqual({ fully_achieved: 1 });
+  });
+
+  // Probe-Logic Challenger fix: hasIsolatedAgent originally scanned only
+  // personal + project agents. Even after a scope fix, the user's plugin
+  // agents are the most likely place an `isolation: worktree` declaration
+  // would appear. These integration tests pin the broadened scope.
+  describe("hasIsolatedAgent scope", () => {
+    it("fires when a personal agent declares isolation: worktree (regression)", async () => {
+      claudeHome = makeTmpClaudeHome();
+      // Manually write an agent file with frontmatter (the standard fixture
+      // body doesn't include frontmatter).
+      const { writeFileSync } = await import("node:fs");
+      const { join } = await import("node:path");
+      writeFileSync(
+        join(claudeHome, "agents", "isolated.md"),
+        "---\nname: isolated\nisolation: worktree\n---\n\nUse this agent to do isolated work in its own branch. Run tests and verify.",
+      );
+      projectRoot = makeTmpProjectRoot();
+      process.env.CLAUDE_HOME = claudeHome;
+      const signals = await gatherSignals(projectRoot);
+      expect(signals.settings.hasIsolatedAgent).toBe(true);
+    });
+
+    it("fires when a PLUGIN agent declares isolation: worktree", async () => {
+      claudeHome = makeTmpClaudeHome({
+        pluginAgents: [
+          {
+            vendor: "claude-plugins-official",
+            plugin: "superpowers",
+            version: "5.0.7",
+            name: "isolation-pro.md",
+            content:
+              "---\nname: isolation-pro\nisolation: worktree\n---\n\nDoes the work in a sandboxed worktree.",
+          },
+        ],
+      });
+      projectRoot = makeTmpProjectRoot();
+      process.env.CLAUDE_HOME = claudeHome;
+      const signals = await gatherSignals(projectRoot);
+      expect(signals.settings.hasIsolatedAgent).toBe(true);
+    });
+
+    it("does NOT fire when no agent (personal/project/plugin) declares isolation", async () => {
+      claudeHome = makeTmpClaudeHome({
+        pluginAgents: [
+          {
+            vendor: "claude-plugins-official",
+            plugin: "superpowers",
+            version: "5.0.7",
+            name: "code-reviewer.md",
+            content:
+              "---\nname: code-reviewer\n---\n\nReviews code without isolation.",
+          },
+        ],
+      });
+      projectRoot = makeTmpProjectRoot();
+      process.env.CLAUDE_HOME = claudeHome;
+      const signals = await gatherSignals(projectRoot);
+      expect(signals.settings.hasIsolatedAgent).toBe(false);
+    });
   });
 
   it("does not pollute the real ~/.claude — uses only the tmp dir", async () => {

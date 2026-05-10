@@ -202,9 +202,16 @@ export function detectStopHookNotification(hooks) {
 }
 
 // True if any agent frontmatter declares `isolation: worktree` — Boris tip
-// 28. Scans personal + project .md agent files. Frontmatter is a simple
-// YAML block at the top; we just grep for the literal key/value pair after
-// stripping CR. Cheap and avoids pulling a YAML parser.
+// 28. Scans personal + project .md agent files AND plugin agents under
+// `~/.claude/plugins/cache/<vendor>/<plugin>/<version>/agents/*.md`.
+// Frontmatter is a simple YAML block at the top; we just grep for the
+// literal key/value pair. Cheap and avoids pulling a YAML parser.
+//
+// Probe-Logic Challenger fix (V1.3): the original probe scanned only
+// personal/project agents. Plugins are the most likely place an
+// `isolation: worktree` declaration would appear, so we also walk the
+// plugins cache.
+const ISOLATION_FRONTMATTER_RE = /^isolation:\s*["']?worktree["']?\s*$/im;
 async function hasWorktreeIsolatedAgent(dirs) {
   for (const dir of dirs) {
     const entries = await safeReaddir(dir);
@@ -212,9 +219,35 @@ async function hasWorktreeIsolatedAgent(dirs) {
       if (!name.endsWith(".md")) continue;
       try {
         const content = await readFile(join(dir, name), "utf8");
-        if (/^isolation:\s*["']?worktree["']?\s*$/im.test(content)) return true;
+        if (ISOLATION_FRONTMATTER_RE.test(content)) return true;
       } catch {
         // unreadable — skip
+      }
+    }
+  }
+  // Plugin agents: walk `<claudeHome>/plugins/cache/<vendor>/<plugin>/<version>/agents/`.
+  // Bound depth so we don't recurse into unrelated plugin assets (skills,
+  // commands, hooks, etc.) — only `agents/` flat .md files matter here.
+  const pluginsRoot = join(claudeHome(), "plugins", "cache");
+  const vendors = await safeReaddir(pluginsRoot);
+  for (const vendor of vendors) {
+    const vendorDir = join(pluginsRoot, vendor);
+    const pluginNames = await safeReaddir(vendorDir);
+    for (const plugin of pluginNames) {
+      const pluginDir = join(vendorDir, plugin);
+      const versions = await safeReaddir(pluginDir);
+      for (const version of versions) {
+        const agentsDir = join(pluginDir, version, "agents");
+        const agentFiles = await safeReaddir(agentsDir);
+        for (const name of agentFiles) {
+          if (!name.endsWith(".md")) continue;
+          try {
+            const content = await readFile(join(agentsDir, name), "utf8");
+            if (ISOLATION_FRONTMATTER_RE.test(content)) return true;
+          } catch {
+            // unreadable — skip
+          }
+        }
       }
     }
   }

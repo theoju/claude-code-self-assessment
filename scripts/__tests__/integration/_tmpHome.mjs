@@ -8,11 +8,21 @@ import { join } from "node:path";
 export function makeTmpClaudeHome(spec = {}) {
   const root = mkdtempSync(join(tmpdir(), "claude-home-"));
   // Always create the directory structure even if empty so safeReaddir returns []
-  for (const dir of ["agents", "commands", "skills", "plans", "sessions", "projects"]) {
+  for (const dir of [
+    "agents",
+    "commands",
+    "skills",
+    "plans",
+    "sessions",
+    "projects",
+  ]) {
     mkdirSync(join(root, dir), { recursive: true });
   }
   if (spec.settings !== undefined) {
-    writeFileSync(join(root, "settings.json"), JSON.stringify(spec.settings, null, 2));
+    writeFileSync(
+      join(root, "settings.json"),
+      JSON.stringify(spec.settings, null, 2),
+    );
   }
   // Substantive fixture bodies: signals.mjs filters out files <50 chars or
   // without an action verb. Each body below clears both bars so the fixture
@@ -40,12 +50,31 @@ export function makeTmpClaudeHome(spec = {}) {
     mkdirSync(memDir, { recursive: true });
     writeFileSync(join(memDir, "notes.md"), "remember this");
   }
-  if (spec.statusline) writeFileSync(join(root, "statusline.sh"), "#!/bin/bash\necho hi");
+  if (spec.statusline)
+    writeFileSync(join(root, "statusline.sh"), "#!/bin/bash\necho hi");
   if (spec.keybindings) writeFileSync(join(root, "keybindings.json"), "{}");
   if (spec.claudeMd) writeFileSync(join(root, "CLAUDE.md"), "# global rules");
 
   for (let i = 0; i < (spec.plans || 0); i++) {
     writeFileSync(join(root, "plans", `plan-${i}.md`), PLAN_BODY);
+  }
+
+  // Plugin agents live under `~/.claude/plugins/cache/<vendor>/<plugin>/<version>/agents/*.md`.
+  // Tests pass `pluginAgents: [{ vendor, plugin, version, name, content }, ...]`
+  // — `content` is written verbatim so frontmatter (e.g. `isolation: worktree`)
+  // can be exercised end-to-end.
+  for (const agent of spec.pluginAgents || []) {
+    const dir = join(
+      root,
+      "plugins",
+      "cache",
+      agent.vendor,
+      agent.plugin,
+      agent.version,
+      "agents",
+    );
+    mkdirSync(dir, { recursive: true });
+    writeFileSync(join(dir, agent.name), agent.content);
   }
 
   if (spec.usageData) {
@@ -96,7 +125,10 @@ export function makeTmpProjectRoot(spec = {}) {
   }
   for (const file of spec.projectCommands || []) {
     mkdirSync(join(root, ".claude", "commands"), { recursive: true });
-    writeFileSync(join(root, ".claude", "commands", file), PROJECT_COMMAND_BODY);
+    writeFileSync(
+      join(root, ".claude", "commands", file),
+      PROJECT_COMMAND_BODY,
+    );
   }
   return root;
 }
