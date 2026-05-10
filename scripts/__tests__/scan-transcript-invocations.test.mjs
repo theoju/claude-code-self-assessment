@@ -82,14 +82,13 @@ describe("scanTranscriptInvocations", () => {
     });
   });
 
-  it("counts /go, /batch, /focus, /schedule slash commands", async () => {
+  it("counts bare-text /go, /batch, /focus, /schedule at start of message", async () => {
     writeSession("s1", [
       userText("/go run the tests"),
       userText("/batch update fixtures"),
       userText("/focus"),
       userText("/schedule daily"),
       userText("/go"),
-      userText("hello /go inline does not count"),
     ]);
     const r = await scanTranscriptInvocations({
       projectsRoot,
@@ -100,6 +99,54 @@ describe("scanTranscriptInvocations", () => {
     expect(r.batchCommandUses).toBe(1);
     expect(r.focusCommandUses).toBe(1);
     expect(r.scheduleCommandUses).toBe(1);
+  });
+
+  it("counts mid-sentence /go and /batch (Boris-tip prompt-phrase usage)", async () => {
+    // /go and /batch have action-text semantics ("phrase it in the
+    // prompt as ...") so mid-sentence mentions ARE the intended signal.
+    // /focus, /schedule, /loop, /babysit are top-level invocations and
+    // do NOT count mid-sentence (prose mentions are usually noise).
+    writeSession("s1", [
+      userText("create a plan usin /batch /go for B.1 Bugs"),
+      userText("when we hit a tough sweep, use /batch with worktree iso"),
+      userText("after the diff, run /go"),
+      userText("we should think about /focus and /schedule someday"),
+      userText("the /loop /babysit pattern is cool"),
+    ]);
+    const r = await scanTranscriptInvocations({
+      projectsRoot,
+      now: new Date("2026-05-10T00:00:00Z"),
+      lookbackDays: 30,
+    });
+    // 3 messages contain mid-sentence /go (msgs 1, 3 also has start-of-line)
+    expect(r.goCommandUses).toBe(2);
+    // 2 messages contain mid-sentence /batch
+    expect(r.batchCommandUses).toBe(2);
+    // mid-sentence does NOT count for these — message 4/5 are prose
+    expect(r.focusCommandUses).toBe(0);
+    expect(r.scheduleCommandUses).toBe(0);
+    expect(r.babysitLoopUses).toBe(0);
+  });
+
+  it("rejects compound continuations and URL/path context", async () => {
+    // Boundary cases that must NOT match:
+    //   - /go-fast (compound continuation)
+    //   - /Users/theo/go/src (path context)
+    //   - https://example.com/go (URL)
+    //   - /babysit-prs (different command, distinct trailing -prs)
+    writeSession("s1", [
+      userText("the /go-fast wrapper is unrelated"),
+      userText("see /Users/theo/go/src for the source"),
+      userText("https://example.com/go for docs"),
+      userText("we use /babysit-prs not /babysit"),
+    ]);
+    const r = await scanTranscriptInvocations({
+      projectsRoot,
+      now: new Date("2026-05-10T00:00:00Z"),
+      lookbackDays: 30,
+    });
+    expect(r.goCommandUses).toBe(0);
+    expect(r.babysitLoopUses).toBe(0);
   });
 
   it("counts babysit-loop sessions (1 per session if both /loop and /babysit present)", async () => {

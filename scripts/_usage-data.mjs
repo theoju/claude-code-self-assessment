@@ -105,21 +105,51 @@ const TARGET_COMMANDS = new Set([
   "babysit",
 ]);
 
+// Commands whose Boris-tip semantics is "phrase it inside the prompt"
+// rather than "type it as a top-level slash command". These should
+// match anywhere in user text, not just at the start.
+//   - /go (Boris tip 73): "Adopt 'Claude do X, then /go' as your default
+//     closing prompt" — appears at the end of a longer prompt, not as
+//     a standalone invocation.
+//   - /batch (Boris tip 30, rubric action wording): "phrase it as
+//     'use /batch with worktree isolation, put up PRs'" — embedded in
+//     prompt instructions to a multi-step planner.
+// The other four (/focus, /schedule, /loop, /babysit) are top-level
+// invocations whose mentions in prose are usually noise (skill
+// instruction echoes, references to /babysit-prs, etc.) — they require
+// the <command-name> markup or start-of-line form.
+const PROMPT_PHRASE_COMMANDS = new Set(["go", "batch"]);
+
 const COMMAND_NAME_TAG_RE = /<command-name>\/([\w:-]+)/g;
+// Anchored start-of-line shapes — used as a fallback for legacy /
+// alternate transcript shapes that emit a bare /cmd line. Negative
+// lookahead `(?![\w-])` rejects compound continuations like `/go-fast`
+// or `/babysit-prs`.
 const SLASH_RE = {
-  go: /^\/go(\s|$)/,
-  batch: /^\/batch(\s|$)/,
-  focus: /^\/focus(\s|$)/,
-  schedule: /^\/schedule(\s|$)/,
-  loop: /^\/loop(\s|$)/,
-  babysit: /^\/babysit(\s|$)/,
+  go: /^\/go(?![\w-])/,
+  batch: /^\/batch(?![\w-])/,
+  focus: /^\/focus(?![\w-])/,
+  schedule: /^\/schedule(?![\w-])/,
+  loop: /^\/loop(?![\w-])/,
+  babysit: /^\/babysit(?![\w-])/,
+};
+// Anywhere-in-text shapes — used only for prompt-phrase commands.
+// Negative lookbehind `(?<![/\w])` rejects URL/path context (e.g.
+// `https://example.com/go`, `/Users/theo/go/src`); negative lookahead
+// `(?![\w-])` rejects compound continuations (`/batch-thing`).
+const PROMPT_PHRASE_RE = {
+  go: /(?<![/\w])\/go(?![\w-])/,
+  batch: /(?<![/\w])\/batch(?![\w-])/,
 };
 
 // Returns the set of target slash-command names (e.g. {"loop", "focus"})
-// found in the user message text — checking both the markup form
-// (<command-name>/loop</command-name>) and the bare-text form (^/loop).
-// Markup is the primary path in current CLI transcripts; bare text is a
-// fallback for legacy/alternate shapes. Returns an empty set on no match.
+// found in the user message text. Three detection paths:
+//   1. <command-name>/cmd</command-name> markup (top-level slash invoke)
+//   2. ^/cmd at start of trimmed message (legacy bare-text fallback)
+//   3. /cmd anywhere in text — only for PROMPT_PHRASE_COMMANDS
+// Each matched command name is added to the set at most once per
+// message, so per-message granularity is preserved regardless of how
+// many times the command appears in a single user turn.
 function extractSlashCommands(text) {
   const found = new Set();
   if (!text) return found;
@@ -130,6 +160,9 @@ function extractSlashCommands(text) {
   const trimmed = text.trimStart();
   for (const cmd of TARGET_COMMANDS) {
     if (SLASH_RE[cmd].test(trimmed)) found.add(cmd);
+  }
+  for (const cmd of PROMPT_PHRASE_COMMANDS) {
+    if (PROMPT_PHRASE_RE[cmd].test(text)) found.add(cmd);
   }
   return found;
 }
