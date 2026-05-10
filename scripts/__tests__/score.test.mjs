@@ -940,3 +940,25 @@ describe("SCORERS.verification — v0.8 bonuses", () => {
     expect(threeGo).toBe(Math.min(100, baseline + 5));
   });
 });
+
+describe("SCORERS.parallel — v0.8 bonuses", () => {
+  it("adds +8 when worktreeAliasCount >= 3", () => {
+    const baseline = SCORERS.parallel(makeSignals()).score;
+    const twoAliases = SCORERS.parallel(
+      makeSignals({ worktreeAliasCount: 2 }),
+    ).score;
+    const threeAliases = SCORERS.parallel(
+      makeSignals({ worktreeAliasCount: 3 }),
+    ).score;
+    expect(twoAliases).toBe(baseline);
+    expect(threeAliases).toBe(Math.min(100, baseline + 8));
+  });
+
+  it("adds +10 when batchCommandUses >= 1", () => {
+    const baseline = SCORERS.parallel(makeSignals()).score;
+    const withBatch = SCORERS.parallel(
+      makeSignals({ batchCommandUses: 1 }),
+    ).score;
+    expect(withBatch).toBe(Math.min(100, baseline + 10));
+  });
+});

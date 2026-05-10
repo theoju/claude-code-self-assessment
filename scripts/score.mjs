@@ -173,6 +173,18 @@ export const SCORERS = {
       gaps.push(
         "Worktree muscle memory unverified — no personal agents using isolation:worktree",
       );
+    const worktreeAliasCount =
+      s.worktreeAliasCount ?? s.shellAliases?.worktreeAliasCount ?? 0;
+    if (worktreeAliasCount >= 3) {
+      score += 8;
+      ev.push(`${worktreeAliasCount} worktree alias(es) (za/zb/zc) configured`);
+    }
+    const batchCommandUses =
+      s.batchCommandUses ?? s.transcriptInvocations?.batchCommandUses ?? 0;
+    if (batchCommandUses >= 1) {
+      score += 10;
+      ev.push(`/batch prompt phrasing adopted (${batchCommandUses} uses)`);
+    }
     return { score: clamp(score), evidence: ev, gaps };
   },
 
