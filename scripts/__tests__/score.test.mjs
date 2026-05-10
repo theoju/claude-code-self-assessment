@@ -908,3 +908,35 @@ describe("SCORERS.integrations — v0.8 bonuses", () => {
     expect(r.evidence.some((e) => e.includes("Claude in Chrome"))).toBe(true);
   });
 });
+
+describe("SCORERS.verification — v0.8 bonuses", () => {
+  it("adds +5 for hasClaudeInChrome", () => {
+    const baseline = SCORERS.verification(makeSignals()).score;
+    const withChrome = SCORERS.verification(
+      makeSignals({ hasClaudeInChrome: true }),
+    ).score;
+    expect(withChrome).toBe(Math.min(100, baseline + 5));
+  });
+
+  it("adds +10 when shipVerifyStageRecent >= 1", () => {
+    const baseline = SCORERS.verification(makeSignals()).score;
+    const oneShip = SCORERS.verification(
+      makeSignals({ shipVerifyStageRecent: 1 }),
+    ).score;
+    const fiveShip = SCORERS.verification(
+      makeSignals({ shipVerifyStageRecent: 5 }),
+    ).score;
+    expect(oneShip).toBe(Math.min(100, baseline + 10));
+    expect(fiveShip).toBe(Math.min(100, baseline + 10)); // not stacking
+  });
+
+  it("adds +5 when goCommandUses >= 3 (reflex adoption)", () => {
+    const baseline = SCORERS.verification(makeSignals()).score;
+    const oneGo = SCORERS.verification(makeSignals({ goCommandUses: 1 })).score;
+    const threeGo = SCORERS.verification(
+      makeSignals({ goCommandUses: 3 }),
+    ).score;
+    expect(oneGo).toBe(baseline); // below threshold
+    expect(threeGo).toBe(Math.min(100, baseline + 5));
+  });
+});

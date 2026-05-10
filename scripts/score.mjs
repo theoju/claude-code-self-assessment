@@ -207,6 +207,24 @@ export const SCORERS = {
       gaps.push(
         "No browser-automation plugin — frontend verification is incomplete",
       );
+    const hasClaudeInChrome =
+      s.hasClaudeInChrome ?? !!s.settings?.hasClaudeInChrome;
+    if (hasClaudeInChrome) {
+      score += 5;
+      ev.push("Claude in Chrome — frontend verification reach");
+    }
+    const shipVerifyStageRecent =
+      s.shipVerifyStageRecent ?? s.shipJournal?.stage2Count ?? 0;
+    if (shipVerifyStageRecent >= 1) {
+      score += 10;
+      ev.push(`/ship verify-agent fired ${shipVerifyStageRecent}× recently`);
+    }
+    const goCommandUses =
+      s.goCommandUses ?? s.transcriptInvocations?.goCommandUses ?? 0;
+    if (goCommandUses >= 3) {
+      score += 5;
+      ev.push(`/go reflex adopted (${goCommandUses} uses)`);
+    }
     return { score: clamp(score), evidence: ev, gaps };
   },
 
