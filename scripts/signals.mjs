@@ -217,14 +217,14 @@ const STATUS_TOKEN = {
 // shell rc files. Distinct = same alias name in two files counts once.
 // Defaults to ~/.zshrc and ~/.bashrc; tests inject explicit paths.
 const WORKTREE_ALIAS_RE = /^\s*alias\s+(za|zb|zc)=/;
-export async function gatherShellAliases({
-  rcPaths = [join(homedir(), ".zshrc"), join(homedir(), ".bashrc")],
-} = {}) {
+export async function gatherShellAliases(options = {}) {
   // Vitest skip: when integration tests run gatherSignals without injecting
   // rcPaths, don't read the developer's real ~/.zshrc.
-  if (process.env.VITEST && !arguments[0]?.rcPaths) {
+  if (process.env.VITEST && !options.rcPaths) {
     return { worktreeAliasCount: 0 };
   }
+  const { rcPaths = [join(homedir(), ".zshrc"), join(homedir(), ".bashrc")] } =
+    options;
   const found = new Set();
   for (const p of rcPaths) {
     let content;
@@ -248,16 +248,17 @@ export async function gatherShellAliases({
 //
 // Inputs are injected (journalPath, now) so tests can drive temp files
 // without monkey-patching globals.
-export async function gatherShipJournal({
-  journalPath = join(claudeHome(), "ship", "journal.jsonl"),
-  now = new Date(),
-  lookbackDays = 14,
-} = {}) {
+export async function gatherShipJournal(options = {}) {
   // Vitest skip: when integration tests run gatherSignals without injecting
   // journalPath, don't read the developer's real ~/.claude/ship/journal.jsonl.
-  if (process.env.VITEST && !arguments[0]?.journalPath) {
+  if (process.env.VITEST && !options.journalPath) {
     return { stage2Count: 0, totalRuns: 0, lastRunAt: null };
   }
+  const {
+    journalPath = join(claudeHome(), "ship", "journal.jsonl"),
+    now = new Date(),
+    lookbackDays = 14,
+  } = options;
   let raw;
   try {
     raw = await readFile(journalPath, "utf8");

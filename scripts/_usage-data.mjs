@@ -193,11 +193,7 @@ function assistantToolUseName(line) {
   return null;
 }
 
-export async function scanTranscriptInvocations({
-  projectsRoot,
-  now = new Date(),
-  lookbackDays = 30,
-} = {}) {
+export async function scanTranscriptInvocations(options = {}) {
   const counts = {
     goCommandUses: 0,
     batchCommandUses: 0,
@@ -208,9 +204,10 @@ export async function scanTranscriptInvocations({
   };
   // Vitest skip: when integration tests run gatherSignals without injecting
   // projectsRoot, don't walk the developer's real ~/.claude/projects/.
-  if (process.env.VITEST && !arguments[0]?.projectsRoot) {
+  if (process.env.VITEST && !options.projectsRoot) {
     return counts;
   }
+  const { projectsRoot, now = new Date(), lookbackDays = 30 } = options;
   if (!projectsRoot) return counts;
   let sessionFiles;
   try {
