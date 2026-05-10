@@ -15,6 +15,14 @@ function makeSignals(overrides = {}) {
       hookTotalCount: 4,
     },
     plugins: ["slack@1", "vercel@1", "other@1"],
+    mcpServers: [
+      {
+        name: "plugin:context7:context7",
+        scope: "plugin",
+        status: "connected",
+      },
+      { name: "plugin:figma:figma", scope: "plugin", status: "needs-auth" },
+    ],
     personalAgents: ["verify-app.md", "other.md"],
     personalCommands: ["ship.md", "go.md"],
     personalSkills: ["my-skill"],
@@ -218,6 +226,31 @@ describe("buildSignalsSummary", () => {
     expect(buildSignalsSummary(makeSignals()).hasClaudeInChrome).toBe(false);
   });
 
+  it("computes mcpServersConnected as count of connected entries", () => {
+    expect(buildSignalsSummary(makeSignals()).mcpServersConnected).toBe(1);
+    expect(
+      buildSignalsSummary(makeSignals({ mcpServers: [] })).mcpServersConnected,
+    ).toBe(0);
+    expect(
+      buildSignalsSummary(
+        makeSignals({
+          mcpServers: [
+            { name: "a", scope: "plugin", status: "connected" },
+            { name: "b", scope: "plugin", status: "connected" },
+            { name: "c", scope: "plugin", status: "failed" },
+          ],
+        }),
+      ).mcpServersConnected,
+    ).toBe(2);
+  });
+
+  it("hasMcpServers is true iff signals.mcpServers is non-empty", () => {
+    expect(buildSignalsSummary(makeSignals()).hasMcpServers).toBe(true);
+    expect(
+      buildSignalsSummary(makeSignals({ mcpServers: [] })).hasMcpServers,
+    ).toBe(false);
+  });
+
   it("hasCustomSpinnerVerbs is false when count is 0 or missing", () => {
     expect(
       buildSignalsSummary(
@@ -244,6 +277,7 @@ describe("buildSignalsSummary", () => {
         "hasCustomSpinnerVerbs",
         "hasFormatterHook",
         "hasIsolatedAgent",
+        "hasMcpServers",
         "hasPostToolHook",
         "hasShipCommand",
         "hasSlackPlugin",
@@ -260,6 +294,7 @@ describe("buildSignalsSummary", () => {
         "insightsSessionsAnalyzed",
         "insightsTranscriptsScanned",
         "keybindingsConfigured",
+        "mcpServersConnected",
         "personalAgents",
         "personalCommands",
         "personalSkills",

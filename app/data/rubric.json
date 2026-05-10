@@ -212,6 +212,12 @@
           "action": "Wire up Claude in Chrome — enables browser-driving agents (mcp__claude-in-chrome__*) — Boris tip 32",
           "effort": "10min",
           "satisfiedWhen": "hasClaudeInChrome"
+        },
+        {
+          "id": "mcp-servers",
+          "action": "Connect ≥3 MCP servers — Boris tip 9 — high-value MCPs include Atlassian, Slack, Playwright, Postman",
+          "effort": "30min",
+          "satisfiedWhen": "mcpServersConnected>=3"
         }
       ]
     },

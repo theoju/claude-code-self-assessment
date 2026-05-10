@@ -1,8 +1,12 @@
 import { existsSync } from "node:fs";
 import { readFile, stat, readdir } from "node:fs/promises";
 import { join } from "node:path";
+import { execFile } from "node:child_process";
+import { promisify } from "node:util";
 import { claudeHome, safeReadJson, safeReaddir } from "./_fs-utils.mjs";
 import { gatherInsightsSignals } from "./insights-signals.mjs";
+
+const execFileAsync = promisify(execFile);
 
 // Action verbs that indicate the file actually tells Claude what to DO.
 // A skill/command/agent that doesn't say "run", "use", "prefer", etc. is just
@@ -184,6 +188,68 @@ async function hasWorktreeIsolatedAgent(dirs) {
   return false;
 }
 
+// Pure parser for `claude mcp list` stdout. Returns one record per MCP
+// server with name, scope (`plugin` | `claude.ai` | `user`) and status
+// (`connected` | `failed` | `needs-auth`). Output format from the Claude
+// Code CLI: "<name>: <transport> - <status-glyph> <status-label>". Treats
+// any line that doesn't match as garbage rather than throwing — the
+// stdout contract isn't strictly versioned and we don't want a CLI bump
+// to break the assessment.
+const STATUS_TOKEN = {
+  "✓ Connected": "connected",
+  "✗ Failed to connect": "failed",
+  "! Needs authentication": "needs-auth",
+};
+
+export function parseMcpListOutput(stdout) {
+  if (!stdout || typeof stdout !== "string") return [];
+  const out = [];
+  for (const rawLine of stdout.split("\n")) {
+    const line = rawLine.trim();
+    if (!line) continue;
+    if (line.startsWith("Checking MCP server health")) continue;
+    const dashIdx = line.lastIndexOf(" - ");
+    if (dashIdx < 0) continue;
+    const statusLabel = line.slice(dashIdx + 3).trim();
+    const status = STATUS_TOKEN[statusLabel];
+    if (!status) continue;
+    const left = line.slice(0, dashIdx);
+    // ": " (colon-space) is the name/transport delimiter. Plugin-prefixed
+    // names contain inner colons (`plugin:context7:context7`), so we need
+    // the last occurrence — split-on-first-colon would clip them.
+    const sepIdx = left.lastIndexOf(": ");
+    if (sepIdx < 0) continue;
+    const name = left.slice(0, sepIdx).trim();
+    if (!name) continue;
+    const scope = name.startsWith("plugin:")
+      ? "plugin"
+      : name.startsWith("claude.ai ")
+        ? "claude.ai"
+        : "user";
+    out.push({ name, scope, status });
+  }
+  return out;
+}
+
+// Subprocess wrapper around `claude mcp list`. Uses the safe `execFile` API
+// (argv array, no shell) — never the shell-prone alternative. Empty-array
+// fallback if the CLI is missing, slow, or non-zero exits, so a broken
+// `claude` install doesn't poison the whole assessment run. Skipped under
+// vitest because the CLI takes ~10s to probe every MCP server (TLS round
+// trips), which would balloon every integration test past its timeout.
+async function gatherMcpServers() {
+  if (process.env.VITEST) return [];
+  try {
+    const { stdout } = await execFileAsync("claude", ["mcp", "list"], {
+      timeout: 30000,
+      maxBuffer: 1024 * 1024,
+    });
+    return parseMcpListOutput(stdout);
+  } catch {
+    return [];
+  }
+}
+
 export async function gatherSignals(projectRoot = process.cwd(), options = {}) {
   const { insightsLookbackDays = 30, includeTranscripts = false } = options;
   const settings =
@@ -274,6 +340,8 @@ export async function gatherSignals(projectRoot = process.cwd(), options = {}) {
 
   const hasPlugin = (prefix) => plugins.some((p) => p.startsWith(prefix));
 
+  const mcpServers = await gatherMcpServers();
+
   const insights = await gatherInsightsSignals({
     claudeHome: claudeHome(),
     lookbackDays: insightsLookbackDays,
@@ -318,6 +386,7 @@ export async function gatherSignals(projectRoot = process.cwd(), options = {}) {
       plansCount: plansCountRaw,
     },
     plugins,
+    mcpServers,
     memory,
     claudeMdExists,
     plansCount,
