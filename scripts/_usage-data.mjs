@@ -74,16 +74,38 @@ export async function buildTranscriptIndex(claudeHome) {
 // Walks ~/.claude/projects/*/*.jsonl transcripts within lookback. Returns
 // counts of /go /batch /focus /schedule slash commands, sessions where
 // /loop + /babysit both appear (1 per session), and sessions where an
-// ExitPlanMode tool_use is followed by a non-plan tool_use within the
-// next 2 assistant messages.
+// ExitPlanMode tool_use is followed by an assistant tool_use (the
+// "launch" half of plan-then-launch).
 //
-// Plan-then-launch detection (confirmed by transcript sampling 2026-05-09):
-// the marker is `message.content[*].type === "tool_use" &&
-// message.content[*].name === "ExitPlanMode"` on an assistant-role line.
-// Window is "next 2 messages" — index+1 and index+2 in the per-session
-// stream. Any tool_use whose name !== "ExitPlanMode" within that window
-// counts the session once.
+// Slash-command detection: the CLI wraps user-typed slash commands in
+// markup `<command-name>/cmd</command-name>`. Bare-text matches are kept
+// as a fallback for transcript shapes that don't use the markup wrapper
+// (e.g. earlier CLI versions, or commands invoked through alternate UIs).
+//
+// Plan-then-launch detection: ExitPlanMode is the marker (assistant
+// tool_use, name === "ExitPlanMode"). Real transcripts interleave
+// `type=attachment` (system-reminder injections) and `type=last-prompt`
+// rows between assistant turns, so a fixed "next 2 messages" window
+// gets consumed by those non-semantic rows. The fix is to advance past
+// any line whose type is not "user" or "assistant" and find the next
+// real assistant turn — if it contains a tool_use of any name (other
+// than another ExitPlanMode), the session counts.
 
+// Strip a plugin prefix like `superpowers:` from `/superpowers:writing-plans`.
+function stripPluginPrefix(cmd) {
+  return cmd.includes(":") ? cmd.slice(cmd.lastIndexOf(":") + 1) : cmd;
+}
+
+const TARGET_COMMANDS = new Set([
+  "go",
+  "batch",
+  "focus",
+  "schedule",
+  "loop",
+  "babysit",
+]);
+
+const COMMAND_NAME_TAG_RE = /<command-name>\/([\w:-]+)/g;
 const SLASH_RE = {
   go: /^\/go(\s|$)/,
   batch: /^\/batch(\s|$)/,
@@ -92,6 +114,25 @@ const SLASH_RE = {
   loop: /^\/loop(\s|$)/,
   babysit: /^\/babysit(\s|$)/,
 };
+
+// Returns the set of target slash-command names (e.g. {"loop", "focus"})
+// found in the user message text — checking both the markup form
+// (<command-name>/loop</command-name>) and the bare-text form (^/loop).
+// Markup is the primary path in current CLI transcripts; bare text is a
+// fallback for legacy/alternate shapes. Returns an empty set on no match.
+function extractSlashCommands(text) {
+  const found = new Set();
+  if (!text) return found;
+  for (const m of text.matchAll(COMMAND_NAME_TAG_RE)) {
+    const cmd = stripPluginPrefix(m[1]);
+    if (TARGET_COMMANDS.has(cmd)) found.add(cmd);
+  }
+  const trimmed = text.trimStart();
+  for (const cmd of TARGET_COMMANDS) {
+    if (SLASH_RE[cmd].test(trimmed)) found.add(cmd);
+  }
+  return found;
+}
 
 function userMessageText(line) {
   if (line.type !== "user" || !line.message) return null;
@@ -186,23 +227,35 @@ export async function scanTranscriptInvocations({
 
       const uText = userMessageText(line);
       if (uText) {
-        const trimmed = uText.trimStart();
-        if (SLASH_RE.go.test(trimmed)) counts.goCommandUses++;
-        if (SLASH_RE.batch.test(trimmed)) counts.batchCommandUses++;
-        if (SLASH_RE.focus.test(trimmed)) counts.focusCommandUses++;
-        if (SLASH_RE.schedule.test(trimmed)) counts.scheduleCommandUses++;
-        if (SLASH_RE.loop.test(trimmed)) sessionHasLoop = true;
-        if (SLASH_RE.babysit.test(trimmed)) sessionHasBabysit = true;
+        const found = extractSlashCommands(uText);
+        if (found.has("go")) counts.goCommandUses++;
+        if (found.has("batch")) counts.batchCommandUses++;
+        if (found.has("focus")) counts.focusCommandUses++;
+        if (found.has("schedule")) counts.scheduleCommandUses++;
+        if (found.has("loop")) sessionHasLoop = true;
+        if (found.has("babysit")) sessionHasBabysit = true;
       }
 
       const toolName = assistantToolUseName(line);
       if (toolName === "ExitPlanMode") {
-        for (let j = i + 1; j <= i + 2 && j < lines.length; j++) {
-          const next = assistantToolUseName(lines[j]);
-          if (next && next !== "ExitPlanMode") {
+        // Walk forward past non-semantic rows (attachment/last-prompt/etc.)
+        // until the next assistant turn. If that turn has any tool_use
+        // other than ExitPlanMode, the session counts. Bound the walk at
+        // 12 rows so a transcript with no following assistant turn (e.g.
+        // session ended at the plan) doesn't scan the rest of the file.
+        const SCAN_BOUND = 12;
+        for (
+          let j = i + 1;
+          j < Math.min(i + 1 + SCAN_BOUND, lines.length);
+          j++
+        ) {
+          const next = lines[j];
+          if (next.type !== "assistant") continue;
+          const nextTool = assistantToolUseName(next);
+          if (nextTool && nextTool !== "ExitPlanMode") {
             counts.planThenLaunchSessions++;
-            break;
           }
+          break;
         }
       }
     }
