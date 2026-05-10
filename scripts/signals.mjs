@@ -211,6 +211,42 @@ const STATUS_TOKEN = {
   "! Needs authentication": "needs-auth",
 };
 
+// Reads ~/.claude/ship/journal.jsonl line by line. Counts stage:2 entries
+// (verify-agent dispatches) and outcome:"shipped" entries within the
+// lookback window. Empty/missing file returns all zeros. Malformed lines
+// are skipped silently — same fault tolerance as parseJournalLine.
+//
+// Inputs are injected (journalPath, now) so tests can drive temp files
+// without monkey-patching globals.
+export async function gatherShipJournal({
+  journalPath = join(claudeHome(), "ship", "journal.jsonl"),
+  now = new Date(),
+  lookbackDays = 14,
+} = {}) {
+  let raw;
+  try {
+    raw = await readFile(journalPath, "utf8");
+  } catch {
+    return { stage2Count: 0, totalRuns: 0, lastRunAt: null };
+  }
+  const cutoff = now.getTime() - lookbackDays * 24 * 60 * 60 * 1000;
+  let stage2Count = 0;
+  let totalRuns = 0;
+  let lastRunAt = null;
+  for (const line of raw.split("\n")) {
+    const entry = parseJournalLine(line);
+    if (!entry || typeof entry.ts !== "string") continue;
+    const t = Date.parse(entry.ts);
+    if (Number.isNaN(t) || t < cutoff) continue;
+    if (entry.stage === 2) stage2Count++;
+    if (entry.outcome === "shipped") {
+      totalRuns++;
+      if (!lastRunAt || entry.ts > lastRunAt) lastRunAt = entry.ts;
+    }
+  }
+  return { stage2Count, totalRuns, lastRunAt };
+}
+
 // Parse a single JSONL line from ~/.claude/ship/journal.jsonl. Returns the
 // parsed object on valid JSON object input, null on anything else (empty,
 // malformed, non-object). Mirrors parseMcpListOutput's "skip silently"
