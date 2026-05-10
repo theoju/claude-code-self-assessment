@@ -118,7 +118,7 @@ describe("scanTranscriptInvocations", () => {
       now: new Date("2026-05-10T00:00:00Z"),
       lookbackDays: 30,
     });
-    // 3 messages contain mid-sentence /go (msgs 1, 3 also has start-of-line)
+    // 2 messages match /go: msg 1 mid-sentence, msg 3 at start
     expect(r.goCommandUses).toBe(2);
     // 2 messages contain mid-sentence /batch
     expect(r.batchCommandUses).toBe(2);
@@ -195,7 +195,10 @@ describe("scanTranscriptInvocations", () => {
     // Real transcripts interleave attachment rows between assistant
     // turns; the old "next 2 messages" window got consumed by them and
     // returned 0 even when a tool_use actually followed. The fix is to
-    // skip non-(user|assistant) rows when locating the next turn.
+    // skip non-assistant rows when locating the next turn — covering
+    // both the case where a user turn sits between (s1) and the case
+    // where only attachment rows do (s2). s2 isolates the literal
+    // "attachment rows consumed the window" failure mode.
     writeSession("s1", [
       assistantToolUse("ExitPlanMode"),
       JSON.stringify({ type: "user", timestamp: "2026-05-09T12:00:01Z" }),
@@ -204,12 +207,19 @@ describe("scanTranscriptInvocations", () => {
       attachment(),
       assistantToolUse("Bash"),
     ]);
+    writeSession("s2", [
+      assistantToolUse("ExitPlanMode"),
+      attachment(),
+      attachment(),
+      attachment(),
+      assistantToolUse("Edit"),
+    ]);
     const r = await scanTranscriptInvocations({
       projectsRoot,
       now: new Date("2026-05-10T00:00:00Z"),
       lookbackDays: 30,
     });
-    expect(r.planThenLaunchSessions).toBe(1);
+    expect(r.planThenLaunchSessions).toBe(2);
   });
 
   it("counts <command-name> markup slash commands (real CLI shape)", async () => {
