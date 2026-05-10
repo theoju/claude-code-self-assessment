@@ -132,6 +132,11 @@ export async function scanTranscriptInvocations({
     babysitLoopUses: 0,
     planThenLaunchSessions: 0,
   };
+  // Vitest skip: when integration tests run gatherSignals without injecting
+  // projectsRoot, don't walk the developer's real ~/.claude/projects/.
+  if (process.env.VITEST && !arguments[0]?.projectsRoot) {
+    return counts;
+  }
   if (!projectsRoot) return counts;
   let sessionFiles;
   try {

@@ -6,6 +6,7 @@ import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import { claudeHome, safeReadJson, safeReaddir } from "./_fs-utils.mjs";
 import { gatherInsightsSignals } from "./insights-signals.mjs";
+import { scanTranscriptInvocations } from "./_usage-data.mjs";
 
 const execFileAsync = promisify(execFile);
 
@@ -219,6 +220,11 @@ const WORKTREE_ALIAS_RE = /^\s*alias\s+(za|zb|zc)=/;
 export async function gatherShellAliases({
   rcPaths = [join(homedir(), ".zshrc"), join(homedir(), ".bashrc")],
 } = {}) {
+  // Vitest skip: when integration tests run gatherSignals without injecting
+  // rcPaths, don't read the developer's real ~/.zshrc.
+  if (process.env.VITEST && !arguments[0]?.rcPaths) {
+    return { worktreeAliasCount: 0 };
+  }
   const found = new Set();
   for (const p of rcPaths) {
     let content;
@@ -247,6 +253,11 @@ export async function gatherShipJournal({
   now = new Date(),
   lookbackDays = 14,
 } = {}) {
+  // Vitest skip: when integration tests run gatherSignals without injecting
+  // journalPath, don't read the developer's real ~/.claude/ship/journal.jsonl.
+  if (process.env.VITEST && !arguments[0]?.journalPath) {
+    return { stage2Count: 0, totalRuns: 0, lastRunAt: null };
+  }
   let raw;
   try {
     raw = await readFile(journalPath, "utf8");
@@ -430,6 +441,12 @@ export async function gatherSignals(projectRoot = process.cwd(), options = {}) {
   const hasPlugin = (prefix) => plugins.some((p) => p.startsWith(prefix));
 
   const mcpServers = await gatherMcpServers();
+  const shipJournal = await gatherShipJournal({ lookbackDays: 14 });
+  const shellAliases = await gatherShellAliases();
+  const transcriptInvocations = await scanTranscriptInvocations({
+    projectsRoot: join(claudeHome(), "projects"),
+    lookbackDays: 30,
+  });
 
   const insights = await gatherInsightsSignals({
     claudeHome: claudeHome(),
@@ -477,6 +494,9 @@ export async function gatherSignals(projectRoot = process.cwd(), options = {}) {
     },
     plugins,
     mcpServers,
+    shipJournal,
+    shellAliases,
+    transcriptInvocations,
     memory,
     claudeMdExists,
     plansCount,
