@@ -57,6 +57,7 @@ const ALL_SATISFIED_SIGNALS = {
   shipVerifyStageRecent: 5,
   shipsRecent: 8,
   worktreeAliasCount: 3,
+  worktreeShortcutCount: 3,
   goCommandUses: 4,
   batchCommandUses: 2,
   focusCommandUses: 1,

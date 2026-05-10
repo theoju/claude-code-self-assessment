@@ -37,7 +37,7 @@ function makeSignals(overrides = {}) {
       totalRuns: 5,
       lastRunAt: "2026-05-09T12:00:00Z",
     },
-    shellAliases: { worktreeAliasCount: 3 },
+    shellAliases: { worktreeAliasCount: 3, worktreeShortcutCount: 5 },
     transcriptInvocations: {
       goCommandUses: 4,
       batchCommandUses: 2,
@@ -87,6 +87,7 @@ describe("buildSignalsSummary", () => {
       "shipVerifyStageRecent",
       "shipsRecent",
       "worktreeAliasCount",
+      "worktreeShortcutCount",
       "goCommandUses",
       "batchCommandUses",
       "focusCommandUses",
@@ -326,6 +327,10 @@ describe("buildSignalsSummary", () => {
     expect(buildSignalsSummary(makeSignals()).worktreeAliasCount).toBe(3);
   });
 
+  it("forwards shell-shortcut count (broad worktree wrapper detection)", () => {
+    expect(buildSignalsSummary(makeSignals()).worktreeShortcutCount).toBe(5);
+  });
+
   it("forwards transcript invocation counts", () => {
     const r = buildSignalsSummary(makeSignals());
     expect(r.goCommandUses).toBe(4);
@@ -348,6 +353,7 @@ describe("buildSignalsSummary", () => {
     expect(r.shipVerifyStageRecent).toBe(0);
     expect(r.shipsRecent).toBe(0);
     expect(r.worktreeAliasCount).toBe(0);
+    expect(r.worktreeShortcutCount).toBe(0);
     expect(r.goCommandUses).toBe(0);
     expect(r.planThenLaunchSessions).toBe(0);
   });
@@ -403,6 +409,7 @@ describe("buildSignalsSummary", () => {
         "skipDangerous",
         "statuslineConfigured",
         "worktreeAliasCount",
+        "worktreeShortcutCount",
       ]
     `);
   });

@@ -81,6 +81,7 @@ export function buildSignalsSummary(signals) {
     shipVerifyStageRecent: signals.shipJournal?.stage2Count ?? 0,
     shipsRecent: signals.shipJournal?.totalRuns ?? 0,
     worktreeAliasCount: signals.shellAliases?.worktreeAliasCount ?? 0,
+    worktreeShortcutCount: signals.shellAliases?.worktreeShortcutCount ?? 0,
     goCommandUses: signals.transcriptInvocations?.goCommandUses ?? 0,
     batchCommandUses: signals.transcriptInvocations?.batchCommandUses ?? 0,
     focusCommandUses: signals.transcriptInvocations?.focusCommandUses ?? 0,
