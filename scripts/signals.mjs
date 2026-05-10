@@ -211,6 +211,24 @@ const STATUS_TOKEN = {
   "! Needs authentication": "needs-auth",
 };
 
+// Parse a single JSONL line from ~/.claude/ship/journal.jsonl. Returns the
+// parsed object on valid JSON object input, null on anything else (empty,
+// malformed, non-object). Mirrors parseMcpListOutput's "skip silently"
+// fault tolerance — the journal is append-only across all sessions and
+// schema may evolve, so the reader stays tolerant.
+export function parseJournalLine(line) {
+  if (!line || !line.trim()) return null;
+  try {
+    const parsed = JSON.parse(line);
+    if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+      return parsed;
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
 export function parseMcpListOutput(stdout) {
   if (!stdout || typeof stdout !== "string") return [];
   const out = [];
