@@ -128,7 +128,8 @@
         {
           "id": "chrome-extension",
           "action": "Install the Claude Chrome extension for any web work — Boris tip 51",
-          "effort": "5min"
+          "effort": "5min",
+          "satisfiedWhen": "hasClaudeInChrome"
         },
         {
           "id": "go-reflex",
