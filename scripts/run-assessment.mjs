@@ -56,6 +56,9 @@ export function buildSignalsSummary(signals) {
     hasStopHook: hookEvents.includes("Stop"),
     hasPostToolHook: hookEvents.includes("PostToolUse"),
     hasFormatterHook: !!signals.settings.hasFormatterHook,
+    hasStopHookNotification: !!signals.settings.hasStopHookNotification,
+    hasCustomSpinnerVerbs: (signals.settings.customSpinnerVerbCount || 0) > 0,
+    hasIsolatedAgent: !!signals.settings.hasIsolatedAgent,
     hasShipCommand:
       signals.personalCommands.includes("ship.md") ||
       signals.projectCommands.includes("ship.md"),

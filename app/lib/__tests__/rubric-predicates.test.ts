@@ -32,9 +32,13 @@ const ALL_SATISFIED_SIGNALS = {
   hasStopHook: true,
   hasPostToolHook: true,
   hasFormatterHook: true,
+  hasStopHookNotification: true,
+  hasIsolatedAgent: true,
   // model-effort
-  effortLevel: "xhigh",
+  effortLevel: "max",
   autoCompactWindow: "400000",
+  // customization
+  hasCustomSpinnerVerbs: true,
   // memory
   claudeMdExists: true,
   // integrations
