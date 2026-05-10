@@ -76,6 +76,17 @@ export function buildSignalsSummary(signals) {
       (s) => s.status === "connected",
     ).length,
     hasMcpServers: (signals.mcpServers || []).length > 0,
+    shipVerifyStageRecent: signals.shipJournal?.stage2Count ?? 0,
+    shipsRecent: signals.shipJournal?.totalRuns ?? 0,
+    worktreeAliasCount: signals.shellAliases?.worktreeAliasCount ?? 0,
+    goCommandUses: signals.transcriptInvocations?.goCommandUses ?? 0,
+    batchCommandUses: signals.transcriptInvocations?.batchCommandUses ?? 0,
+    focusCommandUses: signals.transcriptInvocations?.focusCommandUses ?? 0,
+    scheduleCommandUses:
+      signals.transcriptInvocations?.scheduleCommandUses ?? 0,
+    babysitLoopUses: signals.transcriptInvocations?.babysitLoopUses ?? 0,
+    planThenLaunchSessions:
+      signals.transcriptInvocations?.planThenLaunchSessions ?? 0,
     projectsWithMemory: signals.memory.length,
     insightsAvailable: !!signals.insights,
     insightsSessionsAnalyzed: signals.insights?.sessionsAnalyzed ?? 0,

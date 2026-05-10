@@ -32,6 +32,20 @@ function makeSignals(overrides = {}) {
     claudeMdExists: true,
     statuslineConfigured: true,
     keybindingsConfigured: false,
+    shipJournal: {
+      stage2Count: 3,
+      totalRuns: 5,
+      lastRunAt: "2026-05-09T12:00:00Z",
+    },
+    shellAliases: { worktreeAliasCount: 3 },
+    transcriptInvocations: {
+      goCommandUses: 4,
+      batchCommandUses: 2,
+      focusCommandUses: 1,
+      scheduleCommandUses: 1,
+      babysitLoopUses: 1,
+      planThenLaunchSessions: 2,
+    },
     insights: null,
     ...overrides,
   };
@@ -278,6 +292,41 @@ describe("buildSignalsSummary", () => {
     );
   });
 
+  it("forwards ship-journal counts", () => {
+    const r = buildSignalsSummary(makeSignals());
+    expect(r.shipVerifyStageRecent).toBe(3);
+    expect(r.shipsRecent).toBe(5);
+  });
+
+  it("forwards shell-alias count", () => {
+    expect(buildSignalsSummary(makeSignals()).worktreeAliasCount).toBe(3);
+  });
+
+  it("forwards transcript invocation counts", () => {
+    const r = buildSignalsSummary(makeSignals());
+    expect(r.goCommandUses).toBe(4);
+    expect(r.batchCommandUses).toBe(2);
+    expect(r.focusCommandUses).toBe(1);
+    expect(r.scheduleCommandUses).toBe(1);
+    expect(r.babysitLoopUses).toBe(1);
+    expect(r.planThenLaunchSessions).toBe(2);
+  });
+
+  it("defaults missing gatherer outputs to 0", () => {
+    const r = buildSignalsSummary(
+      makeSignals({
+        shipJournal: undefined,
+        shellAliases: undefined,
+        transcriptInvocations: undefined,
+      }),
+    );
+    expect(r.shipVerifyStageRecent).toBe(0);
+    expect(r.shipsRecent).toBe(0);
+    expect(r.worktreeAliasCount).toBe(0);
+    expect(r.goCommandUses).toBe(0);
+    expect(r.planThenLaunchSessions).toBe(0);
+  });
+
   it("output keys form a stable contract — locked-in by snapshot", () => {
     const r = buildSignalsSummary(makeSignals());
     const sortedKeys = Object.keys(r).sort();
@@ -285,8 +334,12 @@ describe("buildSignalsSummary", () => {
       [
         "allowListCount",
         "autoCompactWindow",
+        "babysitLoopUses",
+        "batchCommandUses",
         "claudeMdExists",
         "effortLevel",
+        "focusCommandUses",
+        "goCommandUses",
         "hasClaudeInChrome",
         "hasCustomSpinnerVerbs",
         "hasFormatterHook",
@@ -313,10 +366,15 @@ describe("buildSignalsSummary", () => {
         "personalAgents",
         "personalCommands",
         "personalSkills",
+        "planThenLaunchSessions",
         "plugins",
         "projectsWithMemory",
+        "scheduleCommandUses",
+        "shipVerifyStageRecent",
+        "shipsRecent",
         "skipDangerous",
         "statuslineConfigured",
+        "worktreeAliasCount",
       ]
     `);
   });
