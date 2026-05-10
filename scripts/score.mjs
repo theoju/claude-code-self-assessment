@@ -28,26 +28,39 @@ export const SCORERS = {
         : Math.min(25, s.settings.hookTotalCount * 8);
       score += credit;
       const note = cold ? " (no fires in window — gated)" : "";
-      ev.push(`${s.settings.hookTotalCount} hook(s) configured across: ${s.settings.hookEvents.join(", ")}${note}`);
-      if (cold) gaps.push("Hooks are configured but none fired in the recent window — wire them to actual events");
+      ev.push(
+        `${s.settings.hookTotalCount} hook(s) configured across: ${s.settings.hookEvents.join(", ")}${note}`,
+      );
+      if (cold)
+        gaps.push(
+          "Hooks are configured but none fired in the recent window — wire them to actual events",
+        );
     } else {
-      gaps.push("settings.json has no hooks block — no PostToolUse, Stop, SessionStart, or PostCompact hooks");
+      gaps.push(
+        "settings.json has no hooks block — no PostToolUse, Stop, SessionStart, or PostCompact hooks",
+      );
     }
     if (s.personalAgents.length > 0) {
       score += Math.min(15, 5 * s.personalAgents.length);
-      ev.push(`${s.personalAgents.length} personal agent(s) under ~/.claude/agents`);
+      ev.push(
+        `${s.personalAgents.length} personal agent(s) under ~/.claude/agents`,
+      );
     } else {
       gaps.push("~/.claude/agents is empty — zero personal custom agents");
     }
     if (s.personalCommands.length > 0) {
       score += Math.min(15, 5 * s.personalCommands.length);
-      ev.push(`${s.personalCommands.length} personal slash command(s) under ~/.claude/commands`);
+      ev.push(
+        `${s.personalCommands.length} personal slash command(s) under ~/.claude/commands`,
+      );
     } else {
       gaps.push("~/.claude/commands is empty — zero personal slash commands");
     }
     if (s.projectCommands.length > 0) {
       score += 8;
-      ev.push(`${s.projectCommands.length} project-scoped command(s) under .claude/commands`);
+      ev.push(
+        `${s.projectCommands.length} project-scoped command(s) under .claude/commands`,
+      );
     }
     if (s.personalSkills.filter((x) => x !== "boris").length > 0) {
       score += 7;
@@ -55,7 +68,13 @@ export const SCORERS = {
     } else {
       gaps.push("No personal skills beyond plugin-installed ones");
     }
-    if (s.has.prReviewToolkit || s.has.codeReview) ev.push("Review/simplify plugins cover PR lifecycle");
+    if (s.has.prReviewToolkit || s.has.codeReview)
+      ev.push("Review/simplify plugins cover PR lifecycle");
+    const shipsRecent = s.shipsRecent ?? s.shipJournal?.totalRuns ?? 0;
+    if (shipsRecent >= 1) {
+      score += 5;
+      ev.push(`${shipsRecent} /ship run(s) recently`);
+    }
     return { score: clamp(score), evidence: ev, gaps };
   },
 
@@ -65,17 +84,23 @@ export const SCORERS = {
     const gaps = [];
     if (s.settings.skipDangerousModePermissionPrompt) {
       score -= 25;
-      gaps.push("skipDangerousModePermissionPrompt: true bypasses the auto-mode classifier — strict downgrade");
+      gaps.push(
+        "skipDangerousModePermissionPrompt: true bypasses the auto-mode classifier — strict downgrade",
+      );
     } else {
       score += 15;
       ev.push("Not using the dangerous-skip bypass");
     }
     const allowCount = s.settings.allowList.length;
     if (allowCount === 0) {
-      gaps.push("No permission allowlist entries — every new tool triggers a prompt");
+      gaps.push(
+        "No permission allowlist entries — every new tool triggers a prompt",
+      );
     } else {
       score += Math.min(20, allowCount * 3);
-      ev.push(`${allowCount} permission allowlist entr${allowCount === 1 ? "y" : "ies"}`);
+      ev.push(
+        `${allowCount} permission allowlist entr${allowCount === 1 ? "y" : "ies"}`,
+      );
     }
     if (s.settings.denyList.length > 0) {
       score += 5;
@@ -87,7 +112,9 @@ export const SCORERS = {
     if (typeof bypassUse === "number" && bypassUse > 0) {
       const penalty = Math.min(25, bypassUse);
       score -= penalty;
-      gaps.push(`bypassPermissions used in ${bypassUse} recent session(s) — −${penalty}`);
+      gaps.push(
+        `bypassPermissions used in ${bypassUse} recent session(s) — −${penalty}`,
+      );
     }
     return { score: clamp(score), evidence: ev, gaps };
   },
@@ -108,9 +135,13 @@ export const SCORERS = {
     }
     if (s.settings.autoCompactWindow) {
       score += 15;
-      ev.push(`CLAUDE_CODE_AUTO_COMPACT_WINDOW=${s.settings.autoCompactWindow} set`);
+      ev.push(
+        `CLAUDE_CODE_AUTO_COMPACT_WINDOW=${s.settings.autoCompactWindow} set`,
+      );
     } else {
-      gaps.push("No CLAUDE_CODE_AUTO_COMPACT_WINDOW env var — exposed to context rot past 300-400k tokens");
+      gaps.push(
+        "No CLAUDE_CODE_AUTO_COMPACT_WINDOW env var — exposed to context rot past 300-400k tokens",
+      );
     }
     return { score: clamp(score), evidence: ev, gaps };
   },
@@ -121,7 +152,9 @@ export const SCORERS = {
     const gaps = [];
     if (s.has.superpowers) {
       score += 15;
-      ev.push("superpowers plugin: worktrees, parallel agents, subagent-driven-development");
+      ev.push(
+        "superpowers plugin: worktrees, parallel agents, subagent-driven-development",
+      );
     }
     if (s.has.prReviewToolkit) {
       score += 8;
@@ -129,15 +162,39 @@ export const SCORERS = {
     }
     if (s.has.featureDev) {
       score += 7;
-      ev.push("feature-dev: code-architect / code-explorer / code-reviewer agents");
+      ev.push(
+        "feature-dev: code-architect / code-explorer / code-reviewer agents",
+      );
     }
     if (s.personalAgents.length >= 1) {
       score += 15;
-      ev.push(`${s.personalAgents.length} personal agent(s) tuned to your domain`);
+      ev.push(
+        `${s.personalAgents.length} personal agent(s) tuned to your domain`,
+      );
     } else {
       gaps.push("No personal custom agents tuned to your domain");
     }
-    if (s.personalAgents.length === 0) gaps.push("Worktree muscle memory unverified — no personal agents using isolation:worktree");
+    if (s.personalAgents.length === 0)
+      gaps.push(
+        "Worktree muscle memory unverified — no personal agents using isolation:worktree",
+      );
+    const worktreeAliasCount =
+      s.worktreeAliasCount ?? s.shellAliases?.worktreeAliasCount ?? 0;
+    const batchCommandUses =
+      s.batchCommandUses ?? s.transcriptInvocations?.batchCommandUses ?? 0;
+    // v0.9 bonuses cap at +15 combined per the calibration design (see
+    // docs/superpowers/plans/2026-05-09-score-formula-update.md). Each
+    // signal still contributes its full weight when fired alone.
+    let v9Bonus = 0;
+    if (worktreeAliasCount >= 3) {
+      v9Bonus += 8;
+      ev.push(`${worktreeAliasCount} worktree alias(es) (za/zb/zc) configured`);
+    }
+    if (batchCommandUses >= 1) {
+      v9Bonus += 10;
+      ev.push(`/batch prompt phrasing adopted (${batchCommandUses} uses)`);
+    }
+    score += Math.min(15, v9Bonus);
     return { score: clamp(score), evidence: ev, gaps };
   },
 
@@ -145,14 +202,51 @@ export const SCORERS = {
     let score = 40;
     const ev = [];
     const gaps = [];
-    if (s.has.playwright) { score += 15; ev.push("playwright plugin — browser verification"); }
-    if (s.has.semgrep) { score += 10; ev.push("semgrep plugin — static analysis"); }
-    if (s.has.prReviewToolkit || s.has.codeReview) { score += 10; ev.push("post-change review plugins"); }
-    if (s.has.superpowers) { score += 5; ev.push("superpowers:verification-before-completion active"); }
-    const hasGo = s.personalCommands.includes("go.md") || s.projectCommands.includes("go.md");
-    if (hasGo) { score += 12; ev.push("/go composite command present"); }
-    else gaps.push("No /go composite command in personal or project library");
-    if (!s.has.playwright) gaps.push("No browser-automation plugin — frontend verification is incomplete");
+    if (s.has.playwright) {
+      score += 15;
+      ev.push("playwright plugin — browser verification");
+    }
+    if (s.has.semgrep) {
+      score += 10;
+      ev.push("semgrep plugin — static analysis");
+    }
+    if (s.has.prReviewToolkit || s.has.codeReview) {
+      score += 10;
+      ev.push("post-change review plugins");
+    }
+    if (s.has.superpowers) {
+      score += 5;
+      ev.push("superpowers:verification-before-completion active");
+    }
+    const hasGo =
+      s.personalCommands.includes("go.md") ||
+      s.projectCommands.includes("go.md");
+    if (hasGo) {
+      score += 12;
+      ev.push("/go composite command present");
+    } else gaps.push("No /go composite command in personal or project library");
+    if (!s.has.playwright)
+      gaps.push(
+        "No browser-automation plugin — frontend verification is incomplete",
+      );
+    const hasClaudeInChrome =
+      s.hasClaudeInChrome ?? !!s.settings?.hasClaudeInChrome;
+    if (hasClaudeInChrome) {
+      score += 5;
+      ev.push("Claude in Chrome — frontend verification reach");
+    }
+    const shipVerifyStageRecent =
+      s.shipVerifyStageRecent ?? s.shipJournal?.stage2Count ?? 0;
+    if (shipVerifyStageRecent >= 1) {
+      score += 5;
+      ev.push(`/ship verify-agent fired ${shipVerifyStageRecent}× recently`);
+    }
+    const goCommandUses =
+      s.goCommandUses ?? s.transcriptInvocations?.goCommandUses ?? 0;
+    if (goCommandUses >= 3) {
+      score += 3;
+      ev.push(`/go reflex adopted (${goCommandUses} uses)`);
+    }
     return { score: clamp(score), evidence: ev, gaps };
   },
 
@@ -162,15 +256,28 @@ export const SCORERS = {
     const gaps = [];
     if (s.memory.length > 0) {
       score += 20;
-      ev.push(`Auto-memory active on ${s.memory.length} project(s) — ${s.memory.reduce((n, m) => n + m.fileCount, 0)} memory files total`);
+      ev.push(
+        `Auto-memory active on ${s.memory.length} project(s) — ${s.memory.reduce((n, m) => n + m.fileCount, 0)} memory files total`,
+      );
     } else {
       gaps.push("No MEMORY.md files found under ~/.claude/projects");
     }
-    if (s.has.claudeMdMgmt) { score += 10; ev.push("claude-md-management plugin installed"); }
-    if (s.claudeMdExists) { score += 10; ev.push("CLAUDE.md present (project or global)"); }
-    else gaps.push("No CLAUDE.md at project root yet");
-    if (s.plansCount > 10) { score += 8; ev.push(`${s.plansCount} saved plans — active planner`); }
-    if (!s.settings.autoCompactWindow) gaps.push("No CLAUDE_CODE_AUTO_COMPACT_WINDOW set — context rot risk above 300-400k");
+    if (s.has.claudeMdMgmt) {
+      score += 10;
+      ev.push("claude-md-management plugin installed");
+    }
+    if (s.claudeMdExists) {
+      score += 10;
+      ev.push("CLAUDE.md present (project or global)");
+    } else gaps.push("No CLAUDE.md at project root yet");
+    if (s.plansCount > 10) {
+      score += 8;
+      ev.push(`${s.plansCount} saved plans — active planner`);
+    }
+    if (!s.settings.autoCompactWindow)
+      gaps.push(
+        "No CLAUDE_CODE_AUTO_COMPACT_WINDOW set — context rot risk above 300-400k",
+      );
     return { score: clamp(score), evidence: ev, gaps };
   },
 
@@ -178,11 +285,35 @@ export const SCORERS = {
     let score = 55;
     const ev = [];
     const gaps = [];
-    if (s.has.superpowers) { score += 15; ev.push("brainstorming / writing-plans / executing-plans skills"); }
-    if (s.has.karpathy) { score += 8; ev.push("karpathy-guidelines — surgical, verifiable prompts"); }
-    if (s.plansCount >= 10) { score += 10; ev.push(`${s.plansCount} saved plans`); }
-    if (s.has.featureDev) { score += 5; ev.push("feature-dev: structured feature workflow"); }
-    gaps.push("Behavioral check: does every non-trivial prompt include Goal / Constraints / Acceptance Criteria upfront?");
+    if (s.has.superpowers) {
+      score += 15;
+      ev.push("brainstorming / writing-plans / executing-plans skills");
+    }
+    if (s.has.karpathy) {
+      score += 8;
+      ev.push("karpathy-guidelines — surgical, verifiable prompts");
+    }
+    if (s.plansCount >= 10) {
+      score += 10;
+      ev.push(`${s.plansCount} saved plans`);
+    }
+    if (s.has.featureDev) {
+      score += 5;
+      ev.push("feature-dev: structured feature workflow");
+    }
+    gaps.push(
+      "Behavioral check: does every non-trivial prompt include Goal / Constraints / Acceptance Criteria upfront?",
+    );
+    const planThenLaunchSessions =
+      s.planThenLaunchSessions ??
+      s.transcriptInvocations?.planThenLaunchSessions ??
+      0;
+    if (planThenLaunchSessions >= 1) {
+      score += 5;
+      ev.push(
+        `Plan-then-launch discipline detected (${planThenLaunchSessions} session(s))`,
+      );
+    }
     return { score: clamp(score), evidence: ev, gaps };
   },
 
@@ -195,7 +326,25 @@ export const SCORERS = {
     if (s.has.vercel) ev.push("vercel plugin installed");
     if (s.has.imessage) ev.push("imessage plugin — Boris tip 44 adopted");
     if (!s.plugins.some((p) => p.toLowerCase().includes("slack"))) {
-      gaps.push("No Slack MCP — Boris tip 9 relies on it for bug triage and daily summaries");
+      gaps.push(
+        "No Slack MCP — Boris tip 9 relies on it for bug triage and daily summaries",
+      );
+    }
+    const mcpServersConnected =
+      s.mcpServersConnected ??
+      (Array.isArray(s.mcpServers)
+        ? s.mcpServers.filter((m) => m && m.status === "connected").length
+        : 0);
+    if (mcpServersConnected > 0) {
+      const mcpBonus = Math.min(15, mcpServersConnected * 3);
+      score += mcpBonus;
+      ev.push(`${mcpServersConnected} connected MCP server(s)`);
+    }
+    const hasClaudeInChrome =
+      s.hasClaudeInChrome ?? !!s.settings?.hasClaudeInChrome;
+    if (hasClaudeInChrome) {
+      score += 5;
+      ev.push("Claude in Chrome integration enabled");
     }
     return { score: clamp(score), evidence: ev, gaps };
   },
@@ -204,10 +353,24 @@ export const SCORERS = {
     let score = 45;
     const ev = [];
     const gaps = [];
-    if (s.statuslineConfigured) { score += 15; ev.push("Custom statusline.sh configured"); }
-    if (s.has.explanatoryStyle) { score += 10; ev.push("explanatory-output-style plugin enabled"); }
-    if (s.keybindingsConfigured) { score += 10; ev.push("Custom keybindings.json"); }
-    else gaps.push("No custom ~/.claude/keybindings.json");
+    if (s.statuslineConfigured) {
+      score += 15;
+      ev.push("Custom statusline.sh configured");
+    }
+    if (s.has.explanatoryStyle) {
+      score += 10;
+      ev.push("explanatory-output-style plugin enabled");
+    }
+    if (s.keybindingsConfigured) {
+      score += 10;
+      ev.push("Custom keybindings.json");
+    } else gaps.push("No custom ~/.claude/keybindings.json");
+    const focusCommandUses =
+      s.focusCommandUses ?? s.transcriptInvocations?.focusCommandUses ?? 0;
+    if (focusCommandUses >= 1) {
+      score += 5;
+      ev.push(`/focus adopted (${focusCommandUses} use(s))`);
+    }
     return { score: clamp(score), evidence: ev, gaps };
   },
 
@@ -215,15 +378,49 @@ export const SCORERS = {
     let score = 25;
     const ev = [];
     const gaps = [];
-    if (s.has.ralphLoop) { score += 15; ev.push("ralph-loop plugin — /loop capability"); }
+    if (s.has.ralphLoop) {
+      score += 15;
+      ev.push("ralph-loop plugin — /loop capability");
+    }
     const hasScheduled =
-      s.personalCommands.some((c) => c.includes("babysit") || c.includes("loop")) ||
-      s.projectCommands.some((c) => c.includes("babysit") || c.includes("loop"));
-    if (hasScheduled) { score += 20; ev.push("Custom scheduled/loop commands present"); }
-    else gaps.push("No active /loop babysitter or /schedule job in personal commands");
+      s.personalCommands.some(
+        (c) => c.includes("babysit") || c.includes("loop"),
+      ) ||
+      s.projectCommands.some(
+        (c) => c.includes("babysit") || c.includes("loop"),
+      );
+    if (hasScheduled) {
+      score += 20;
+      ev.push("Custom scheduled/loop commands present");
+    } else
+      gaps.push(
+        "No active /loop babysitter or /schedule job in personal commands",
+      );
     const stopHook = (s.settings.hookEvents || []).includes("Stop");
-    if (stopHook) { score += 10; ev.push("Stop hook configured"); }
-    else gaps.push("No Stop hook for task-completion notifications — Boris tip 75");
+    if (stopHook) {
+      score += 10;
+      ev.push("Stop hook configured");
+    } else
+      gaps.push(
+        "No Stop hook for task-completion notifications — Boris tip 75",
+      );
+    const babysitLoopUses =
+      s.babysitLoopUses ?? s.transcriptInvocations?.babysitLoopUses ?? 0;
+    const scheduleCommandUses =
+      s.scheduleCommandUses ??
+      s.transcriptInvocations?.scheduleCommandUses ??
+      0;
+    // v0.9 bonuses cap at +15 combined per the calibration design.
+    let v9Bonus = 0;
+    if (babysitLoopUses >= 1) {
+      v9Bonus += 10;
+      ev.push(`/loop /babysit pattern adopted (${babysitLoopUses} session(s))`);
+    }
+    if (scheduleCommandUses >= 1) {
+      v9Bonus += 5;
+      ev.push(`/schedule routine adopted (${scheduleCommandUses} use(s))`);
+    }
+    score += Math.min(15, v9Bonus);
     return { score: clamp(score), evidence: ev, gaps };
   },
 
@@ -231,8 +428,16 @@ export const SCORERS = {
     let score = 35;
     const ev = [];
     const gaps = [];
-    if (s.has.imessage) { score += 20; ev.push("imessage plugin installed"); }
-    else gaps.push("No imessage plugin — Boris tip 44");
+    if (s.has.imessage) {
+      score += 20;
+      ev.push("imessage plugin installed");
+    } else gaps.push("No imessage plugin — Boris tip 44");
+    const hasRemoteControl =
+      s.hasRemoteControl ?? !!s.settings?.hasRemoteControl;
+    if (hasRemoteControl) {
+      score += 10;
+      ev.push("Remote Control opted in (Boris tip 47)");
+    }
     return { score: clamp(score), evidence: ev, gaps };
   },
 
@@ -240,9 +445,18 @@ export const SCORERS = {
     let score = 55;
     const ev = [];
     const gaps = [];
-    if (s.has.explanatoryStyle) { score += 20; ev.push("explanatory-output-style enabled"); }
-    if (s.has.karpathy) { score += 10; ev.push("karpathy-guidelines — anti-overcomplication behavior"); }
-    if (s.has.skillCreator) { score += 5; ev.push("skill-creator plugin — self-improving toolkit"); }
+    if (s.has.explanatoryStyle) {
+      score += 20;
+      ev.push("explanatory-output-style enabled");
+    }
+    if (s.has.karpathy) {
+      score += 10;
+      ev.push("karpathy-guidelines — anti-overcomplication behavior");
+    }
+    if (s.has.skillCreator) {
+      score += 5;
+      ev.push("skill-creator plugin — self-improving toolkit");
+    }
     return { score: clamp(score), evidence: ev, gaps };
   },
 };
@@ -252,16 +466,19 @@ export const SCORERS = {
 
 export const GAP_REASONS = {
   NO_INSIGHTS: "Run /insights to populate execution data",
-  NO_TRANSCRIPTS: "Set scoring.includeTranscripts: true to score this dimension's execution",
+  NO_TRANSCRIPTS:
+    "Set scoring.includeTranscripts: true to score this dimension's execution",
   NO_SESSIONS: "No sessions in lookback window",
   NO_MULTI_TASK: "No multi-task sessions in lookback window",
   NO_PLUGINS: "No plugins installed",
-  NO_HOOK_FIRE_DATA: "~/.claude/hook-fires.jsonl absent — automation execution unmeasured (Claude Code does not emit this telemetry by default)",
+  NO_HOOK_FIRE_DATA:
+    "~/.claude/hook-fires.jsonl absent — automation execution unmeasured (Claude Code does not emit this telemetry by default)",
   // For dimensions where /insights data structurally cannot carry the signal
   // (effort/model never logged to session-meta; memory tools never appear in
   // tool_counts; terminal/IDE customization is purely client-side config).
   // These render as "unmeasured" with a clear rationale instead of blank.
-  NO_TELEMETRY_FOR_DIMENSION: "no /insights telemetry exists for this dimension — platform-setup-only by nature",
+  NO_TELEMETRY_FOR_DIMENSION:
+    "no /insights telemetry exists for this dimension — platform-setup-only by nature",
 };
 
 function unavailable(reason) {
@@ -316,7 +533,11 @@ const COEFFS = {
 
 export const EXECUTION_SCORERS = {
   permissions: withGates({ transcripts: true }, (s) => {
-    const { autoModeSessionCount, bypassPermissionsSessionCount, sessionsAnalyzed } = s.insights;
+    const {
+      autoModeSessionCount,
+      bypassPermissionsSessionCount,
+      sessionsAnalyzed,
+    } = s.insights;
     // transcriptsScanned implies these are numbers upstream — guard anyway so a
     // future ingest path that sets the flag without filling counts can't quietly
     // produce score: 0 with "null/100" evidence.
@@ -326,7 +547,10 @@ export const EXECUTION_SCORERS = {
     const autoRatio = autoModeSessionCount / sessionsAnalyzed;
     const bypassRatio = bypassPermissionsSessionCount / sessionsAnalyzed;
     const score = clamp(
-      Math.round(autoRatio * COEFFS.permissionsAutoWeight - bypassRatio * COEFFS.permissionsBypassPenalty),
+      Math.round(
+        autoRatio * COEFFS.permissionsAutoWeight -
+          bypassRatio * COEFFS.permissionsBypassPenalty,
+      ),
     );
     const evidence = [
       `Auto mode: ${autoModeSessionCount}/${sessionsAnalyzed} sessions (${pct(autoRatio * 100)}%)`,
@@ -348,56 +572,85 @@ export const EXECUTION_SCORERS = {
     // Exponential decay: graceful taper, no negative pre-clamp. A 15% friction
     // rate is normal sustained work; the prior 500× linear amplifier crushed
     // it to 25, treating productive engineering as failure.
-    const score = clamp(Math.round(100 * Math.exp(-missRate * COEFFS.verificationDecayRate)));
+    const score = clamp(
+      Math.round(100 * Math.exp(-missRate * COEFFS.verificationDecayRate)),
+    );
     const evidence = [
       `Verification friction rate: ${buggy} buggy_code + ${wrong} wrong_approach across ${sessionsAnalyzed} sessions (${pct(missRate * 100)}%)`,
     ];
     const gaps = [];
-    if (buggy > 0) gaps.push(`${buggy} first-pass-bug events — Verification's whole point is catching these`);
+    if (buggy > 0)
+      gaps.push(
+        `${buggy} first-pass-bug events — Verification's whole point is catching these`,
+      );
     return { score, evidence, gaps, gapReason: null };
   }),
 
   parallel: withGates({}, (s) => {
-    const { subagentSessionCount, worktreeUsageSessionCount, sessionsAnalyzed, transcriptsScanned } = s.insights;
+    const {
+      subagentSessionCount,
+      worktreeUsageSessionCount,
+      sessionsAnalyzed,
+      transcriptsScanned,
+    } = s.insights;
     const subagentRatio = subagentSessionCount / sessionsAnalyzed;
     let score = subagentRatio * COEFFS.parallelSubagentWeight;
-    const evidence = [`Subagent dispatch: ${subagentSessionCount}/${sessionsAnalyzed} sessions (${pct(subagentRatio * 100)}%)`];
+    const evidence = [
+      `Subagent dispatch: ${subagentSessionCount}/${sessionsAnalyzed} sessions (${pct(subagentRatio * 100)}%)`,
+    ];
     const gaps = [];
     if (transcriptsScanned) {
       const wtRatio = worktreeUsageSessionCount / sessionsAnalyzed;
       score += wtRatio * COEFFS.parallelWorktreeBonus;
-      evidence.push(`Worktree isolation: ${worktreeUsageSessionCount}/${sessionsAnalyzed} (${pct(wtRatio * 100)}%)`);
+      evidence.push(
+        `Worktree isolation: ${worktreeUsageSessionCount}/${sessionsAnalyzed} (${pct(wtRatio * 100)}%)`,
+      );
     }
-    if (subagentRatio < 0.2) gaps.push("Subagent dispatch in fewer than 20% of sessions — Boris tip 1");
+    if (subagentRatio < 0.2)
+      gaps.push(
+        "Subagent dispatch in fewer than 20% of sessions — Boris tip 1",
+      );
     return { score: clamp(Math.round(score)), evidence, gaps, gapReason: null };
   }),
 
   // requireSessions: false — gates internally on multiTaskSessionCount instead.
   planning: withGates({ transcripts: true, requireSessions: false }, (s) => {
     const { planModeSessionCount, multiTaskSessionCount } = s.insights;
-    if (multiTaskSessionCount === 0) return unavailable(GAP_REASONS.NO_MULTI_TASK);
+    if (multiTaskSessionCount === 0)
+      return unavailable(GAP_REASONS.NO_MULTI_TASK);
     const ratio = planModeSessionCount / multiTaskSessionCount;
     const score = clamp(Math.round(ratio * COEFFS.planningRatioWeight));
     const evidence = [
       `Plan mode: ${planModeSessionCount}/${multiTaskSessionCount} multi-task sessions (${pct(ratio * 100)}%)`,
     ];
     const gaps = [];
-    if (ratio < 0.5) gaps.push("Plan mode in fewer than half of multi-task sessions — Boris tip 65");
+    if (ratio < 0.5)
+      gaps.push(
+        "Plan mode in fewer than half of multi-task sessions — Boris tip 65",
+      );
     return { score, evidence, gaps, gapReason: null };
   }),
 
   automation: withGates({}, (s) => {
-    const { hookFireCount, sessionsAnalyzed, subagentSessionCount } = s.insights;
+    const { hookFireCount, sessionsAnalyzed, subagentSessionCount } =
+      s.insights;
     // Null hookFireCount means ~/.claude/hook-fires.jsonl was absent — Claude
     // Code does not emit this telemetry by default. Distinguish from a real
     // zero (file present, no fires in window) so users without the logging
     // hook see "unmeasured" rather than a hard zero.
-    if (hookFireCount === null) return unavailable(GAP_REASONS.NO_HOOK_FIRE_DATA);
-    let score = Math.round((hookFireCount / sessionsAnalyzed) * COEFFS.automationHookWeight);
-    if (s.personalAgents.length > 0 && subagentSessionCount > 0) score += COEFFS.automationOwnAgentBonus;
-    const evidence = [`Hook fires: ${hookFireCount} across ${sessionsAnalyzed} sessions`];
+    if (hookFireCount === null)
+      return unavailable(GAP_REASONS.NO_HOOK_FIRE_DATA);
+    let score = Math.round(
+      (hookFireCount / sessionsAnalyzed) * COEFFS.automationHookWeight,
+    );
+    if (s.personalAgents.length > 0 && subagentSessionCount > 0)
+      score += COEFFS.automationOwnAgentBonus;
+    const evidence = [
+      `Hook fires: ${hookFireCount} across ${sessionsAnalyzed} sessions`,
+    ];
     const gaps = [];
-    if (hookFireCount === 0) gaps.push("Zero hook fires in window — automation is dormant");
+    if (hookFireCount === 0)
+      gaps.push("Zero hook fires in window — automation is dormant");
     return { score: clamp(score), evidence, gaps, gapReason: null };
   }),
 
@@ -419,14 +672,22 @@ export const EXECUTION_SCORERS = {
     );
     const callsPerSession = totalPluginCalls / sessionsAnalyzed;
     const score = clamp(
-      Math.round(Math.min(callsPerSession / COEFFS.integrationsTargetCallsPerSession, 1) * 100),
+      Math.round(
+        Math.min(
+          callsPerSession / COEFFS.integrationsTargetCallsPerSession,
+          1,
+        ) * 100,
+      ),
     );
     const evidence = [
       `Plugin tool calls: ${totalPluginCalls} across ${sessionsAnalyzed} sessions (${pct(callsPerSession)} per session, target ${COEFFS.integrationsTargetCallsPerSession})`,
       `${pluginsUsed}/${pluginsInstalled} installed plugins fired calls in window`,
     ];
     const gaps = [];
-    if (pluginsInstalled - pluginsUsed > COEFFS.integrationsCoverageGapThreshold) {
+    if (
+      pluginsInstalled - pluginsUsed >
+      COEFFS.integrationsCoverageGapThreshold
+    ) {
       gaps.push(
         `${pluginsInstalled - pluginsUsed} plugins installed but idle in window — review whether some are deadweight (informational; doesn't reduce score)`,
       );
@@ -444,12 +705,18 @@ export const EXECUTION_SCORERS = {
     if (scheduledInvocationsTotal === 0) {
       return {
         score: 0,
-        evidence: [`No scheduled-tool invocations in ${sessionsAnalyzed} sessions`],
-        gaps: ["No CronCreate/CronDelete/CronList/ScheduleWakeup invocations — recurring/autonomous workflows dormant"],
+        evidence: [
+          `No scheduled-tool invocations in ${sessionsAnalyzed} sessions`,
+        ],
+        gaps: [
+          "No CronCreate/CronDelete/CronList/ScheduleWakeup invocations — recurring/autonomous workflows dormant",
+        ],
         gapReason: null,
       };
     }
-    const score = clamp(Math.round(50 + Math.min(scheduledInvocationsTotal - 1, 2) * 25));
+    const score = clamp(
+      Math.round(50 + Math.min(scheduledInvocationsTotal - 1, 2) * 25),
+    );
     return {
       score,
       evidence: [
@@ -466,12 +733,18 @@ export const EXECUTION_SCORERS = {
     if (remoteInvocationsTotal === 0) {
       return {
         score: 0,
-        evidence: [`No remote-tool invocations in ${sessionsAnalyzed} sessions`],
-        gaps: ["No RemoteTrigger/PushNotification/SendMessage invocations — mobile/remote workflows dormant"],
+        evidence: [
+          `No remote-tool invocations in ${sessionsAnalyzed} sessions`,
+        ],
+        gaps: [
+          "No RemoteTrigger/PushNotification/SendMessage invocations — mobile/remote workflows dormant",
+        ],
         gapReason: null,
       };
     }
-    const score = clamp(Math.round(50 + Math.min(remoteInvocationsTotal - 1, 2) * 25));
+    const score = clamp(
+      Math.round(50 + Math.min(remoteInvocationsTotal - 1, 2) * 25),
+    );
     return {
       score,
       evidence: [
@@ -498,8 +771,13 @@ export const EXECUTION_SCORERS = {
   // actual use. Honest caveat: if the plugin's banner string changes upstream,
   // this scorer goes silent (returns 0). Documented in methodology.
   learning: withGates({ transcripts: true }, (s) => {
-    const { learningModeSessionCount, learningModeMatchesTotal, sessionsAnalyzed } = s.insights;
-    if (learningModeSessionCount == null) return unavailable(GAP_REASONS.NO_TRANSCRIPTS);
+    const {
+      learningModeSessionCount,
+      learningModeMatchesTotal,
+      sessionsAnalyzed,
+    } = s.insights;
+    if (learningModeSessionCount == null)
+      return unavailable(GAP_REASONS.NO_TRANSCRIPTS);
     const ratio = learningModeSessionCount / sessionsAnalyzed;
     const score = clamp(Math.round(ratio * 100));
     const evidence = [
@@ -507,7 +785,9 @@ export const EXECUTION_SCORERS = {
     ];
     const gaps = [];
     if (ratio < 0.3) {
-      gaps.push("Explanatory mode active in <30% of sessions — try /output-style explanatory for learning work");
+      gaps.push(
+        "Explanatory mode active in <30% of sessions — try /output-style explanatory for learning work",
+      );
     }
     return { score, evidence, gaps, gapReason: null };
   }),
@@ -546,7 +826,9 @@ export function scoreAll(rubric, signals) {
       };
     }
     const { score: rawScore, evidence, gaps } = fn(signals);
-    const ex = exFn ? exFn(signals) : { score: null, gapReason: null, evidence: [], gaps: [] };
+    const ex = exFn
+      ? exFn(signals)
+      : { score: null, gapReason: null, evidence: [], gaps: [] };
     const normScore = normalize(rawScore, d.target);
     const normExScore = normalize(ex.score, d.target);
     return {
@@ -579,11 +861,13 @@ export function scoreAll(rubric, signals) {
   // (normalized) score; null when no execution data exists at all.
   const exScored = scores.filter((r) => typeof r.executionScore === "number");
   const exTotalW = exScored.reduce((sum, r) => sum + r.weight, 0);
-  const executionOverall = exScored.length === 0
-    ? null
-    : Math.round(
-        exScored.reduce((sum, r) => sum + r.executionScore * r.weight, 0) / exTotalW,
-      );
+  const executionOverall =
+    exScored.length === 0
+      ? null
+      : Math.round(
+          exScored.reduce((sum, r) => sum + r.executionScore * r.weight, 0) /
+            exTotalW,
+        );
 
   return { capturedAt: now, overall, targetOverall, executionOverall, scores };
 }
