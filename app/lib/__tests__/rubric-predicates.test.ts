@@ -46,6 +46,8 @@ const ALL_SATISFIED_SIGNALS = {
   hasVercelPlugin: true,
   hasClaudeInChrome: true,
   mcpServersConnected: 5,
+  // remote
+  hasRemoteControl: true,
   // counts
   plugins: 33,
   personalSkills: 2,

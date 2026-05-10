@@ -146,6 +146,16 @@ export function detectClaudeInChrome(cliConfig) {
   return cliConfig?.claudeInChromeDefaultEnabled === true;
 }
 
+// True when the user has invoked the iOS / web Remote Control flow at least
+// once. Boris tip 47. Lives in `~/.claude.json#hasUsedRemoteControl` (CLI
+// runtime state), not `~/.claude/settings.json`. Strict equality on `true`
+// — the field is a sticky flag, not a config toggle, so we reject coerced
+// truthy values (1, "true") to avoid future false positives if the CLI
+// changes the encoding.
+export function detectRemoteControl(cliConfig) {
+  return cliConfig?.hasUsedRemoteControl === true;
+}
+
 // True if a Stop hook fires a system notification when Claude finishes —
 // Boris tip 75. Distinguishes "I get pinged for autonomous runs" from "I
 // have *some* Stop hook" (e.g. a stop-verify.sh check). Tokens cover macOS
@@ -257,6 +267,7 @@ export async function gatherSignals(projectRoot = process.cwd(), options = {}) {
   const cliConfig =
     (await safeReadJson(join(claudeHome(), "..", ".claude.json"))) || {};
   const hasClaudeInChrome = detectClaudeInChrome(cliConfig);
+  const hasRemoteControl = detectRemoteControl(cliConfig);
   const projectSettings =
     (await safeReadJson(join(projectRoot, ".claude", "settings.local.json"))) ||
     {};
@@ -371,6 +382,7 @@ export async function gatherSignals(projectRoot = process.cwd(), options = {}) {
       customSpinnerVerbCount,
       hasIsolatedAgent,
       hasClaudeInChrome,
+      hasRemoteControl,
     },
     personalAgents,
     personalCommands,
