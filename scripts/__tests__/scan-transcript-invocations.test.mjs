@@ -81,7 +81,85 @@ describe("scanTranscriptInvocations", () => {
       loopCommandUses: 0,
       planThenLaunchSessions: 0,
       rewindCommandUses: 0,
+      simplifyCommandUses: 0,
+      btwCommandUses: 0,
+      voiceCommandUses: 0,
+      clearCommandUses: 0,
+      compactCommandUses: 0,
+      fewerPermsCommandUses: 0,
     });
+  });
+
+  it("counts simplifyCommandUses as 1-per-session for sessions with /simplify", async () => {
+    writeSession("s1", [userMarkup("/simplify"), userText("/simplify again")]);
+    writeSession("s2", [userText("hello"), userText("nothing here")]);
+    writeSession("s3", [userText("/simplify the code")]);
+    const r = await scanTranscriptInvocations({
+      projectsRoot,
+      now: new Date("2026-05-10T00:00:00Z"),
+      lookbackDays: 30,
+    });
+    expect(r.simplifyCommandUses).toBe(2);
+  });
+
+  it("counts btwCommandUses as 1-per-session for sessions with /btw", async () => {
+    writeSession("s1", [userMarkup("/btw"), userText("/btw side question")]);
+    writeSession("s2", [userText("/btw try this")]);
+    writeSession("s3", [userText("no command here")]);
+    const r = await scanTranscriptInvocations({
+      projectsRoot,
+      now: new Date("2026-05-10T00:00:00Z"),
+      lookbackDays: 30,
+    });
+    expect(r.btwCommandUses).toBe(2);
+  });
+
+  it("counts voiceCommandUses as 1-per-session for sessions with /voice", async () => {
+    writeSession("s1", [userMarkup("/voice")]);
+    writeSession("s2", [userText("/voice on")]);
+    writeSession("s3", [userText("just typing")]);
+    const r = await scanTranscriptInvocations({
+      projectsRoot,
+      now: new Date("2026-05-10T00:00:00Z"),
+      lookbackDays: 30,
+    });
+    expect(r.voiceCommandUses).toBe(2);
+  });
+
+  it("counts clearCommandUses as 1-per-session for sessions with /clear", async () => {
+    writeSession("s1", [userMarkup("/clear"), userText("/clear")]);
+    writeSession("s2", [userText("/clear context")]);
+    writeSession("s3", [userText("nothing")]);
+    const r = await scanTranscriptInvocations({
+      projectsRoot,
+      now: new Date("2026-05-10T00:00:00Z"),
+      lookbackDays: 30,
+    });
+    expect(r.clearCommandUses).toBe(2);
+  });
+
+  it("counts compactCommandUses as 1-per-session for sessions with /compact", async () => {
+    writeSession("s1", [userMarkup("/compact"), userText("/compact")]);
+    writeSession("s2", [userText("/compact now")]);
+    writeSession("s3", [userText("nothing")]);
+    const r = await scanTranscriptInvocations({
+      projectsRoot,
+      now: new Date("2026-05-10T00:00:00Z"),
+      lookbackDays: 30,
+    });
+    expect(r.compactCommandUses).toBe(2);
+  });
+
+  it("counts fewerPermsCommandUses as 1-per-session for sessions with /fewer-permission-prompts", async () => {
+    writeSession("s1", [userMarkup("/fewer-permission-prompts")]);
+    writeSession("s2", [userText("/fewer-permission-prompts please")]);
+    writeSession("s3", [userText("not here")]);
+    const r = await scanTranscriptInvocations({
+      projectsRoot,
+      now: new Date("2026-05-10T00:00:00Z"),
+      lookbackDays: 30,
+    });
+    expect(r.fewerPermsCommandUses).toBe(2);
   });
 
   it("counts /rewind invocations (markup + start-of-line)", async () => {

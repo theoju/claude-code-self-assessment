@@ -39,6 +39,12 @@ export function makeSignals(overrides = {}) {
     loopCommandUses: 0,
     planThenLaunchSessions: 0,
     rewindCommandUses: 0,
+    simplifyCommandUses: 0,
+    btwCommandUses: 0,
+    voiceCommandUses: 0,
+    clearCommandUses: 0,
+    compactCommandUses: 0,
+    fewerPermsCommandUses: 0,
     worktreeAliasCount: 0,
     worktreeShortcutCount: 0,
     has: {
@@ -63,6 +69,28 @@ export function makeSignals(overrides = {}) {
     insights: null,
   };
   return deepMerge(base, overrides);
+}
+
+// Mirror of makeTranscriptInvocations — same field set, defaults to 0.
+// Used by tests that exercise the history-scanner / transcript-scanner
+// MAX merge in buildSignalsSummary. Not every probe is history-sourced
+// (e.g. planThenLaunchSessions has no history analogue) but the field
+// set is identical for uniform Math.max plumbing.
+export function makeHistoryInvocations(overrides = {}) {
+  return {
+    simplifyCommandUses: 0,
+    btwCommandUses: 0,
+    voiceCommandUses: 0,
+    clearCommandUses: 0,
+    compactCommandUses: 0,
+    fewerPermsCommandUses: 0,
+    loopCommandUses: 0,
+    babysitLoopUses: 0,
+    focusCommandUses: 0,
+    scheduleCommandUses: 0,
+    batchCommandUses: 0,
+    ...overrides,
+  };
 }
 
 export function makeInsights(overrides = {}) {

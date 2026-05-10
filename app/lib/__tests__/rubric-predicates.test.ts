@@ -66,6 +66,12 @@ const ALL_SATISFIED_SIGNALS = {
   loopCommandUses: 1,
   planThenLaunchSessions: 2,
   rewindCommandUses: 2,
+  simplifyCommandUses: 1,
+  btwCommandUses: 1,
+  voiceCommandUses: 1,
+  clearCommandUses: 1,
+  compactCommandUses: 1,
+  fewerPermsCommandUses: 1,
   personalSkillNames: ["self-assessment", "spaced-repetition-skill", "ship"],
 };
 

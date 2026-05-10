@@ -35,6 +35,18 @@ const RUBRIC_PATH = join(DATA_DIR, "rubric.json");
 const PROGRESSION_PATH = join(DATA_DIR, "progression.json");
 const PROGRESSION_CONFIG_PATH = join(DATA_DIR, "progression-config.json");
 
+// Read a probe value from BOTH the transcript scanner and history scanner
+// and return the max. The history scanner has higher fidelity for
+// side-channel commands (e.g. /btw never reaches the session JSONL);
+// the transcript scanner has higher fidelity for transcript-derived
+// patterns (e.g. /loop fired by /ship). Math.max recovers whichever
+// source saw it.
+function maxProbe(signals, field) {
+  const t = signals.transcriptInvocations?.[field] ?? 0;
+  const h = signals.historyInvocations?.[field] ?? 0;
+  return Math.max(t, h);
+}
+
 // Pure derivation: signals (raw filesystem capture) → signalsSummary (flat
 // scalar map). The predicate engine in app/lib/assessment.ts evaluates
 // rubric satisfiedWhen expressions against this object. Exported so the
@@ -100,16 +112,29 @@ export function buildSignalsSummary(signals) {
     shipsRecent: signals.shipJournal?.totalRuns ?? 0,
     worktreeAliasCount: signals.shellAliases?.worktreeAliasCount ?? 0,
     worktreeShortcutCount: signals.shellAliases?.worktreeShortcutCount ?? 0,
+    // Slash-command counters: typed prompts also land in
+    // ~/.claude/history.jsonl, which captures side-channel commands like
+    // /btw that never reach the session JSONL. Take Math.max so the
+    // assessment cannot regress below transcript-only behavior, only
+    // recover signal the JSONL scanner misses. /go and /rewind stay
+    // transcript-only (/go is mid-phrase, /rewind is keyboard-shortcut —
+    // both work correctly through the existing path); planThenLaunch is
+    // a structural transcript signal with no analogue in history.jsonl.
     goCommandUses: signals.transcriptInvocations?.goCommandUses ?? 0,
-    batchCommandUses: signals.transcriptInvocations?.batchCommandUses ?? 0,
-    focusCommandUses: signals.transcriptInvocations?.focusCommandUses ?? 0,
-    scheduleCommandUses:
-      signals.transcriptInvocations?.scheduleCommandUses ?? 0,
-    babysitLoopUses: signals.transcriptInvocations?.babysitLoopUses ?? 0,
-    loopCommandUses: signals.transcriptInvocations?.loopCommandUses ?? 0,
+    batchCommandUses: maxProbe(signals, "batchCommandUses"),
+    focusCommandUses: maxProbe(signals, "focusCommandUses"),
+    scheduleCommandUses: maxProbe(signals, "scheduleCommandUses"),
+    babysitLoopUses: maxProbe(signals, "babysitLoopUses"),
+    loopCommandUses: maxProbe(signals, "loopCommandUses"),
     planThenLaunchSessions:
       signals.transcriptInvocations?.planThenLaunchSessions ?? 0,
     rewindCommandUses: signals.transcriptInvocations?.rewindCommandUses ?? 0,
+    simplifyCommandUses: maxProbe(signals, "simplifyCommandUses"),
+    btwCommandUses: maxProbe(signals, "btwCommandUses"),
+    voiceCommandUses: maxProbe(signals, "voiceCommandUses"),
+    clearCommandUses: maxProbe(signals, "clearCommandUses"),
+    compactCommandUses: maxProbe(signals, "compactCommandUses"),
+    fewerPermsCommandUses: maxProbe(signals, "fewerPermsCommandUses"),
     projectsWithMemory: signals.memory.length,
     insightsAvailable: !!signals.insights,
     insightsSessionsAnalyzed: signals.insights?.sessionsAnalyzed ?? 0,

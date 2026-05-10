@@ -47,6 +47,12 @@ function makeSignals(overrides = {}) {
       loopCommandUses: 4,
       planThenLaunchSessions: 2,
       rewindCommandUses: 3,
+      simplifyCommandUses: 1,
+      btwCommandUses: 2,
+      voiceCommandUses: 1,
+      clearCommandUses: 3,
+      compactCommandUses: 2,
+      fewerPermsCommandUses: 1,
     },
     insights: null,
     ...overrides,
@@ -97,6 +103,12 @@ describe("buildSignalsSummary", () => {
       "loopCommandUses",
       "planThenLaunchSessions",
       "rewindCommandUses",
+      "simplifyCommandUses",
+      "btwCommandUses",
+      "voiceCommandUses",
+      "clearCommandUses",
+      "compactCommandUses",
+      "fewerPermsCommandUses",
     ];
     for (const k of expectedKeys) expect(r).toHaveProperty(k);
   });
@@ -483,6 +495,87 @@ describe("buildSignalsSummary", () => {
     expect(r.rewindCommandUses).toBe(3);
   });
 
+  it("buildSignalsSummary forwards new P1 slash-command counters from transcriptInvocations", () => {
+    const r = buildSignalsSummary(makeSignals());
+    expect(r.simplifyCommandUses).toBe(1);
+    expect(r.btwCommandUses).toBe(2);
+    expect(r.voiceCommandUses).toBe(1);
+    expect(r.clearCommandUses).toBe(3);
+    expect(r.compactCommandUses).toBe(2);
+    expect(r.fewerPermsCommandUses).toBe(1);
+  });
+
+  it("MAX-merges historyInvocations and transcriptInvocations for typed slash-commands", () => {
+    // history > transcript → take history. This is the /btw case: the
+    // session JSONL never sees /btw, but history.jsonl has 6 in 14d.
+    const rHistoryHigher = buildSignalsSummary(
+      makeSignals({
+        transcriptInvocations: {
+          ...makeSignals().transcriptInvocations,
+          btwCommandUses: 0,
+          simplifyCommandUses: 1,
+          clearCommandUses: 3,
+          fewerPermsCommandUses: 1,
+          loopCommandUses: 4,
+          babysitLoopUses: 1,
+        },
+        historyInvocations: {
+          btwCommandUses: 6,
+          simplifyCommandUses: 5,
+          clearCommandUses: 12,
+          fewerPermsCommandUses: 3,
+          loopCommandUses: 2, // lower — transcript wins
+          babysitLoopUses: 3, // higher — history wins
+        },
+      }),
+    );
+    expect(rHistoryHigher.btwCommandUses).toBe(6);
+    expect(rHistoryHigher.simplifyCommandUses).toBe(5);
+    expect(rHistoryHigher.clearCommandUses).toBe(12);
+    expect(rHistoryHigher.fewerPermsCommandUses).toBe(3);
+    // transcript higher (e.g. /loop also fires via /ship chain) → take transcript
+    expect(rHistoryHigher.loopCommandUses).toBe(4);
+    // history higher → take history
+    expect(rHistoryHigher.babysitLoopUses).toBe(3);
+    // /go and /rewind are NOT history-merged — transcript wins regardless
+    const rGoRewind = buildSignalsSummary(
+      makeSignals({
+        transcriptInvocations: {
+          ...makeSignals().transcriptInvocations,
+          goCommandUses: 4,
+          rewindCommandUses: 3,
+        },
+        historyInvocations: {
+          goCommandUses: 99,
+          rewindCommandUses: 99,
+        },
+      }),
+    );
+    expect(rGoRewind.goCommandUses).toBe(4);
+    expect(rGoRewind.rewindCommandUses).toBe(3);
+  });
+
+  it("handles missing historyInvocations (falls back to transcript only)", () => {
+    const r = buildSignalsSummary(
+      makeSignals({ historyInvocations: undefined }),
+    );
+    expect(r.btwCommandUses).toBe(2); // from the default transcriptInvocations
+    expect(r.simplifyCommandUses).toBe(1);
+    expect(r.clearCommandUses).toBe(3);
+  });
+
+  it("defaults missing P1 slash-command counters to 0", () => {
+    const r = buildSignalsSummary(
+      makeSignals({ transcriptInvocations: undefined }),
+    );
+    expect(r.simplifyCommandUses).toBe(0);
+    expect(r.btwCommandUses).toBe(0);
+    expect(r.voiceCommandUses).toBe(0);
+    expect(r.clearCommandUses).toBe(0);
+    expect(r.compactCommandUses).toBe(0);
+    expect(r.fewerPermsCommandUses).toBe(0);
+  });
+
   it("defaults missing gatherer outputs to 0", () => {
     const r = buildSignalsSummary(
       makeSignals({
@@ -508,8 +601,12 @@ describe("buildSignalsSummary", () => {
         "autoCompactWindow",
         "babysitLoopUses",
         "batchCommandUses",
+        "btwCommandUses",
         "claudeMdExists",
+        "clearCommandUses",
+        "compactCommandUses",
         "effortLevel",
+        "fewerPermsCommandUses",
         "focusCommandUses",
         "goCommandUses",
         "hasClaudeInChrome",
@@ -548,8 +645,10 @@ describe("buildSignalsSummary", () => {
         "scheduleCommandUses",
         "shipVerifyStageRecent",
         "shipsRecent",
+        "simplifyCommandUses",
         "skipDangerous",
         "statuslineConfigured",
+        "voiceCommandUses",
         "worktreeAliasCount",
         "worktreeShortcutCount",
       ]
