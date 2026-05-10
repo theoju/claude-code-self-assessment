@@ -285,7 +285,8 @@
         {
           "id": "remote-control",
           "action": "Enable 'Remote Control for all sessions' in /config — Boris tip 47",
-          "effort": "5min"
+          "effort": "5min",
+          "satisfiedWhen": "hasRemoteControl"
         },
         {
           "id": "ios-task",

@@ -60,6 +60,7 @@ export function buildSignalsSummary(signals) {
     hasCustomSpinnerVerbs: (signals.settings.customSpinnerVerbCount || 0) > 0,
     hasIsolatedAgent: !!signals.settings.hasIsolatedAgent,
     hasClaudeInChrome: !!signals.settings.hasClaudeInChrome,
+    hasRemoteControl: !!signals.settings.hasRemoteControl,
     hasShipCommand:
       signals.personalCommands.includes("ship.md") ||
       signals.projectCommands.includes("ship.md"),

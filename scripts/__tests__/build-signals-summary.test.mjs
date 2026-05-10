@@ -226,6 +226,20 @@ describe("buildSignalsSummary", () => {
     expect(buildSignalsSummary(makeSignals()).hasClaudeInChrome).toBe(false);
   });
 
+  it("forwards hasRemoteControl from settings.hasRemoteControl", () => {
+    expect(
+      buildSignalsSummary(
+        makeSignals({
+          settings: {
+            ...makeSignals().settings,
+            hasRemoteControl: true,
+          },
+        }),
+      ).hasRemoteControl,
+    ).toBe(true);
+    expect(buildSignalsSummary(makeSignals()).hasRemoteControl).toBe(false);
+  });
+
   it("computes mcpServersConnected as count of connected entries", () => {
     expect(buildSignalsSummary(makeSignals()).mcpServersConnected).toBe(1);
     expect(
@@ -279,6 +293,7 @@ describe("buildSignalsSummary", () => {
         "hasIsolatedAgent",
         "hasMcpServers",
         "hasPostToolHook",
+        "hasRemoteControl",
         "hasShipCommand",
         "hasSlackPlugin",
         "hasStopHook",
