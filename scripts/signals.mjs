@@ -1,5 +1,6 @@
 import { existsSync } from "node:fs";
 import { readFile, stat, readdir } from "node:fs/promises";
+import { homedir } from "node:os";
 import { join } from "node:path";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
@@ -210,6 +211,29 @@ const STATUS_TOKEN = {
   "✗ Failed to connect": "failed",
   "! Needs authentication": "needs-auth",
 };
+
+// Counts distinct worktree-style aliases (za, zb, zc) across the user's
+// shell rc files. Distinct = same alias name in two files counts once.
+// Defaults to ~/.zshrc and ~/.bashrc; tests inject explicit paths.
+const WORKTREE_ALIAS_RE = /^\s*alias\s+(za|zb|zc)=/;
+export async function gatherShellAliases({
+  rcPaths = [join(homedir(), ".zshrc"), join(homedir(), ".bashrc")],
+} = {}) {
+  const found = new Set();
+  for (const p of rcPaths) {
+    let content;
+    try {
+      content = await readFile(p, "utf8");
+    } catch {
+      continue;
+    }
+    for (const line of content.split("\n")) {
+      const m = line.match(WORKTREE_ALIAS_RE);
+      if (m) found.add(m[1]);
+    }
+  }
+  return { worktreeAliasCount: found.size };
+}
 
 // Reads ~/.claude/ship/journal.jsonl line by line. Counts stage:2 entries
 // (verify-agent dispatches) and outcome:"shipped" entries within the
