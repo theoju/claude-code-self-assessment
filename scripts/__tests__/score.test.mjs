@@ -918,7 +918,7 @@ describe("SCORERS.verification — v0.8 bonuses", () => {
     expect(withChrome).toBe(Math.min(100, baseline + 5));
   });
 
-  it("adds +10 when shipVerifyStageRecent >= 1", () => {
+  it("adds +5 when shipVerifyStageRecent >= 1", () => {
     const baseline = SCORERS.verification(makeSignals()).score;
     const oneShip = SCORERS.verification(
       makeSignals({ shipVerifyStageRecent: 1 }),
@@ -926,18 +926,18 @@ describe("SCORERS.verification — v0.8 bonuses", () => {
     const fiveShip = SCORERS.verification(
       makeSignals({ shipVerifyStageRecent: 5 }),
     ).score;
-    expect(oneShip).toBe(Math.min(100, baseline + 10));
-    expect(fiveShip).toBe(Math.min(100, baseline + 10)); // not stacking
+    expect(oneShip).toBe(Math.min(100, baseline + 5));
+    expect(fiveShip).toBe(Math.min(100, baseline + 5)); // not stacking
   });
 
-  it("adds +5 when goCommandUses >= 3 (reflex adoption)", () => {
+  it("adds +3 when goCommandUses >= 3 (reflex adoption)", () => {
     const baseline = SCORERS.verification(makeSignals()).score;
     const oneGo = SCORERS.verification(makeSignals({ goCommandUses: 1 })).score;
     const threeGo = SCORERS.verification(
       makeSignals({ goCommandUses: 3 }),
     ).score;
     expect(oneGo).toBe(baseline); // below threshold
-    expect(threeGo).toBe(Math.min(100, baseline + 5));
+    expect(threeGo).toBe(Math.min(100, baseline + 3));
   });
 });
 
@@ -995,10 +995,10 @@ describe("SCORERS — v0.8 small bonuses across remaining dims", () => {
     );
   });
 
-  it("remote: +25 for hasRemoteControl", () => {
+  it("remote: +10 for hasRemoteControl", () => {
     const baseline = SCORERS.remote(makeSignals()).score;
     expect(SCORERS.remote(makeSignals({ hasRemoteControl: true })).score).toBe(
-      Math.min(100, baseline + 25),
+      Math.min(100, baseline + 10),
     );
   });
 });

@@ -233,13 +233,13 @@ export const SCORERS = {
     const shipVerifyStageRecent =
       s.shipVerifyStageRecent ?? s.shipJournal?.stage2Count ?? 0;
     if (shipVerifyStageRecent >= 1) {
-      score += 10;
+      score += 5;
       ev.push(`/ship verify-agent fired ${shipVerifyStageRecent}× recently`);
     }
     const goCommandUses =
       s.goCommandUses ?? s.transcriptInvocations?.goCommandUses ?? 0;
     if (goCommandUses >= 3) {
-      score += 5;
+      score += 3;
       ev.push(`/go reflex adopted (${goCommandUses} uses)`);
     }
     return { score: clamp(score), evidence: ev, gaps };
@@ -427,7 +427,7 @@ export const SCORERS = {
     const hasRemoteControl =
       s.hasRemoteControl ?? !!s.settings?.hasRemoteControl;
     if (hasRemoteControl) {
-      score += 25;
+      score += 10;
       ev.push("Remote Control opted in (Boris tip 47)");
     }
     return { score: clamp(score), evidence: ev, gaps };
