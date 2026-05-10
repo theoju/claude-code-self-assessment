@@ -84,7 +84,7 @@ export function buildSignalsSummary(signals) {
       signals.projectAgents.some((f) => /^verify/i.test(f)) ||
       !!signals.verifySignalBodyMatch ||
       (signals.plugins || []).some((p) =>
-        /pr-review|review-toolkit|reviewer/i.test(p),
+        /(^|-)(pr-review|review-toolkit|reviewer)(-|$|@)/i.test(p),
       ),
     claudeMdExists: signals.claudeMdExists,
     statuslineConfigured: signals.statuslineConfigured,

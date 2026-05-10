@@ -254,6 +254,19 @@ describe("buildSignalsSummary", () => {
     ).toBe(false);
   });
 
+  it("hasVerifyAgent does not match plugins where 'reviewer' is a substring of an unrelated word", () => {
+    expect(
+      buildSignalsSummary(
+        makeSignals({
+          personalAgents: ["other.md"],
+          projectAgents: [],
+          plugins: ["previewer-plus@1", "interviewer-bot@2"],
+          verifySignalBodyMatch: false,
+        }),
+      ).hasVerifyAgent,
+    ).toBe(false);
+  });
+
   it("hasSlackPlugin / hasVercelPlugin do case-insensitive substring match", () => {
     const r = buildSignalsSummary(
       makeSignals({ plugins: ["foo-Slack-bar@1", "VercelLite@2"] }),
