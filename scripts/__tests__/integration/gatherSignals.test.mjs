@@ -195,6 +195,87 @@ describe("gatherSignals (integration)", () => {
     });
   });
 
+  // P2.2 — outputStyle (Boris tip 34): a root-level string in settings.json.
+  // gatherSignals must surface it verbatim on signals.settings.outputStyle.
+  describe("outputStyle", () => {
+    it("reads outputStyle string from settings.json", async () => {
+      claudeHome = makeTmpClaudeHome({
+        settings: { outputStyle: "Explanatory" },
+      });
+      projectRoot = makeTmpProjectRoot();
+      process.env.CLAUDE_HOME = claudeHome;
+      const signals = await gatherSignals(projectRoot);
+      expect(signals.settings.outputStyle).toBe("Explanatory");
+    });
+
+    it("returns null when settings.outputStyle is absent", async () => {
+      claudeHome = makeTmpClaudeHome({ settings: { effortLevel: "high" } });
+      projectRoot = makeTmpProjectRoot();
+      process.env.CLAUDE_HOME = claudeHome;
+      const signals = await gatherSignals(projectRoot);
+      expect(signals.settings.outputStyle).toBeNull();
+    });
+  });
+
+  // P6.1 — hasCodeReviewPlugin (Boris tip 44): true when settings.enabledPlugins
+  // has a key matching /^code-review(@|$)/i. The anchored prefix prevents
+  // false positives on pr-review-toolkit (already routed through hasVerifyAgent)
+  // and on unrelated names like code-review-helper or pre-code-review.
+  describe("hasCodeReviewPlugin", () => {
+    it("fires when code-review@<marketplace> is enabled", async () => {
+      claudeHome = makeTmpClaudeHome({
+        settings: {
+          enabledPlugins: { "code-review@claude-plugins-official": true },
+        },
+      });
+      projectRoot = makeTmpProjectRoot();
+      process.env.CLAUDE_HOME = claudeHome;
+      const signals = await gatherSignals(projectRoot);
+      expect(signals.hasCodeReviewPlugin).toBe(true);
+    });
+
+    it("does NOT fire when only pr-review-toolkit is enabled", async () => {
+      claudeHome = makeTmpClaudeHome({
+        settings: {
+          enabledPlugins: {
+            "pr-review-toolkit@claude-plugins-official": true,
+          },
+        },
+      });
+      projectRoot = makeTmpProjectRoot();
+      process.env.CLAUDE_HOME = claudeHome;
+      const signals = await gatherSignals(projectRoot);
+      expect(signals.hasCodeReviewPlugin).toBe(false);
+    });
+
+    it("does NOT fire on unrelated prefix names (code-review-helper, pre-code-review)", async () => {
+      claudeHome = makeTmpClaudeHome({
+        settings: {
+          enabledPlugins: {
+            "code-review-helper@x": true,
+            "pre-code-review@y": true,
+          },
+        },
+      });
+      projectRoot = makeTmpProjectRoot();
+      process.env.CLAUDE_HOME = claudeHome;
+      const signals = await gatherSignals(projectRoot);
+      expect(signals.hasCodeReviewPlugin).toBe(false);
+    });
+
+    it("ignores disabled code-review plugin entries", async () => {
+      claudeHome = makeTmpClaudeHome({
+        settings: {
+          enabledPlugins: { "code-review@claude-plugins-official": false },
+        },
+      });
+      projectRoot = makeTmpProjectRoot();
+      process.env.CLAUDE_HOME = claudeHome;
+      const signals = await gatherSignals(projectRoot);
+      expect(signals.hasCodeReviewPlugin).toBe(false);
+    });
+  });
+
   it("does not pollute the real ~/.claude — uses only the tmp dir", async () => {
     claudeHome = makeTmpClaudeHome({ settings: { effortLevel: "max" } });
     projectRoot = makeTmpProjectRoot();

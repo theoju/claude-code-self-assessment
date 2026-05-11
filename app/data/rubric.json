@@ -156,6 +156,12 @@
           "action": "Ask Claude to diff behavior between main and the feature branch after any non-trivial change — Boris tip 10",
           "effort": "5min",
           "satisfiedWhen": "shipVerifyStageRecent>=1"
+        },
+        {
+          "id": "code-review-plugin",
+          "action": "Install the code-review plugin — auto-review PRs when they open (Boris tip 44)",
+          "effort": "5min",
+          "satisfiedWhen": "hasCodeReviewPlugin=true"
         }
       ]
     },
@@ -355,6 +361,12 @@
           "action": "Optional: build a spaced-repetition skill for parts of the codebase you want to retain — Boris tip 15",
           "effort": "2hr",
           "satisfiedWhen": "personalSkillNames~spaced|repetition|review|retain|recall|flashcard"
+        },
+        {
+          "id": "output-style-tuned",
+          "action": "Set outputStyle to Explanatory or Learning when learning a new codebase — Boris tip 34",
+          "effort": "5min",
+          "satisfiedWhen": "outputStyle=Explanatory|Learning"
         }
       ]
     }
