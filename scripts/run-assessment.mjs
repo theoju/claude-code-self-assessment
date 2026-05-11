@@ -135,6 +135,19 @@ export function buildSignalsSummary(signals) {
     clearCommandUses: maxProbe(signals, "clearCommandUses"),
     compactCommandUses: maxProbe(signals, "compactCommandUses"),
     fewerPermsCommandUses: maxProbe(signals, "fewerPermsCommandUses"),
+    // Tip 45 (Boris): auto-memory is default-on. Read the inverse env flag
+    // `CLAUDE_CODE_DISABLE_AUTO_MEMORY` and invert. The signals layer is
+    // responsible for the env-block parse — this projection just forwards.
+    autoMemoryEnabled: signals.settings.autoMemoryEnabled !== false,
+    // Tip 1 (Boris): "Run Multiple Claude Sessions in Parallel." The headline
+    // is the end-state — 3-5 parallel worktree sessions — not the literal
+    // za/zb/zc alias mechanism. V1.3 broadened tip 28's `hasIsolatedAgent`
+    // the same way: OR the static signal with execution telemetry. Threshold
+    // `>=3` matches Boris's "3-5 parallel" phrasing.
+    parallelWorktreeAdoption:
+      (signals.shellAliases?.worktreeAliasCount ?? 0) >= 3 ||
+      (signals.shellAliases?.worktreeShortcutCount ?? 0) >= 3 ||
+      (signals.insights?.worktreeUsageSessionCount ?? 0) >= 3,
     projectsWithMemory: signals.memory.length,
     insightsAvailable: !!signals.insights,
     insightsSessionsAnalyzed: signals.insights?.sessionsAnalyzed ?? 0,

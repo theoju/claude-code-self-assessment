@@ -72,6 +72,8 @@ const ALL_SATISFIED_SIGNALS = {
   clearCommandUses: 1,
   compactCommandUses: 1,
   fewerPermsCommandUses: 1,
+  autoMemoryEnabled: true,
+  parallelWorktreeAdoption: true,
   personalSkillNames: ["self-assessment", "spaced-repetition-skill", "ship"],
 };
 

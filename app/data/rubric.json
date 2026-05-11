@@ -113,9 +113,9 @@
       "nextActions": [
         {
           "id": "worktree-aliases",
-          "action": "Set up 3 named worktree shell aliases (za/zb/zc) for your most active repo — Boris tip 1",
+          "action": "Set up 3 named worktree shell aliases (za/zb/zc) — or otherwise reach 3+ parallel-worktree sessions — Boris tip 1",
           "effort": "15min",
-          "satisfiedWhen": "worktreeAliasCount>=3"
+          "satisfiedWhen": "parallelWorktreeAdoption"
         },
         {
           "id": "batch-sweep",
@@ -170,7 +170,8 @@
         {
           "id": "auto-dream",
           "action": "Run /memory and enable auto-dream — Boris tip 45",
-          "effort": "5min"
+          "effort": "5min",
+          "satisfiedWhen": "autoMemoryEnabled"
         },
         {
           "id": "rewind-reflex",

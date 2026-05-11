@@ -723,6 +723,12 @@ export async function gatherSignals(projectRoot = process.cwd(), options = {}) {
         env.CLAUDE_CODE_AUTO_COMPACT_WINDOW ||
         process.env.CLAUDE_CODE_AUTO_COMPACT_WINDOW ||
         null,
+      // Tip 45 (Boris): auto-memory is default-on; the only flag is the
+      // *inverse* disable flag. Treat any value of "1" (string) as opt-out;
+      // anything else (absent, "0", undefined) leaves auto-memory enabled.
+      autoMemoryEnabled:
+        (env.CLAUDE_CODE_DISABLE_AUTO_MEMORY ??
+          process.env.CLAUDE_CODE_DISABLE_AUTO_MEMORY) !== "1",
       hookEvents: Object.keys(hooks),
       hookTotalCount: Object.values(hooks).flat().length,
       hasFormatterHook,
