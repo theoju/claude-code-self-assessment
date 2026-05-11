@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi } from "vitest";
-import { render, fireEvent } from "@testing-library/react";
+import { render, fireEvent, createEvent } from "@testing-library/react";
 import RadarChart from "../RadarChart";
 import type { Dimension } from "@/app/lib/assessment";
 
@@ -198,5 +198,38 @@ describe("RadarChart", () => {
     expect(labels.length).toBe(2);
     fireEvent.pointerDown(labels[1], { pointerType: "mouse" });
     expect(pushMock).toHaveBeenCalledWith("/dimensions/beta");
+  });
+
+  // jsdom + @testing-library don't propagate pointerType through the init
+  // object; force it onto the event before dispatch so React's synthetic
+  // event reads "touch".
+  function touchPointerDown(el: Element) {
+    const event = createEvent.pointerDown(el);
+    Object.defineProperty(event, "pointerType", { value: "touch" });
+    fireEvent(el, event);
+  }
+
+  it("touch: first tap reveals tooltip without navigating; second tap navigates", () => {
+    pushMock.mockClear();
+    const dims = [dim("alpha", 60), dim("beta", 70)];
+    const { container } = render(<RadarChart dimensions={dims} />);
+    const hit = container.querySelector('[data-dim-id="beta"]')!;
+    touchPointerDown(hit);
+    expect(pushMock).not.toHaveBeenCalled();
+    expect(container.querySelector(".radar-tooltip")).toBeTruthy();
+    touchPointerDown(hit);
+    expect(pushMock).toHaveBeenCalledWith("/dimensions/beta");
+  });
+
+  it("touch: tapping a different dim swaps the tooltip rather than navigating", () => {
+    pushMock.mockClear();
+    const dims = [dim("alpha", 60), dim("beta", 70), dim("gamma", 80)];
+    const { container } = render(<RadarChart dimensions={dims} />);
+    touchPointerDown(container.querySelector('[data-dim-id="beta"]')!);
+    touchPointerDown(container.querySelector('[data-dim-id="gamma"]')!);
+    expect(pushMock).not.toHaveBeenCalled();
+    expect(container.querySelector(".radar-tooltip")!.textContent).toContain(
+      "gamma",
+    );
   });
 });

@@ -244,7 +244,7 @@ export default function RadarChart({
         );
       })}
 
-      {activeDim != null && activeIndex >= 0 && (
+      {activeDim != null && (
         <Tooltip
           dim={activeDim}
           vertex={pointAt(activeDim.score, activeIndex)}
@@ -282,7 +282,7 @@ function Tooltip({
   const uy = dy / mag;
 
   const offsetX = ux > 0 ? 12 : -TT_W - 12;
-  const execLine = dim.executionScore != null;
+  const hasExecution = dim.executionScore != null;
   // Row count must match what's actually rendered below: title, setup,
   // exec (whenever showExecution), meta.
   const totalLines = 1 + 1 + (showExecution ? 1 : 0) + 1;
@@ -298,7 +298,7 @@ function Tooltip({
   const ty = Math.max(minY, Math.min(maxY, vy + offsetY));
 
   const setupLine = `${Math.round(dim.score)}%  (raw ${dim.rawScore}/${dim.rawTarget})`;
-  const execLineText = execLine
+  const execLineText = hasExecution
     ? `${Math.round(dim.executionScore ?? 0)}%${
         dim.executionRawScore != null ? `  (raw ${dim.executionRawScore})` : ""
       }`
@@ -352,8 +352,8 @@ function Tooltip({
           x={tx + TT_PAD_X}
           y={ty + TT_PAD_Y + 18 + TT_LINE_H * 2}
           fontSize={11}
-          fill={execLine ? "var(--color-warn)" : "var(--color-mute)"}
-          fontStyle={execLine ? undefined : "italic"}
+          fill={hasExecution ? "var(--color-warn)" : "var(--color-mute)"}
+          fontStyle={hasExecution ? undefined : "italic"}
         >
           <tspan fontWeight={600}>Execution</tspan>
           <tspan dx={8} fill="var(--color-fg, #e5e7eb)">
