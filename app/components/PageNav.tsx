@@ -42,7 +42,10 @@ export default function PageNav({ current, context }: Props) {
         return (
           <span key={item.key} className="flex items-baseline gap-x-4">
             {active ? (
-              <span className="text-[color:var(--color-fg,#e5e7eb)] font-semibold">
+              <span
+                aria-current="page"
+                className="text-[color:var(--color-fg,#e5e7eb)] font-semibold"
+              >
                 {item.label}
               </span>
             ) : (
