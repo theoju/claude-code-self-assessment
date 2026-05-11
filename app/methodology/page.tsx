@@ -1,4 +1,5 @@
 import Link from "next/link";
+import PageNav from "@/app/components/PageNav";
 
 export const dynamic = "force-static";
 
@@ -6,19 +7,31 @@ export const metadata = { title: "Methodology — Claude Code Self-Assessment" }
 
 export default function MethodologyPage() {
   return (
-    <main className="max-w-3xl mx-auto px-8 py-12 prose-invert">
-      <div className="text-xs uppercase tracking-[0.15em] text-[color:var(--color-mute)] mb-3">
-        <Link
-          href="/"
-          className="underline decoration-dotted underline-offset-2 hover:text-[color:var(--color-accent)]"
-        >
-          ← Dashboard
-        </Link>
-      </div>
-      <h1 className="text-4xl font-semibold tracking-tight mb-6">
-        Methodology
-      </h1>
-
+    <main className="max-w-[1200px] mx-auto px-8 py-12 prose-invert">
+      <PageNav current="methodology" />
+      <header className="mb-12 border-b border-[color:var(--color-line)] pb-8">
+        <div className="flex items-baseline gap-3 text-xs uppercase tracking-[0.15em] text-[color:var(--color-mute)] mb-3">
+          <span>Claude Code Self-Assessment</span>
+          <span>·</span>
+          <span>Methodology</span>
+          <span>·</span>
+          <span>Two axes · 12 dimensions · evidence-based</span>
+        </div>
+        <h1 className="text-4xl font-semibold tracking-tight mb-3">
+          How the score is built.
+        </h1>
+        <p className="text-[color:var(--color-mute)] max-w-3xl leading-relaxed">
+          Every dimension is scored against deterministic predicates over local
+          state in{" "}
+          <span className="mono text-[color:var(--color-text)]">
+            ~/.claude/
+          </span>{" "}
+          and the cooked{" "}
+          <span className="mono text-[color:var(--color-text)]">/insights</span>{" "}
+          telemetry. No model evaluations, no API calls — same machine state
+          renders the same number.
+        </p>
+      </header>
       <Section title="Two axes, not one composite">
         <p>
           Self-assessment here is scored on two independent axes rather than
@@ -80,9 +93,14 @@ export default function MethodologyPage() {
             are opted in.
           </li>
           <li>
-            <strong>Planning &amp; Delegation</strong> — plan mode adoption
+            <strong>Planning &amp; Delegation</strong> — plan-mode adoption
             within multi-task sessions (linear; gated when no multi-task
-            sessions exist).
+            sessions exist). Recognized signals include built-in plan mode plus
+            planning-flavored skill invocations (e.g.{" "}
+            <span className="mono">superpowers:writing-plans</span>,{" "}
+            <span className="mono">superpowers:brainstorming</span>) — skill
+            invocations are scanned from transcripts so a planning skill counts
+            the same as the toggle.
           </li>
           <li>
             <strong>Integrations</strong> —{" "}
@@ -123,10 +141,14 @@ export default function MethodologyPage() {
             <span className="mono">learningModeSessionRatio × 100</span>. Counts
             sessions where Claude emitted the{" "}
             <span className="mono">★ Insight</span> banner from the
-            explanatory-output-style plugin. Platform Setup credits
+            explanatory-output-style plugin <em>or</em> the user invoked a
+            learning-flavored skill (e.g.{" "}
+            <span className="mono">superpowers:brainstorming</span>,
+            explanatory-output-style skills). Platform Setup credits
             installation; this scorer credits actual use. Caveat: the substring
             match depends on the plugin&apos;s banner string, so a future plugin
-            upgrade could regress this signal silently.
+            upgrade could regress one half of the signal — the skill-invocation
+            half remains stable.
           </li>
         </ul>
       </Section>
@@ -390,15 +412,6 @@ pbpaste | npm run import-insights   # pipe the clipboard
           License: MIT. Issues, PRs, and rubric improvements welcome on GitHub.
         </p>
       </Section>
-
-      <div className="mt-12 text-xs text-[color:var(--color-mute)]">
-        <Link
-          href="/"
-          className="underline decoration-dotted underline-offset-2 hover:text-[color:var(--color-accent)]"
-        >
-          ← Back to dashboard
-        </Link>
-      </div>
     </main>
   );
 }
@@ -411,11 +424,11 @@ function Section({
   children: React.ReactNode;
 }) {
   return (
-    <section className="mb-10">
-      <h2 className="text-lg uppercase tracking-[0.15em] text-[color:var(--color-mute)] mb-4">
+    <section className="mb-12 grid grid-cols-12 gap-x-10 gap-y-3">
+      <h2 className="col-span-12 md:col-span-3 text-xs uppercase tracking-[0.15em] text-[color:var(--color-mute)] md:pt-1">
         {title}
       </h2>
-      <div className="space-y-3 text-sm leading-relaxed [&_ul]:list-disc [&_ul]:ml-6 [&_ul]:space-y-1.5 [&_ul]:my-3 [&_a]:text-[color:var(--color-accent)]">
+      <div className="col-span-12 md:col-span-9 max-w-3xl space-y-3 text-sm leading-relaxed [&_ul]:list-disc [&_ul]:ml-6 [&_ul]:space-y-1.5 [&_ul]:my-3 [&_a]:text-[color:var(--color-accent)]">
         {children}
       </div>
     </section>

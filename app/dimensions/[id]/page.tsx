@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import {
   loadAssessment,
@@ -7,6 +6,7 @@ import {
   trendGlyph,
 } from "@/app/lib/assessment";
 import { explainerFor, plusTenPath } from "@/app/lib/dimension-explainer";
+import PageNav from "@/app/components/PageNav";
 
 export const dynamic = "force-dynamic";
 
@@ -34,18 +34,29 @@ export default async function DimensionPage({ params }: Props) {
   const hasExecution = dim.executionScore !== null;
 
   return (
-    <main className="max-w-3xl mx-auto px-8 py-12">
-      <div className="mb-8 text-xs uppercase tracking-[0.15em] text-[color:var(--color-mute)]">
-        <Link href="/" className="hover:text-[color:var(--color-accent)]">
-          ← Back to dashboard
-        </Link>
-      </div>
+    <main className="max-w-[1200px] mx-auto px-8 py-12">
+      <PageNav
+        current="dimension"
+        context={{ label: dim.title, parentKey: "dashboard" }}
+      />
 
-      <header className="mb-10 pb-6 border-b border-[color:var(--color-line)]">
-        <div className="text-xs uppercase tracking-[0.15em] text-[color:var(--color-mute)] mb-2">
-          Dimension · weight ×{dim.weight}
+      <header className="mb-12 border-b border-[color:var(--color-line)] pb-8">
+        <div className="flex items-baseline gap-3 text-xs uppercase tracking-[0.15em] text-[color:var(--color-mute)] mb-3">
+          <span>Dimension</span>
+          <span>·</span>
+          <span className="mono">weight ×{dim.weight}</span>
+          <span>·</span>
+          <span className={`mono ${tierColor(dim.tier)}`}>
+            {tierLabel(dim.tier)}
+          </span>
+          <span>·</span>
+          <span className="mono">
+            {trendGlyph(dim.trend)} {dim.trend}
+          </span>
         </div>
-        <h1 className="text-4xl font-semibold tracking-tight mb-4">{dim.title}</h1>
+        <h1 className="text-4xl font-semibold tracking-tight mb-4">
+          {dim.title}
+        </h1>
         <div className="flex items-baseline gap-4 flex-wrap">
           <span className="mono text-5xl font-semibold text-[color:var(--color-accent)]">
             {dim.score}
@@ -58,13 +69,9 @@ export default async function DimensionPage({ params }: Props) {
               · execution {dim.executionScore} / {dim.target}
             </span>
           ) : null}
-          <span className={`text-sm mono ${tierColor(dim.tier)}`}>{tierLabel(dim.tier)}</span>
-          <span className="text-sm text-[color:var(--color-mute)]">
-            {trendGlyph(dim.trend)} {dim.trend}
-          </span>
         </div>
         {explainer ? (
-          <p className="text-[color:var(--color-mute)] leading-relaxed mt-4">
+          <p className="text-[color:var(--color-mute)] max-w-3xl leading-relaxed mt-4">
             {explainer.what}
           </p>
         ) : null}
@@ -74,151 +81,173 @@ export default async function DimensionPage({ params }: Props) {
           </p>
         ) : null}
       </header>
-
-      {explainer ? (
-        <section className="mb-10">
-          <h2 className="text-xs uppercase tracking-[0.15em] text-[color:var(--color-mute)] mb-3">
-            Workshop formula
-          </h2>
-          <div className="bg-[color:var(--color-panel)] border border-[color:var(--color-line)] rounded-xl p-5">
-            <div className="text-sm mb-3">
-              <span className="mono text-[color:var(--color-accent)]">base {explainer.base}</span>{" "}
-              <span className="text-[color:var(--color-mute)]">
-                + contributions below, clamped to 0–100, then normalized to target.
-              </span>
+      <div className="max-w-3xl">
+        {explainer ? (
+          <section className="mb-10">
+            <h2 className="text-xs uppercase tracking-[0.15em] text-[color:var(--color-mute)] mb-3">
+              Workshop formula
+            </h2>
+            <div className="bg-[color:var(--color-panel)] border border-[color:var(--color-line)] rounded-xl p-5">
+              <div className="text-sm mb-3">
+                <span className="mono text-[color:var(--color-accent)]">
+                  base {explainer.base}
+                </span>{" "}
+                <span className="text-[color:var(--color-mute)]">
+                  + contributions below, clamped to 0–100, then normalized to
+                  target.
+                </span>
+              </div>
+              <ul className="space-y-2 text-sm">
+                {explainer.formula.map((t, i) => (
+                  <li key={i} className="flex items-baseline gap-3">
+                    <span className="mono text-xs text-[color:var(--color-mute)] w-16 shrink-0">
+                      +{t.max} max
+                    </span>
+                    <span>
+                      <span className="text-[color:var(--color-text)] font-medium">
+                        {t.label}
+                      </span>
+                      <span className="text-[color:var(--color-mute)]">
+                        {" "}
+                        — {t.contributes}
+                      </span>
+                    </span>
+                  </li>
+                ))}
+              </ul>
             </div>
-            <ul className="space-y-2 text-sm">
-              {explainer.formula.map((t, i) => (
-                <li key={i} className="flex items-baseline gap-3">
-                  <span className="mono text-xs text-[color:var(--color-mute)] w-16 shrink-0">
-                    +{t.max} max
-                  </span>
-                  <span>
-                    <span className="text-[color:var(--color-text)] font-medium">{t.label}</span>
-                    <span className="text-[color:var(--color-mute)]"> — {t.contributes}</span>
-                  </span>
-                </li>
-              ))}
-            </ul>
-          </div>
-        </section>
-      ) : null}
+          </section>
+        ) : null}
 
-      <section className="grid md:grid-cols-2 gap-5 mb-10">
-        <div>
-          <h2 className="text-xs uppercase tracking-[0.15em] text-[color:var(--color-mute)] mb-3">
-            Workshop signals
-          </h2>
-          {dim.evidence.length ? (
-            <ul className="list-disc list-outside ml-4 space-y-1.5 text-sm text-[color:var(--color-text)]">
-              {dim.evidence.map((e, i) => (
-                <li key={i}>{e}</li>
-              ))}
-            </ul>
-          ) : (
-            <p className="text-sm text-[color:var(--color-mute)]">
-              No positive workshop signals for this dimension yet.
-            </p>
-          )}
-        </div>
-        <div>
-          <h2 className="text-xs uppercase tracking-[0.15em] text-[color:var(--color-mute)] mb-3">
-            Workshop gaps
-          </h2>
-          {dim.gaps.length ? (
-            <ul className="list-disc list-outside ml-4 space-y-1.5 text-sm text-[color:var(--color-bad)]">
-              {dim.gaps.map((g, i) => (
-                <li key={i}>{g}</li>
-              ))}
-            </ul>
-          ) : (
-            <p className="text-sm text-[color:var(--color-mute)]">No outstanding gaps.</p>
-          )}
-        </div>
-      </section>
-
-      {hasExecution ? (
         <section className="grid md:grid-cols-2 gap-5 mb-10">
           <div>
             <h2 className="text-xs uppercase tracking-[0.15em] text-[color:var(--color-mute)] mb-3">
-              Execution evidence
+              Workshop signals
             </h2>
-            {dim.executionEvidence.length ? (
+            {dim.evidence.length ? (
               <ul className="list-disc list-outside ml-4 space-y-1.5 text-sm text-[color:var(--color-text)]">
-                {dim.executionEvidence.map((e, i) => (
+                {dim.evidence.map((e, i) => (
                   <li key={i}>{e}</li>
                 ))}
               </ul>
             ) : (
               <p className="text-sm text-[color:var(--color-mute)]">
-                No execution evidence captured.
+                No positive workshop signals for this dimension yet.
               </p>
             )}
           </div>
           <div>
             <h2 className="text-xs uppercase tracking-[0.15em] text-[color:var(--color-mute)] mb-3">
-              Execution gaps
+              Workshop gaps
             </h2>
-            {dim.executionGaps.length ? (
+            {dim.gaps.length ? (
               <ul className="list-disc list-outside ml-4 space-y-1.5 text-sm text-[color:var(--color-bad)]">
-                {dim.executionGaps.map((g, i) => (
+                {dim.gaps.map((g, i) => (
                   <li key={i}>{g}</li>
                 ))}
               </ul>
             ) : (
               <p className="text-sm text-[color:var(--color-mute)]">
-                No execution gaps recorded.
+                No outstanding gaps.
               </p>
             )}
           </div>
         </section>
-      ) : null}
 
-      <section className="mb-10">
-        <h2 className="text-xs uppercase tracking-[0.15em] text-[color:var(--color-mute)] mb-3">
-          What would move you +10
-        </h2>
-        {path ? (
-          <div className="bg-[color:var(--color-panel)] border border-[color:var(--color-line)] rounded-xl p-5">
-            <div className="text-sm font-medium text-[color:var(--color-text)] mb-1">
-              {path.step}
+        {hasExecution ? (
+          <section className="grid md:grid-cols-2 gap-5 mb-10">
+            <div>
+              <h2 className="text-xs uppercase tracking-[0.15em] text-[color:var(--color-mute)] mb-3">
+                Execution evidence
+              </h2>
+              {dim.executionEvidence.length ? (
+                <ul className="list-disc list-outside ml-4 space-y-1.5 text-sm text-[color:var(--color-text)]">
+                  {dim.executionEvidence.map((e, i) => (
+                    <li key={i}>{e}</li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="text-sm text-[color:var(--color-mute)]">
+                  No execution evidence captured.
+                </p>
+              )}
             </div>
-            <div className="text-xs text-[color:var(--color-mute)]">{path.rationale}</div>
-          </div>
-        ) : (
-          <p className="text-sm text-[color:var(--color-mute)]">
-            No next-action recorded for this dimension. Add one in{" "}
-            <span className="mono text-[color:var(--color-text)]">app/data/rubric.json</span>.
-          </p>
-        )}
-      </section>
+            <div>
+              <h2 className="text-xs uppercase tracking-[0.15em] text-[color:var(--color-mute)] mb-3">
+                Execution gaps
+              </h2>
+              {dim.executionGaps.length ? (
+                <ul className="list-disc list-outside ml-4 space-y-1.5 text-sm text-[color:var(--color-bad)]">
+                  {dim.executionGaps.map((g, i) => (
+                    <li key={i}>{g}</li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="text-sm text-[color:var(--color-mute)]">
+                  No execution gaps recorded.
+                </p>
+              )}
+            </div>
+          </section>
+        ) : null}
 
-      <section className="mb-10">
-        <h2 className="text-xs uppercase tracking-[0.15em] text-[color:var(--color-mute)] mb-3">
-          All next actions for this dimension
-        </h2>
-        <ul className="space-y-2 text-sm">
-          {dim.nextActions.map((a) => (
-            <li
-              key={a.id}
-              className={`bg-[color:var(--color-panel)] border border-[color:var(--color-line)] rounded-lg p-3 flex items-baseline gap-3 ${a.satisfied ? "opacity-60" : ""}`}
-            >
-              <span className="font-mono text-[10px] px-1.5 py-0.5 rounded bg-[color:var(--color-panel-2)] border border-[color:var(--color-line)] shrink-0">
-                {a.effort}
+        <section className="mb-10">
+          <h2 className="text-xs uppercase tracking-[0.15em] text-[color:var(--color-mute)] mb-3">
+            What would move you +10
+          </h2>
+          {path ? (
+            <div className="bg-[color:var(--color-panel)] border border-[color:var(--color-line)] rounded-xl p-5">
+              <div className="text-sm font-medium text-[color:var(--color-text)] mb-1">
+                {path.step}
+              </div>
+              <div className="text-xs text-[color:var(--color-mute)]">
+                {path.rationale}
+              </div>
+            </div>
+          ) : (
+            <p className="text-sm text-[color:var(--color-mute)]">
+              No next-action recorded for this dimension. Add one in{" "}
+              <span className="mono text-[color:var(--color-text)]">
+                app/data/rubric.json
               </span>
-              <span className={`flex-1 ${a.satisfied ? "line-through" : ""}`}>{a.action}</span>
-              {a.satisfied ? (
-                <span
-                  className="text-[10px] mono text-[color:var(--color-good)] shrink-0"
-                  title={a.satisfiedWhen ? `Satisfied: ${a.satisfiedWhen}` : "Already done"}
-                >
-                  ✓ done
+              .
+            </p>
+          )}
+        </section>
+
+        <section className="mb-10">
+          <h2 className="text-xs uppercase tracking-[0.15em] text-[color:var(--color-mute)] mb-3">
+            All next actions for this dimension
+          </h2>
+          <ul className="space-y-2 text-sm">
+            {dim.nextActions.map((a) => (
+              <li
+                key={a.id}
+                className={`bg-[color:var(--color-panel)] border border-[color:var(--color-line)] rounded-lg p-3 flex items-baseline gap-3 ${a.satisfied ? "opacity-60" : ""}`}
+              >
+                <span className="font-mono text-[10px] px-1.5 py-0.5 rounded bg-[color:var(--color-panel-2)] border border-[color:var(--color-line)] shrink-0">
+                  {a.effort}
                 </span>
-              ) : null}
-            </li>
-          ))}
-        </ul>
-      </section>
+                <span className={`flex-1 ${a.satisfied ? "line-through" : ""}`}>
+                  {a.action}
+                </span>
+                {a.satisfied ? (
+                  <span
+                    className="text-[10px] mono text-[color:var(--color-good)] shrink-0"
+                    title={
+                      a.satisfiedWhen
+                        ? `Satisfied: ${a.satisfiedWhen}`
+                        : "Already done"
+                    }
+                  >
+                    ✓ done
+                  </span>
+                ) : null}
+              </li>
+            ))}
+          </ul>
+        </section>
+      </div>
     </main>
   );
 }

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { evaluatePredicate } from "@/app/lib/assessment";
+import PageNav from "@/app/components/PageNav";
 
 export const dynamic = "force-static";
 export const metadata = {
@@ -50,15 +51,15 @@ const SOURCE_META: Record<
   { title: string; blurb: string; order: number }
 > = {
   settings: {
-    title: "~/.claude/settings.json & CLI config",
+    title: "settings.json & CLI config",
     blurb:
       "Root-level config fields and derived booleans from hooks/permissions. Plus ~/.claude.json runtime state (MCP servers, browser/remote opt-ins).",
     order: 1,
   },
   filesystem: {
-    title: "~/.claude/{agents,commands,skills,memory}",
+    title: "~/.claude filesystem",
     blurb:
-      "Personal-assets filesystem scans. What exists determines what's installed.",
+      "Personal-assets filesystem scans of agents, commands, skills, and project memory.",
     order: 2,
   },
   plugins: {
@@ -76,14 +77,13 @@ const SOURCE_META: Record<
   history: {
     title: "Shell command history (~/.claude/history.jsonl)",
     blurb:
-      "Typed slash commands recorded by Claude Code. PR #47 MAX-merges these with transcript scans because /btw is side-channel and never lands in projects/*/*.jsonl.",
+      "Typed slash commands recorded by Claude Code. MAX-merged with transcript scans since /btw is side-channel and never lands in projects/*/*.jsonl.",
     order: 5,
   },
 };
 
 function extractPrimarySignal(predicate: string): string {
   const firstAtom = predicate.split("&")[0].trim().replace(/^!/, "").trim();
-  // Strip operator and RHS to get the LHS path
   const opMatch = firstAtom.match(/^([a-zA-Z_]+)/);
   return opMatch ? opMatch[1] : firstAtom;
 }
@@ -102,7 +102,7 @@ function formatValue(v: unknown): string {
     if (v.length <= 3) return `[${v.join(", ")}]`;
     return `[${v.slice(0, 2).join(", ")}, …${v.length - 2} more]`;
   }
-  if (typeof v === "string") return v.length > 40 ? v.slice(0, 37) + "…" : v;
+  if (typeof v === "string") return v.length > 80 ? v.slice(0, 77) + "…" : v;
   return String(v);
 }
 
@@ -120,7 +120,6 @@ export default function ProbesPage() {
 
   const sig = assessment.signalsSummary;
 
-  // Walk every nextAction; partition into predicated (probes) vs unpredicated (coaching).
   const probes: ProbeRow[] = [];
   let coachingCount = 0;
   for (const dim of rubric.dimensions) {
@@ -143,8 +142,6 @@ export default function ProbesPage() {
     }
   }
 
-  // Group by source category. Probes whose primary signal is missing from the
-  // catalog fall into "unclassified" so the editor knows to extend the catalog.
   const groups = new Map<SourceKey | "unclassified", ProbeRow[]>();
   for (const p of probes) {
     const key: SourceKey | "unclassified" = p.catalog?.source ?? "unclassified";
@@ -170,46 +167,55 @@ export default function ProbesPage() {
     : "unknown";
 
   return (
-    <main className="max-w-5xl mx-auto px-8 py-12 prose-invert">
-      <div className="text-xs uppercase tracking-[0.15em] text-[color:var(--color-mute)] mb-3">
-        <Link
-          href="/methodology"
-          className="underline decoration-dotted underline-offset-2 hover:text-[color:var(--color-accent)]"
-        >
-          ← Methodology
-        </Link>
-      </div>
-      <h1 className="text-4xl font-semibold tracking-tight mb-3">Probes</h1>
-      <p className="text-sm text-[color:var(--color-mute)] mb-6 leading-relaxed">
-        {probes.length} predicate-backed checks across{" "}
-        {Object.keys(SOURCE_META).length} data sources. Each next-action with a{" "}
-        <span className="mono">satisfiedWhen</span> predicate is a probe; the
-        predicate evaluates against this run&apos;s{" "}
-        <span className="mono">signalsSummary</span> snapshot. Unpredicated
-        actions ({coachingCount}) are behavioral coaching that can&apos;t be
-        auto-detected — they appear as priorities only when their dimension has
-        score headroom.
-      </p>
+    <main className="max-w-[1200px] mx-auto px-8 py-12">
+      <PageNav current="probes" />
+      <header className="mb-12 border-b border-[color:var(--color-line)] pb-8">
+        <div className="flex items-baseline gap-3 text-xs uppercase tracking-[0.15em] text-[color:var(--color-mute)] mb-3">
+          <span>Claude Code Self-Assessment</span>
+          <span>·</span>
+          <span>Probes</span>
+          <span>·</span>
+          <span className="mono">
+            {probes.length} checks · {Object.keys(SOURCE_META).length} sources
+          </span>
+        </div>
+        <h1 className="text-4xl font-semibold tracking-tight mb-3">
+          Every predicate, every signal.
+        </h1>
+        <p className="text-[color:var(--color-mute)] max-w-3xl leading-relaxed">
+          {probes.length} predicate-backed checks across{" "}
+          {Object.keys(SOURCE_META).length} data sources. Each next-action with
+          a{" "}
+          <span className="mono text-[color:var(--color-text)]">
+            satisfiedWhen
+          </span>{" "}
+          predicate is a probe; the predicate evaluates against this run&apos;s{" "}
+          <span className="mono text-[color:var(--color-text)]">
+            signalsSummary
+          </span>{" "}
+          snapshot. Unpredicated actions ({coachingCount}) are behavioral
+          coaching that can&apos;t be auto-detected.
+        </p>
+      </header>
 
-      <div className="flex flex-wrap gap-x-6 gap-y-2 text-sm mb-10 border-y border-[color:var(--color-line)] py-3">
-        <div>
+      <div className="flex flex-wrap gap-x-8 gap-y-2 text-sm mb-12 border-b border-[color:var(--color-line)] pb-6">
+        <Stat label="Probes satisfied">
+          <strong className="text-[color:var(--color-good)]">{totalSat}</strong>
           <span className="text-[color:var(--color-mute)]">
-            Probes satisfied:
-          </span>{" "}
-          <strong className="text-[color:var(--color-good)]">
-            {totalSat} / {probes.length}
-          </strong>
-        </div>
-        <div>
-          <span className="text-[color:var(--color-mute)]">Last assessed:</span>{" "}
-          <span className="mono">{captured} UTC</span>
-        </div>
-        <div>
-          <span className="text-[color:var(--color-mute)]">
-            Unpredicated actions:
-          </span>{" "}
-          {coachingCount}
-        </div>
+            {" "}
+            / {probes.length}
+          </span>
+        </Stat>
+        <Stat label="Last assessed">
+          <span className="mono text-xs">{captured} UTC</span>
+        </Stat>
+        <Stat label="Unpredicated">
+          <strong>{coachingCount}</strong>
+          <span className="text-[color:var(--color-mute)] text-xs">
+            {" "}
+            coaching actions
+          </span>
+        </Stat>
       </div>
 
       {orderedSources.map((source) => {
@@ -219,111 +225,146 @@ export default function ProbesPage() {
         const meta =
           source === "unclassified"
             ? {
-                title: "Unclassified (missing from probe-catalog.json)",
+                title: "Unclassified",
                 blurb:
                   "These probes weren't found in app/data/probe-catalog.json. Add an entry keyed by the signal name to populate path + description.",
               }
             : SOURCE_META[source];
         const sat = rows.filter((r) => r.satisfied).length;
+        const orderLabel =
+          source === "unclassified" ? "?" : String(SOURCE_META[source].order);
         return (
-          <section key={source} className="mb-12">
-            <h2 className="text-lg uppercase tracking-[0.15em] text-[color:var(--color-mute)] mb-1">
-              § {source === "unclassified" ? "?" : SOURCE_META[source].order} ·{" "}
-              {meta.title}
-            </h2>
-            <p className="text-xs text-[color:var(--color-mute)] mb-3 leading-relaxed max-w-3xl">
-              {meta.blurb} —{" "}
-              <span className="mono">
-                {sat} / {rows.length}
-              </span>{" "}
-              satisfied.
-            </p>
-            <div className="overflow-x-auto">
-              <table className="text-xs w-full border-collapse">
-                <thead>
-                  <tr className="text-left text-[color:var(--color-mute)] uppercase tracking-wider">
-                    <th className="py-2 pr-3 font-medium">Signal</th>
-                    <th className="py-2 pr-3 font-medium">Predicate</th>
-                    <th className="py-2 pr-3 font-medium">What it checks</th>
-                    <th className="py-2 pr-3 font-medium">Source path</th>
-                    <th className="py-2 pr-3 font-medium">Your value</th>
-                    <th className="py-2 pr-3 font-medium text-center">✓</th>
-                    <th className="py-2 pl-3 font-medium">Action</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {rows.map((r) => (
-                    <tr
-                      key={`${r.dimId}-${r.actionId}`}
-                      className="border-t border-[color:var(--color-line)] align-top"
-                    >
-                      <td className="py-2 pr-3 mono whitespace-nowrap">
-                        {r.signal}
-                      </td>
-                      <td className="py-2 pr-3 mono text-[color:var(--color-mute)]">
-                        {r.predicate}
-                      </td>
-                      <td className="py-2 pr-3 leading-snug max-w-md">
-                        {r.catalog?.description ?? (
-                          <span className="text-[color:var(--color-warn)]">
-                            no catalog entry
-                          </span>
-                        )}
-                      </td>
-                      <td className="py-2 pr-3 mono text-[color:var(--color-mute)] text-[11px]">
-                        {r.catalog?.path ?? "—"}
-                      </td>
-                      <td className="py-2 pr-3 mono whitespace-nowrap">
-                        {formatValue(r.currentValue)}
-                      </td>
-                      <td
-                        className="py-2 pr-3 text-center font-semibold"
-                        style={{
-                          color: r.satisfied
-                            ? "var(--color-good)"
-                            : "var(--color-warn)",
-                        }}
-                      >
-                        {r.satisfied ? "✓" : "✗"}
-                      </td>
-                      <td className="py-2 pl-3 leading-snug">
-                        <Link
-                          href={`/dimensions/${r.dimId}`}
-                          className="text-[color:var(--color-accent)] hover:underline"
-                        >
-                          {r.dimId}
-                        </Link>
-                        <span className="text-[color:var(--color-mute)]">
-                          {" — "}
-                          {r.actionText.length > 90
-                            ? r.actionText.slice(0, 87) + "…"
-                            : r.actionText}
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+          <section key={source} className="mb-14">
+            <div className="flex items-baseline gap-3 mb-2 border-b border-[color:var(--color-line)] pb-2">
+              <span className="text-[color:var(--color-mute)] mono text-xs">
+                § {orderLabel}
+              </span>
+              <h2 className="text-base font-semibold tracking-tight">
+                {meta.title}
+              </h2>
+              <span className="ml-auto mono text-xs text-[color:var(--color-mute)]">
+                <span
+                  style={{
+                    color:
+                      sat === rows.length
+                        ? "var(--color-good)"
+                        : "var(--color-mute)",
+                  }}
+                >
+                  {sat}
+                </span>
+                {" / "}
+                {rows.length} satisfied
+              </span>
             </div>
+            <p className="text-xs text-[color:var(--color-mute)] mb-4 leading-relaxed max-w-3xl">
+              {meta.blurb}
+            </p>
+
+            <ul className="grid grid-cols-1 gap-3">
+              {rows.map((r) => (
+                <ProbeCard key={`${r.dimId}-${r.actionId}`} row={r} />
+              ))}
+            </ul>
           </section>
         );
       })}
+    </main>
+  );
+}
 
-      <div className="mt-12 text-xs text-[color:var(--color-mute)]">
-        <Link
-          href="/methodology"
-          className="underline decoration-dotted underline-offset-2 hover:text-[color:var(--color-accent)]"
+function Stat({
+  label,
+  children,
+}: {
+  label: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="flex flex-col gap-0.5">
+      <span className="text-[10px] uppercase tracking-[0.12em] text-[color:var(--color-mute)]">
+        {label}
+      </span>
+      <span className="text-sm">{children}</span>
+    </div>
+  );
+}
+
+function ProbeCard({ row }: { row: ProbeRow }) {
+  const barColor = row.satisfied ? "var(--color-good)" : "var(--color-warn)";
+  return (
+    <li
+      className="relative pl-4 pr-4 py-3 bg-[color:var(--color-card,rgba(255,255,255,0.02))] border border-[color:var(--color-line)] rounded-sm"
+      style={{
+        borderLeftWidth: "3px",
+        borderLeftColor: barColor,
+      }}
+    >
+      {/* Header row: signal · predicate · status · dim badge */}
+      <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1 mb-2">
+        <span className="mono text-sm font-semibold tracking-tight">
+          {row.signal}
+        </span>
+        <code className="mono text-xs text-[color:var(--color-mute)] bg-[color:var(--color-line)]/30 px-1.5 py-0.5 rounded-sm">
+          {row.predicate}
+        </code>
+        <span
+          className="text-xs font-semibold ml-auto"
+          style={{ color: barColor }}
         >
-          ← Methodology
-        </Link>
-        {" · "}
+          {row.satisfied ? "✓ satisfied" : "✗ not yet"}
+        </span>
         <Link
-          href="/"
-          className="underline decoration-dotted underline-offset-2 hover:text-[color:var(--color-accent)]"
+          href={`/dimensions/${row.dimId}`}
+          className="text-[10px] uppercase tracking-[0.12em] px-1.5 py-0.5 border border-[color:var(--color-line)] rounded-sm text-[color:var(--color-accent)] hover:bg-[color:var(--color-line)]/30"
         >
-          Dashboard
+          {row.dimId}
         </Link>
       </div>
-    </main>
+
+      {/* Description */}
+      {row.catalog?.description ? (
+        <p className="text-sm leading-relaxed mb-3 text-[color:var(--color-text,#e5e7eb)]">
+          {row.catalog.description}
+        </p>
+      ) : (
+        <p className="text-sm leading-relaxed mb-3 text-[color:var(--color-warn)]">
+          (no catalog entry for <span className="mono">{row.signal}</span> — add
+          one to <span className="mono">app/data/probe-catalog.json</span>)
+        </p>
+      )}
+
+      {/* Meta grid: source path · your value · action */}
+      <div className="grid grid-cols-1 md:grid-cols-[minmax(0,1fr)_auto] gap-x-6 gap-y-2 text-xs">
+        <div className="space-y-1">
+          {row.catalog?.path && (
+            <div>
+              <span className="text-[color:var(--color-mute)] uppercase tracking-[0.12em] text-[10px] mr-2">
+                Source
+              </span>
+              <span className="mono text-[color:var(--color-mute)]">
+                {row.catalog.path}
+              </span>
+            </div>
+          )}
+          <div>
+            <span className="text-[color:var(--color-mute)] uppercase tracking-[0.12em] text-[10px] mr-2">
+              Action
+            </span>
+            <span className="text-[color:var(--color-mute)] leading-snug">
+              {row.actionText}
+            </span>
+          </div>
+        </div>
+        <div className="md:text-right md:min-w-[160px]">
+          <span className="text-[color:var(--color-mute)] uppercase tracking-[0.12em] text-[10px] mr-2">
+            Your value
+          </span>
+          <span className="mono font-semibold" style={{ color: barColor }}>
+            {formatValue(row.currentValue)}
+          </span>
+        </div>
+      </div>
+    </li>
   );
 }
