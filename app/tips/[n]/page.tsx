@@ -43,44 +43,53 @@ export default async function TipPage({ params }: Props) {
   const externalUrl = siteHomepage();
 
   return (
-    <main className="max-w-3xl mx-auto px-8 py-12">
+    <main className="max-w-[1200px] mx-auto px-8 py-12">
       <PageNav
         current="tip"
         context={{ label: `Tip ${tip.n}`, parentKey: "dashboard" }}
       />
 
-      <header className="mb-10 pb-6 border-b border-[color:var(--color-line)]">
-        <div className="text-xs uppercase tracking-[0.15em] text-[color:var(--color-mute)] mb-2">
-          Boris tip {tip.n}
-          {navHint ? <> · {navHint}</> : null}
+      <header className="mb-12 border-b border-[color:var(--color-line)] pb-8">
+        <div className="flex items-baseline gap-3 text-xs uppercase tracking-[0.15em] text-[color:var(--color-mute)] mb-3">
+          <span>Boris tip</span>
+          <span>·</span>
+          <span className="mono">#{tip.n}</span>
+          {navHint ? (
+            <>
+              <span>·</span>
+              <span>{navHint}</span>
+            </>
+          ) : null}
         </div>
-        <h1 className="text-4xl font-semibold tracking-tight mb-4">
+        <h1 className="text-4xl font-semibold tracking-tight mb-3">
           {tip.title}
         </h1>
-        <a
-          href={externalUrl}
-          target="_blank"
-          rel="noreferrer"
-          className="inline-flex items-center gap-1 text-sm text-[color:var(--color-mute)] underline decoration-dotted underline-offset-4 hover:text-[color:var(--color-accent)]"
-        >
-          Open on howborisusesclaudecode.com ↗
-        </a>
-        {navHint ? (
-          <div className="text-xs text-[color:var(--color-mute)] mt-1">
-            (the upstream site has no per-tip URL — manually click the{" "}
-            <span className="mono text-[color:var(--color-text)]">
-              {tip.label}
-            </span>{" "}
-            tab in volume {tip.volume})
-          </div>
-        ) : null}
+        <div className="max-w-3xl">
+          <a
+            href={externalUrl}
+            target="_blank"
+            rel="noreferrer"
+            className="inline-flex items-center gap-1 text-sm text-[color:var(--color-mute)] underline decoration-dotted underline-offset-4 hover:text-[color:var(--color-accent)]"
+          >
+            Open on howborisusesclaudecode.com ↗
+          </a>
+          {navHint ? (
+            <div className="text-xs text-[color:var(--color-mute)] mt-1">
+              (the upstream site has no per-tip URL — manually click the{" "}
+              <span className="mono text-[color:var(--color-text)]">
+                {tip.label}
+              </span>{" "}
+              tab in volume {tip.volume})
+            </div>
+          ) : null}
+        </div>
       </header>
 
-      <article className="prose-tip leading-relaxed text-[color:var(--color-text)] space-y-4">
+      <article className="prose-tip leading-relaxed text-[color:var(--color-text)] space-y-4 max-w-3xl">
         {renderMarkdown(tip.contentMd)}
       </article>
 
-      <nav className="mt-12 pt-6 border-t border-[color:var(--color-line)] flex justify-between text-sm">
+      <nav className="mt-12 pt-6 border-t border-[color:var(--color-line)] flex justify-between text-sm max-w-3xl">
         <span>
           {prev != null ? (
             <Link

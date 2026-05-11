@@ -167,20 +167,38 @@ export default function ProbesPage() {
     : "unknown";
 
   return (
-    <main className="max-w-6xl mx-auto px-6 py-12">
+    <main className="max-w-[1200px] mx-auto px-8 py-12">
       <PageNav current="probes" />
-      <h1 className="text-4xl font-semibold tracking-tight mb-3">Probes</h1>
-      <p className="text-sm text-[color:var(--color-mute)] mb-6 leading-relaxed max-w-3xl">
-        {probes.length} predicate-backed checks across{" "}
-        {Object.keys(SOURCE_META).length} data sources. Each next-action with a{" "}
-        <span className="mono">satisfiedWhen</span> predicate is a probe; the
-        predicate evaluates against this run&apos;s{" "}
-        <span className="mono">signalsSummary</span> snapshot. Unpredicated
-        actions ({coachingCount}) are behavioral coaching that can&apos;t be
-        auto-detected.
-      </p>
+      <header className="mb-12 border-b border-[color:var(--color-line)] pb-8">
+        <div className="flex items-baseline gap-3 text-xs uppercase tracking-[0.15em] text-[color:var(--color-mute)] mb-3">
+          <span>Claude Code Self-Assessment</span>
+          <span>·</span>
+          <span>Probes</span>
+          <span>·</span>
+          <span className="mono">
+            {probes.length} checks · {Object.keys(SOURCE_META).length} sources
+          </span>
+        </div>
+        <h1 className="text-4xl font-semibold tracking-tight mb-3">
+          Every predicate, every signal.
+        </h1>
+        <p className="text-[color:var(--color-mute)] max-w-3xl leading-relaxed">
+          {probes.length} predicate-backed checks across{" "}
+          {Object.keys(SOURCE_META).length} data sources. Each next-action with
+          a{" "}
+          <span className="mono text-[color:var(--color-text)]">
+            satisfiedWhen
+          </span>{" "}
+          predicate is a probe; the predicate evaluates against this run&apos;s{" "}
+          <span className="mono text-[color:var(--color-text)]">
+            signalsSummary
+          </span>{" "}
+          snapshot. Unpredicated actions ({coachingCount}) are behavioral
+          coaching that can&apos;t be auto-detected.
+        </p>
+      </header>
 
-      <div className="flex flex-wrap gap-x-8 gap-y-2 text-sm mb-12 border-y border-[color:var(--color-line)] py-4">
+      <div className="flex flex-wrap gap-x-8 gap-y-2 text-sm mb-12 border-b border-[color:var(--color-line)] pb-6">
         <Stat label="Probes satisfied">
           <strong className="text-[color:var(--color-good)]">{totalSat}</strong>
           <span className="text-[color:var(--color-mute)]">

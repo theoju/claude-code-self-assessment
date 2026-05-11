@@ -1,12 +1,6 @@
 import Link from "next/link";
 
-type PageKey =
-  | "dashboard"
-  | "methodology"
-  | "probes"
-  | "coverage"
-  | "dimension"
-  | "tip";
+type PageKey = "dashboard" | "methodology" | "probes" | "dimension" | "tip";
 
 interface NavItem {
   key: PageKey;
@@ -18,7 +12,6 @@ const PRIMARY: NavItem[] = [
   { key: "dashboard", label: "Dashboard", href: "/" },
   { key: "methodology", label: "Methodology", href: "/methodology" },
   { key: "probes", label: "Probes", href: "/methodology/probes" },
-  { key: "coverage", label: "Coverage", href: "/coverage" },
 ];
 
 interface Props {
@@ -32,7 +25,7 @@ export default function PageNav({ current, context }: Props) {
   return (
     <nav
       aria-label="Primary"
-      className="flex flex-wrap items-baseline gap-x-4 gap-y-1 mb-8 pb-3 border-b border-[color:var(--color-line)] text-xs uppercase tracking-[0.15em]"
+      className="flex flex-wrap items-baseline gap-x-4 gap-y-1 mb-6 text-xs uppercase tracking-[0.15em]"
     >
       {PRIMARY.map((item, i) => {
         const active =
