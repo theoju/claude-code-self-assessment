@@ -180,15 +180,32 @@ export const SCORERS = {
       );
     const worktreeAliasCount =
       s.worktreeAliasCount ?? s.shellAliases?.worktreeAliasCount ?? 0;
+    const worktreeShortcutCount =
+      s.worktreeShortcutCount ?? s.shellAliases?.worktreeShortcutCount ?? 0;
+    const worktreeUsageSessionCount =
+      s.worktreeUsageSessionCount ?? s.insights?.worktreeUsageSessionCount ?? 0;
     const batchCommandUses =
       s.batchCommandUses ?? s.transcriptInvocations?.batchCommandUses ?? 0;
     // v0.9 bonuses cap at +15 combined per the calibration design (see
     // docs/superpowers/plans/2026-05-09-score-formula-update.md). Each
     // signal still contributes its full weight when fired alone.
     let v9Bonus = 0;
+    // Tip 1 broadening (2026-05-10): credit any of the three adoption paths.
+    // Boris's tip is "spin up 3-5 parallel worktree sessions" — the aliases
+    // are means, not end. Evidence string reflects whichever path fired.
     if (worktreeAliasCount >= 3) {
       v9Bonus += 8;
       ev.push(`${worktreeAliasCount} worktree alias(es) (za/zb/zc) configured`);
+    } else if (worktreeShortcutCount >= 3) {
+      v9Bonus += 8;
+      ev.push(
+        `${worktreeShortcutCount} worktree shell shortcut(s) configured (broad)`,
+      );
+    } else if (worktreeUsageSessionCount >= 3) {
+      v9Bonus += 8;
+      ev.push(
+        `${worktreeUsageSessionCount} parallel-worktree session(s) in lookback window`,
+      );
     }
     if (batchCommandUses >= 1) {
       v9Bonus += 10;

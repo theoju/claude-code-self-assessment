@@ -109,8 +109,94 @@ describe("buildSignalsSummary", () => {
       "clearCommandUses",
       "compactCommandUses",
       "fewerPermsCommandUses",
+      "autoMemoryEnabled",
+      "parallelWorktreeAdoption",
     ];
     for (const k of expectedKeys) expect(r).toHaveProperty(k);
+  });
+
+  // Tip 1 (Boris): "Run Multiple Claude Sessions in Parallel." The headline is
+  // about end-state (3-5 parallel worktree sessions), not the specific shell-
+  // alias mechanism. V1.3 broadened `hasIsolatedAgent` (tip 28) by ORing with
+  // execution telemetry; same pattern applied here.
+  describe("parallelWorktreeAdoption (tip 1, V1.3-style broadening)", () => {
+    it("fires when worktreeAliasCount >= 3 (Boris za/zb/zc literal)", () => {
+      const r = buildSignalsSummary(
+        makeSignals({
+          shellAliases: { worktreeAliasCount: 3, worktreeShortcutCount: 0 },
+          insights: { worktreeUsageSessionCount: 0, sessionsAnalyzed: 100 },
+        }),
+      );
+      expect(r.parallelWorktreeAdoption).toBe(true);
+    });
+
+    it("fires when worktreeShortcutCount >= 3 (broad alias/function wrappers)", () => {
+      const r = buildSignalsSummary(
+        makeSignals({
+          shellAliases: { worktreeAliasCount: 0, worktreeShortcutCount: 3 },
+          insights: { worktreeUsageSessionCount: 0, sessionsAnalyzed: 100 },
+        }),
+      );
+      expect(r.parallelWorktreeAdoption).toBe(true);
+    });
+
+    it("fires when worktreeUsageSessionCount >= 3 (execution telemetry)", () => {
+      const r = buildSignalsSummary(
+        makeSignals({
+          shellAliases: { worktreeAliasCount: 0, worktreeShortcutCount: 0 },
+          insights: { worktreeUsageSessionCount: 42, sessionsAnalyzed: 301 },
+        }),
+      );
+      expect(r.parallelWorktreeAdoption).toBe(true);
+    });
+
+    it("is false when all three signals are below threshold", () => {
+      const r = buildSignalsSummary(
+        makeSignals({
+          shellAliases: { worktreeAliasCount: 2, worktreeShortcutCount: 1 },
+          insights: { worktreeUsageSessionCount: 2, sessionsAnalyzed: 100 },
+        }),
+      );
+      expect(r.parallelWorktreeAdoption).toBe(false);
+    });
+
+    it("tolerates null insights / missing shellAliases", () => {
+      const r = buildSignalsSummary(
+        makeSignals({
+          shellAliases: undefined,
+          insights: null,
+        }),
+      );
+      expect(r.parallelWorktreeAdoption).toBe(false);
+    });
+  });
+
+  // Tip 45 (Boris): auto-memory is ENABLED unless the user has explicitly
+  // disabled it via `env.CLAUDE_CODE_DISABLE_AUTO_MEMORY="1"` in settings.json.
+  // Default-on semantics — absent/"0" both read as enabled.
+  describe("autoMemoryEnabled (tip 45)", () => {
+    it("is true when settings.autoMemoryEnabled is true", () => {
+      const r = buildSignalsSummary(
+        makeSignals({
+          settings: { ...makeSignals().settings, autoMemoryEnabled: true },
+        }),
+      );
+      expect(r.autoMemoryEnabled).toBe(true);
+    });
+
+    it("is false when settings.autoMemoryEnabled is false (explicit opt-out)", () => {
+      const r = buildSignalsSummary(
+        makeSignals({
+          settings: { ...makeSignals().settings, autoMemoryEnabled: false },
+        }),
+      );
+      expect(r.autoMemoryEnabled).toBe(false);
+    });
+
+    it("defaults to true when settings.autoMemoryEnabled is undefined", () => {
+      const r = buildSignalsSummary(makeSignals());
+      expect(r.autoMemoryEnabled).toBe(true);
+    });
   });
 
   it("counts allowList entries correctly", () => {
@@ -599,6 +685,7 @@ describe("buildSignalsSummary", () => {
       [
         "allowListCount",
         "autoCompactWindow",
+        "autoMemoryEnabled",
         "babysitLoopUses",
         "batchCommandUses",
         "btwCommandUses",
@@ -634,6 +721,7 @@ describe("buildSignalsSummary", () => {
         "keybindingsConfigured",
         "loopCommandUses",
         "mcpServersConnected",
+        "parallelWorktreeAdoption",
         "personalAgents",
         "personalCommands",
         "personalSkillNames",
