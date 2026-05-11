@@ -2,7 +2,6 @@ import Link from "next/link";
 import PageNav from "@/app/components/PageNav";
 import RadarChart from "@/app/components/RadarChart";
 import ClaudeMdHealth from "@/app/components/ClaudeMdHealth";
-import ProgressionTimeline from "@/app/components/ProgressionTimeline";
 import InsightsNarrativeSection from "@/app/components/InsightsNarrative";
 import {
   loadAssessment,
@@ -13,7 +12,6 @@ import {
   tierFor,
   trendGlyph,
 } from "@/app/lib/assessment";
-import { loadProgression } from "@/app/lib/progression";
 import {
   loadInsightsNarrative,
   detectInsightsReportFile,
@@ -29,9 +27,8 @@ export const dynamic = "force-dynamic";
 const EXECUTION_DELTA_HIGHLIGHT = 15;
 
 export default async function Page() {
-  const [assessment, progression, insightsNarrative] = await Promise.all([
+  const [assessment, insightsNarrative] = await Promise.all([
     loadAssessment(),
-    loadProgression(),
     loadInsightsNarrative(),
   ]);
   const insightsReportFile = detectInsightsReportFile();
@@ -432,24 +429,6 @@ export default async function Page() {
           ))}
         </div>
       </section>
-
-      {progression && (
-        <section className="mb-16">
-          <h2 className="text-lg uppercase tracking-[0.15em] text-[color:var(--color-mute)] mb-6">
-            Progression — milestones from your /insights history
-          </h2>
-          <ProgressionTimeline progression={progression} />
-          {!progression.transcriptsScanned && (
-            <p className="text-xs text-[color:var(--color-mute)] mt-4">
-              Transcript-derived milestones (auto/plan mode adoption, worktrees,
-              skills) are skipped — set{" "}
-              <span className="mono">scoring.includeTranscripts</span> to{" "}
-              <span className="mono">true</span> in{" "}
-              <span className="mono">assessment.config.json</span> to enable.
-            </p>
-          )}
-        </section>
-      )}
 
       <section
         aria-labelledby="credits-heading"

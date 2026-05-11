@@ -1,6 +1,12 @@
 import Link from "next/link";
 
-type PageKey = "dashboard" | "methodology" | "probes" | "dimension" | "tip";
+type PageKey =
+  | "dashboard"
+  | "methodology"
+  | "probes"
+  | "progression"
+  | "dimension"
+  | "tip";
 
 interface NavItem {
   key: PageKey;
@@ -12,6 +18,7 @@ const PRIMARY: NavItem[] = [
   { key: "dashboard", label: "Dashboard", href: "/" },
   { key: "methodology", label: "Methodology", href: "/methodology" },
   { key: "probes", label: "Probes", href: "/methodology/probes" },
+  { key: "progression", label: "Progression", href: "/progression" },
 ];
 
 interface Props {
