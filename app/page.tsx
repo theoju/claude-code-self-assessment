@@ -123,7 +123,7 @@ export default async function Page() {
                 .join(" · ");
               return (
                 <div className="text-[11px] italic text-[color:var(--color-mute)] mt-2 text-center max-w-2xl mx-auto opacity-75">
-                  <sup className="not-italic mr-1">1</sup>
+                  <span className="not-italic mr-1">(1)</span>
                   Execution unmeasured ({unmeasured.length} dim
                   {unmeasured.length === 1 ? "" : "s"}): {labels} —{" "}
                   <Link

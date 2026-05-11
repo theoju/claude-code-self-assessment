@@ -1,3 +1,7 @@
+"use client";
+
+import { useRouter } from "next/navigation";
+import { useState } from "react";
 import type { Dimension } from "@/app/lib/assessment";
 
 interface Props {
@@ -6,7 +10,25 @@ interface Props {
   showExecution?: boolean;
 }
 
-export default function RadarChart({ dimensions, size = 480, showExecution = false }: Props) {
+// Right side gets more room because the longest label anchors there.
+const PAD_L = 60;
+const PAD_R = 80;
+const PAD_T = 24;
+const PAD_B = 40;
+
+const TT_W = 220;
+const TT_LINE_H = 16;
+const TT_PAD_X = 10;
+const TT_PAD_Y = 10;
+
+export default function RadarChart({
+  dimensions,
+  size = 480,
+  showExecution = false,
+}: Props) {
+  const router = useRouter();
+  const [activeId, setActiveId] = useState<string | null>(null);
+
   const cx = size / 2;
   const cy = size / 2;
   const radius = size / 2 - 70;
@@ -34,29 +56,54 @@ export default function RadarChart({ dimensions, size = 480, showExecution = fal
       })
       .join(" ") + " Z";
 
-  // Null executionScores would collapse to the centre and distort the polygon —
-  // skip them, leaving the shape visibly sparse on unmeasured axes.
-  const executionVertices: Array<{ x: number; y: number; i: number }> = showExecution
-    ? dimensions
-        .map((d, i) => {
-          if (d.executionScore == null) return null;
-          const [x, y] = pointAt(d.executionScore, i);
-          return { x, y, i };
-        })
-        .filter((v): v is { x: number; y: number; i: number } => v !== null)
-    : [];
+  const executionVertices: Array<{ x: number; y: number; i: number }> =
+    showExecution
+      ? dimensions
+          .map((d, i) => {
+            if (d.executionScore == null) return null;
+            const [x, y] = pointAt(d.executionScore, i);
+            return { x, y, i };
+          })
+          .filter((v): v is { x: number; y: number; i: number } => v !== null)
+      : [];
 
   const executionPath =
     executionVertices.length >= 2
       ? executionVertices
-          .map((v, i) => `${i === 0 ? "M" : "L"}${v.x.toFixed(1)},${v.y.toFixed(1)}`)
+          .map(
+            (v, i) =>
+              `${i === 0 ? "M" : "L"}${v.x.toFixed(1)},${v.y.toFixed(1)}`,
+          )
           .join(" ") + " Z"
       : null;
 
   const rings = [20, 40, 60, 80, 100];
 
+  const navigate = (id: string) => router.push(`/dimensions/${id}`);
+
+  const handleActivate = (id: string) => setActiveId(id);
+  const handleDeactivate = () => setActiveId(null);
+  // Touch fallback: first tap reveals tooltip, second tap on same dim navigates.
+  const handleTap = (id: string) => (e: React.PointerEvent<SVGElement>) => {
+    e.stopPropagation();
+    if (e.pointerType !== "touch") {
+      navigate(id);
+      return;
+    }
+    if (activeId === id) navigate(id);
+    else setActiveId(id);
+  };
+
+  const activeIndex =
+    activeId != null ? dimensions.findIndex((d) => d.id === activeId) : -1;
+  const activeDim = activeIndex >= 0 ? dimensions[activeIndex] : null;
+
   return (
-    <svg viewBox={`0 0 ${size} ${size}`} className="w-full h-auto">
+    <svg
+      viewBox={`${-PAD_L} ${-PAD_T} ${size + PAD_L + PAD_R} ${size + PAD_T + PAD_B}`}
+      className="w-full h-auto"
+      onPointerDown={() => setActiveId(null)}
+    >
       {rings.map((v) => (
         <circle
           key={v}
@@ -84,8 +131,22 @@ export default function RadarChart({ dimensions, size = 480, showExecution = fal
         );
       })}
 
-      <path d={targetPath} fill="var(--color-accent)" fillOpacity={0.08} stroke="var(--color-accent)" strokeOpacity={0.6} strokeDasharray="4 3" strokeWidth={1} />
-      <path d={scorePath} fill="var(--color-good)" fillOpacity={0.2} stroke="var(--color-good)" strokeWidth={1.5} />
+      <path
+        d={targetPath}
+        fill="var(--color-accent)"
+        fillOpacity={0.08}
+        stroke="var(--color-accent)"
+        strokeOpacity={0.6}
+        strokeDasharray="4 3"
+        strokeWidth={1}
+      />
+      <path
+        d={scorePath}
+        fill="var(--color-good)"
+        fillOpacity={0.2}
+        stroke="var(--color-good)"
+        strokeWidth={1.5}
+      />
 
       {executionPath && (
         <path
@@ -100,11 +161,27 @@ export default function RadarChart({ dimensions, size = 480, showExecution = fal
 
       {dimensions.map((d, i) => {
         const [x, y] = pointAt(d.score, i);
-        return <circle key={d.id} cx={x} cy={y} r={3} fill="var(--color-good)" />;
+        return (
+          <circle
+            key={d.id}
+            cx={x}
+            cy={y}
+            r={3}
+            fill="var(--color-good)"
+            pointerEvents="none"
+          />
+        );
       })}
 
       {executionVertices.map((v) => (
-        <circle key={`exec-${dimensions[v.i].id}`} cx={v.x} cy={v.y} r={2.5} fill="var(--color-warn)" />
+        <circle
+          key={`exec-${dimensions[v.i].id}`}
+          cx={v.x}
+          cy={v.y}
+          r={2.5}
+          fill="var(--color-warn)"
+          pointerEvents="none"
+        />
       ))}
 
       {dimensions.map((d, i) => {
@@ -112,11 +189,12 @@ export default function RadarChart({ dimensions, size = 480, showExecution = fal
         const lx = cx + Math.cos(angle) * (radius + 26);
         const ly = cy + Math.sin(angle) * (radius + 26);
         const anchor =
-          Math.abs(Math.cos(angle)) < 0.2 ? "middle" : Math.cos(angle) > 0 ? "start" : "end";
+          Math.abs(Math.cos(angle)) < 0.2
+            ? "middle"
+            : Math.cos(angle) > 0
+              ? "start"
+              : "end";
         const label = d.title.split(" — ")[0].split("&")[0].trim();
-        // When showExecution is on but this dim has no measurement, mark the
-        // label as unmeasured (italic + dimmed) and append a ¹ superscript
-        // pointing at the footnote rendered next to the radar legend.
         const unmeasured = showExecution && d.executionScore == null;
         return (
           <text
@@ -129,16 +207,169 @@ export default function RadarChart({ dimensions, size = 480, showExecution = fal
             opacity={unmeasured ? 0.65 : 1}
             textAnchor={anchor}
             dominantBaseline="middle"
+            className="radar-label cursor-pointer"
+            onMouseEnter={() => handleActivate(d.id)}
+            onMouseLeave={handleDeactivate}
+            onPointerDown={handleTap(d.id)}
           >
             {label}
             {unmeasured ? (
-              <tspan dx={2} dy={-3} fontSize={9}>
-                ¹
+              <tspan dx={4} fontSize={11}>
+                (1)
               </tspan>
             ) : null}
           </text>
         );
       })}
+
+      {dimensions.map((d, i) => {
+        const [sx, sy] = pointAt(d.score, i);
+        const [ex, ey] =
+          d.executionScore != null ? pointAt(d.executionScore, i) : [sx, sy];
+        const mx = (sx + ex) / 2;
+        const my = (sy + ey) / 2;
+        return (
+          <circle
+            key={`hit-${d.id}`}
+            cx={mx}
+            cy={my}
+            r={16}
+            fill="transparent"
+            className="radar-hit cursor-pointer"
+            data-dim-id={d.id}
+            onMouseEnter={() => handleActivate(d.id)}
+            onMouseLeave={handleDeactivate}
+            onPointerDown={handleTap(d.id)}
+          />
+        );
+      })}
+
+      {activeDim != null && activeIndex >= 0 && (
+        <Tooltip
+          dim={activeDim}
+          vertex={pointAt(activeDim.score, activeIndex)}
+          chartCenter={[cx, cy]}
+          showExecution={showExecution}
+          bounds={{ size }}
+        />
+      )}
     </svg>
+  );
+}
+
+interface TooltipProps {
+  dim: Dimension;
+  vertex: readonly [number, number];
+  chartCenter: readonly [number, number];
+  showExecution: boolean;
+  bounds: { size: number };
+}
+
+function Tooltip({
+  dim,
+  vertex,
+  chartCenter,
+  showExecution,
+  bounds,
+}: TooltipProps) {
+  const [vx, vy] = vertex;
+  const [cx, cy] = chartCenter;
+
+  const dx = vx - cx;
+  const dy = vy - cy;
+  const mag = Math.hypot(dx, dy) || 1;
+  const ux = dx / mag;
+  const uy = dy / mag;
+
+  const offsetX = ux > 0 ? 12 : -TT_W - 12;
+  const execLine = dim.executionScore != null;
+  // Row count must match what's actually rendered below: title, setup,
+  // exec (whenever showExecution), meta.
+  const totalLines = 1 + 1 + (showExecution ? 1 : 0) + 1;
+  const boxH = TT_PAD_Y * 2 + TT_LINE_H * totalLines;
+  const offsetY = uy > 0 ? 8 : -boxH - 8;
+
+  // Clamp inside the padded viewBox so the box doesn't clip on edge vertices.
+  const minX = -PAD_L;
+  const maxX = bounds.size + PAD_R - TT_W;
+  const minY = -PAD_T;
+  const maxY = bounds.size + PAD_B - boxH;
+  const tx = Math.max(minX, Math.min(maxX, vx + offsetX));
+  const ty = Math.max(minY, Math.min(maxY, vy + offsetY));
+
+  const setupLine = `${Math.round(dim.score)}%  (raw ${dim.rawScore}/${dim.rawTarget})`;
+  const execLineText = execLine
+    ? `${Math.round(dim.executionScore ?? 0)}%${
+        dim.executionRawScore != null ? `  (raw ${dim.executionRawScore})` : ""
+      }`
+    : "unmeasured (1)";
+
+  return (
+    <g className="radar-tooltip" pointerEvents="none">
+      <rect
+        x={tx}
+        y={ty}
+        width={TT_W}
+        height={boxH}
+        rx={6}
+        ry={6}
+        fill="var(--color-bg, #0b0d10)"
+        fillOpacity={0.94}
+        stroke="var(--color-line)"
+        strokeWidth={1}
+      />
+      <text
+        x={tx + TT_PAD_X}
+        y={ty + TT_PAD_Y + 11}
+        fontSize={12}
+        fontWeight={600}
+        fill="var(--color-fg, #e5e7eb)"
+      >
+        {dim.title.split(" — ")[0].trim()}
+      </text>
+      <line
+        x1={tx + TT_PAD_X}
+        y1={ty + TT_PAD_Y + 18}
+        x2={tx + TT_W - TT_PAD_X}
+        y2={ty + TT_PAD_Y + 18}
+        stroke="var(--color-line)"
+        strokeOpacity={0.5}
+        strokeWidth={1}
+      />
+      <text
+        x={tx + TT_PAD_X}
+        y={ty + TT_PAD_Y + 18 + TT_LINE_H}
+        fontSize={11}
+        fill="var(--color-good)"
+      >
+        <tspan fontWeight={600}>Setup</tspan>
+        <tspan dx={8} fill="var(--color-fg, #e5e7eb)">
+          {setupLine}
+        </tspan>
+      </text>
+      {showExecution && (
+        <text
+          x={tx + TT_PAD_X}
+          y={ty + TT_PAD_Y + 18 + TT_LINE_H * 2}
+          fontSize={11}
+          fill={execLine ? "var(--color-warn)" : "var(--color-mute)"}
+          fontStyle={execLine ? undefined : "italic"}
+        >
+          <tspan fontWeight={600}>Execution</tspan>
+          <tspan dx={8} fill="var(--color-fg, #e5e7eb)">
+            {execLineText}
+          </tspan>
+        </text>
+      )}
+      <text
+        x={tx + TT_PAD_X}
+        y={ty + boxH - TT_PAD_Y - 2}
+        fontSize={10}
+        fill="var(--color-mute)"
+        fontStyle="italic"
+      >
+        weight ×{dim.weight} • click to drill in
+      </text>
+    </g>
   );
 }
