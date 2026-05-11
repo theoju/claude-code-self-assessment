@@ -21,8 +21,15 @@ function writeFacet(claudeHome, sessionId, body) {
 }
 
 function writeMeta(claudeHome, sessionId, body) {
-  const path = join(claudeHome, "usage-data", "session-meta", `${sessionId}.json`);
-  mkdirSync(join(claudeHome, "usage-data", "session-meta"), { recursive: true });
+  const path = join(
+    claudeHome,
+    "usage-data",
+    "session-meta",
+    `${sessionId}.json`,
+  );
+  mkdirSync(join(claudeHome, "usage-data", "session-meta"), {
+    recursive: true,
+  });
   writeFileSync(path, JSON.stringify({ session_id: sessionId, ...body }));
 }
 
@@ -41,7 +48,11 @@ describe("gatherInsightsSignals", () => {
     mkdirSync(join(dir, "usage-data", "session-meta"), { recursive: true });
     mkdirSync(join(dir, "usage-data", "facets"), { recursive: true });
     await expect(
-      gatherInsightsSignals({ claudeHome: dir, now: "not a date", lookbackDays: 30 }),
+      gatherInsightsSignals({
+        claudeHome: dir,
+        now: "not a date",
+        lookbackDays: 30,
+      }),
     ).rejects.toThrow(/invalid now timestamp/);
   });
 
@@ -53,7 +64,11 @@ describe("gatherInsightsSignals", () => {
   it("returns empty-but-shaped result when usage-data exists with no sessions", async () => {
     mkdirSync(join(dir, "usage-data", "facets"), { recursive: true });
     mkdirSync(join(dir, "usage-data", "session-meta"), { recursive: true });
-    const result = await gatherInsightsSignals({ claudeHome: dir, now: NOW, lookbackDays: 30 });
+    const result = await gatherInsightsSignals({
+      claudeHome: dir,
+      now: NOW,
+      lookbackDays: 30,
+    });
     expect(result).toMatchObject({
       sessionsAnalyzed: 0,
       lookbackDays: 30,
@@ -77,7 +92,11 @@ describe("gatherInsightsSignals", () => {
       tool_counts: { Bash: 10, TaskCreate: 4 },
       git_commits: 7,
     });
-    const r = await gatherInsightsSignals({ claudeHome: dir, now: NOW, lookbackDays: 30 });
+    const r = await gatherInsightsSignals({
+      claudeHome: dir,
+      now: NOW,
+      lookbackDays: 30,
+    });
     expect(r.sessionsAnalyzed).toBe(1);
     expect(r.subagentSessionCount).toBe(1);
     expect(r.mcpSessionCount).toBe(1);
@@ -86,9 +105,19 @@ describe("gatherInsightsSignals", () => {
   });
 
   it("includes all sessions when lookbackDays is null (full history)", async () => {
-    writeMeta(dir, "recent", { start_time: TWENTY_DAYS_AGO, uses_task_agent: true });
-    writeMeta(dir, "ancient", { start_time: SIXTY_DAYS_AGO, uses_task_agent: false });
-    const r = await gatherInsightsSignals({ claudeHome: dir, now: NOW, lookbackDays: null });
+    writeMeta(dir, "recent", {
+      start_time: TWENTY_DAYS_AGO,
+      uses_task_agent: true,
+    });
+    writeMeta(dir, "ancient", {
+      start_time: SIXTY_DAYS_AGO,
+      uses_task_agent: false,
+    });
+    const r = await gatherInsightsSignals({
+      claudeHome: dir,
+      now: NOW,
+      lookbackDays: null,
+    });
     expect(r.sessionsAnalyzed).toBe(2);
     expect(r.subagentSessionCount).toBe(1);
   });
@@ -104,7 +133,11 @@ describe("gatherInsightsSignals", () => {
       outcome: "mostly_achieved",
       friction_counts: { buggy_code: 1 },
     });
-    const r = await gatherInsightsSignals({ claudeHome: dir, now: NOW, lookbackDays: 30 });
+    const r = await gatherInsightsSignals({
+      claudeHome: dir,
+      now: NOW,
+      lookbackDays: 30,
+    });
     expect(r.frictionCounts).toEqual({ buggy_code: 3, wrong_approach: 1 });
     expect(r.outcomeCounts).toEqual({ fully_achieved: 1, mostly_achieved: 1 });
   });
@@ -116,7 +149,11 @@ describe("gatherInsightsSignals", () => {
     writeFacet(dir, "s1", { session_type: "multi_task" });
     writeFacet(dir, "s2", { session_type: "multi_task" });
     writeFacet(dir, "s3", { session_type: "single_task" });
-    const r = await gatherInsightsSignals({ claudeHome: dir, now: NOW, lookbackDays: 30 });
+    const r = await gatherInsightsSignals({
+      claudeHome: dir,
+      now: NOW,
+      lookbackDays: 30,
+    });
     expect(r.multiTaskSessionCount).toBe(2);
   });
 
@@ -139,7 +176,11 @@ describe("gatherInsightsSignals", () => {
         PushNotification: 2,
       },
     });
-    const r = await gatherInsightsSignals({ claudeHome: dir, now: NOW, lookbackDays: 30 });
+    const r = await gatherInsightsSignals({
+      claudeHome: dir,
+      now: NOW,
+      lookbackDays: 30,
+    });
     // Scheduled: 1 (CronCreate) + 2 (ScheduleWakeup) + 1 (CronDelete) + 4 (CronList) = 8
     expect(r.scheduledInvocationsTotal).toBe(8);
     // Remote: 3 (RemoteTrigger) + 1 (SendMessage) + 2 (PushNotification) = 6
@@ -156,7 +197,11 @@ describe("gatherInsightsSignals", () => {
         mcp__plugin_slack_slack__slack_send_message: 2,
       },
     });
-    const r = await gatherInsightsSignals({ claudeHome: dir, now: NOW, lookbackDays: 30 });
+    const r = await gatherInsightsSignals({
+      claudeHome: dir,
+      now: NOW,
+      lookbackDays: 30,
+    });
     expect(r.toolInvocationsByPlugin).toEqual({
       atlassian: 8,
       slack: 2,
@@ -176,7 +221,11 @@ describe("gatherInsightsSignals", () => {
         .map((l) => JSON.stringify(l))
         .join("\n"),
     );
-    const r = await gatherInsightsSignals({ claudeHome: dir, now: NOW, lookbackDays: 30 });
+    const r = await gatherInsightsSignals({
+      claudeHome: dir,
+      now: NOW,
+      lookbackDays: 30,
+    });
     expect(r.hookFireCount).toBe(2);
     expect(r.hookFiresByEvent).toEqual({ PostToolUse: 1, Stop: 1 });
   });
@@ -186,7 +235,11 @@ describe("gatherInsightsSignals", () => {
     // (not 0) lets downstream scorers route to "unmeasured" instead of
     // collapsing to a hard zero on every user without the logging hook.
     writeMeta(dir, "s1", { start_time: TWENTY_DAYS_AGO });
-    const r = await gatherInsightsSignals({ claudeHome: dir, now: NOW, lookbackDays: 30 });
+    const r = await gatherInsightsSignals({
+      claudeHome: dir,
+      now: NOW,
+      lookbackDays: 30,
+    });
     expect(r.hookFireCount).toBeNull();
     expect(r.hookFiresByEvent).toEqual({});
   });
@@ -197,7 +250,11 @@ describe("gatherInsightsSignals", () => {
     // legitimately scores 0, not "unmeasured".
     writeMeta(dir, "s1", { start_time: TWENTY_DAYS_AGO });
     writeFileSync(join(dir, "hook-fires.jsonl"), ""); // empty file
-    const r = await gatherInsightsSignals({ claudeHome: dir, now: NOW, lookbackDays: 30 });
+    const r = await gatherInsightsSignals({
+      claudeHome: dir,
+      now: NOW,
+      lookbackDays: 30,
+    });
     expect(r.hookFireCount).toBe(0);
     expect(r.hookFiresByEvent).toEqual({});
   });
@@ -207,7 +264,11 @@ describe("gatherInsightsSignals", () => {
     writeTranscript(dir, "proj", "s1", [
       { type: "user", permissionMode: "auto", timestamp: TWENTY_DAYS_AGO },
     ]);
-    const r = await gatherInsightsSignals({ claudeHome: dir, now: NOW, lookbackDays: 30 });
+    const r = await gatherInsightsSignals({
+      claudeHome: dir,
+      now: NOW,
+      lookbackDays: 30,
+    });
     expect(r.transcriptsScanned).toBe(false);
     expect(r.autoModeSessionCount).toBeNull();
     expect(r.bypassPermissionsSessionCount).toBeNull();
@@ -237,12 +298,20 @@ describe("gatherInsightsSignals", () => {
       { type: "user", permissionMode: "auto", timestamp: TWENTY_DAYS_AGO },
     ]);
     writeTranscript(dir, "proj-a", "bypass-only", [
-      { type: "user", permissionMode: "bypassPermissions", timestamp: TWENTY_DAYS_AGO },
+      {
+        type: "user",
+        permissionMode: "bypassPermissions",
+        timestamp: TWENTY_DAYS_AGO,
+      },
     ]);
     writeTranscript(dir, "proj-b", "mixed", [
       { type: "user", permissionMode: "auto", timestamp: TWENTY_DAYS_AGO },
       { type: "user", permissionMode: "plan", timestamp: TWENTY_DAYS_AGO },
-      { type: "user", permissionMode: "bypassPermissions", timestamp: TWENTY_DAYS_AGO },
+      {
+        type: "user",
+        permissionMode: "bypassPermissions",
+        timestamp: TWENTY_DAYS_AGO,
+      },
     ]);
     writeTranscript(dir, "proj-b", "no-mode", [
       { type: "user", timestamp: TWENTY_DAYS_AGO },
@@ -266,16 +335,32 @@ describe("gatherInsightsSignals", () => {
     writeMeta(dir, "user-quote", { start_time: TWENTY_DAYS_AGO });
     // Two assistant turns in this session contain the banner -> session counts once.
     writeTranscript(dir, "proj-a", "active", [
-      { type: "assistant", message: { content: "★ Insight ───\nfoo\n───" }, timestamp: TWENTY_DAYS_AGO },
-      { type: "assistant", message: { content: "★ Insight ───\nbar\n───" }, timestamp: TWENTY_DAYS_AGO },
+      {
+        type: "assistant",
+        message: { content: "★ Insight ───\nfoo\n───" },
+        timestamp: TWENTY_DAYS_AGO,
+      },
+      {
+        type: "assistant",
+        message: { content: "★ Insight ───\nbar\n───" },
+        timestamp: TWENTY_DAYS_AGO,
+      },
     ]);
     // No banners.
     writeTranscript(dir, "proj-a", "quiet", [
-      { type: "assistant", message: { content: "regular reply" }, timestamp: TWENTY_DAYS_AGO },
+      {
+        type: "assistant",
+        message: { content: "regular reply" },
+        timestamp: TWENTY_DAYS_AGO,
+      },
     ]);
     // User quotes the pattern in their own message — must NOT count.
     writeTranscript(dir, "proj-b", "user-quote", [
-      { type: "user", message: { content: "what is ★ Insight ?" }, timestamp: TWENTY_DAYS_AGO },
+      {
+        type: "user",
+        message: { content: "what is ★ Insight ?" },
+        timestamp: TWENTY_DAYS_AGO,
+      },
     ]);
     const r = await gatherInsightsSignals({
       claudeHome: dir,
@@ -285,6 +370,73 @@ describe("gatherInsightsSignals", () => {
     });
     expect(r.learningModeSessionCount).toBe(1);
     expect(r.learningModeMatchesTotal).toBe(2);
+  });
+
+  it("planModeSessionCount includes sessions with planning-skill invocations", async () => {
+    // Session uses a planning skill but never enters native plan mode —
+    // the Planning Exec scorer should still credit it.
+    writeMeta(dir, "skill-plan", { start_time: TWENTY_DAYS_AGO });
+    writeTranscript(dir, "proj-a", "skill-plan", [
+      {
+        type: "user",
+        message: {
+          content: "<command-name>/superpowers:writing-plans</command-name>",
+        },
+        timestamp: TWENTY_DAYS_AGO,
+      },
+    ]);
+    const r = await gatherInsightsSignals({
+      claudeHome: dir,
+      now: NOW,
+      lookbackDays: 30,
+      includeTranscripts: true,
+    });
+    expect(r.planModeSessionCount).toBe(1);
+  });
+
+  it("learningModeSessionCount includes sessions with learning-skill invocations", async () => {
+    writeMeta(dir, "skill-learn", { start_time: TWENTY_DAYS_AGO });
+    writeTranscript(dir, "proj-a", "skill-learn", [
+      {
+        type: "user",
+        message: { content: "<command-name>/thariq-skills</command-name>" },
+        timestamp: TWENTY_DAYS_AGO,
+      },
+    ]);
+    const r = await gatherInsightsSignals({
+      claudeHome: dir,
+      now: NOW,
+      lookbackDays: 30,
+      includeTranscripts: true,
+    });
+    expect(r.learningModeSessionCount).toBe(1);
+    // matchesTotal counts banner OCCURRENCES only — no banners here.
+    expect(r.learningModeMatchesTotal).toBe(0);
+  });
+
+  it("learningModeSessionCount does not double-count sessions with both banner AND skill", async () => {
+    writeMeta(dir, "both", { start_time: TWENTY_DAYS_AGO });
+    writeTranscript(dir, "proj-a", "both", [
+      {
+        type: "user",
+        message: { content: "<command-name>/thariq-skills</command-name>" },
+        timestamp: TWENTY_DAYS_AGO,
+      },
+      {
+        type: "assistant",
+        message: { content: "★ Insight ───\nthing\n───" },
+        timestamp: TWENTY_DAYS_AGO,
+      },
+    ]);
+    const r = await gatherInsightsSignals({
+      claudeHome: dir,
+      now: NOW,
+      lookbackDays: 30,
+      includeTranscripts: true,
+    });
+    expect(r.learningModeSessionCount).toBe(1);
+    // Banner-occurrence count is unchanged by skill detection.
+    expect(r.learningModeMatchesTotal).toBe(1);
   });
 
   it("leaves learningModeSessionCount null when transcripts not scanned", async () => {
@@ -320,8 +472,15 @@ describe("gatherInsightsSignals", () => {
 
   it("drops sessions without a start_time when window is constrained", async () => {
     writeMeta(dir, "no-start", { uses_task_agent: true });
-    writeMeta(dir, "good", { start_time: TWENTY_DAYS_AGO, uses_task_agent: true });
-    const r = await gatherInsightsSignals({ claudeHome: dir, now: NOW, lookbackDays: 30 });
+    writeMeta(dir, "good", {
+      start_time: TWENTY_DAYS_AGO,
+      uses_task_agent: true,
+    });
+    const r = await gatherInsightsSignals({
+      claudeHome: dir,
+      now: NOW,
+      lookbackDays: 30,
+    });
     expect(r.sessionsAnalyzed).toBe(1);
     expect(r.subagentSessionCount).toBe(1);
   });
@@ -329,9 +488,19 @@ describe("gatherInsightsSignals", () => {
   it("survives malformed JSON files without throwing", async () => {
     mkdirSync(join(dir, "usage-data", "session-meta"), { recursive: true });
     mkdirSync(join(dir, "usage-data", "facets"), { recursive: true });
-    writeFileSync(join(dir, "usage-data", "session-meta", "bad.json"), "{not json");
-    writeMeta(dir, "good", { start_time: TWENTY_DAYS_AGO, uses_task_agent: true });
-    const r = await gatherInsightsSignals({ claudeHome: dir, now: NOW, lookbackDays: 30 });
+    writeFileSync(
+      join(dir, "usage-data", "session-meta", "bad.json"),
+      "{not json",
+    );
+    writeMeta(dir, "good", {
+      start_time: TWENTY_DAYS_AGO,
+      uses_task_agent: true,
+    });
+    const r = await gatherInsightsSignals({
+      claudeHome: dir,
+      now: NOW,
+      lookbackDays: 30,
+    });
     expect(r.sessionsAnalyzed).toBe(1);
     expect(r.subagentSessionCount).toBe(1);
   });

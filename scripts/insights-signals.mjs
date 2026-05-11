@@ -21,8 +21,17 @@ const PLUGIN_TOOL_RE = /^mcp__plugin_([a-z0-9-]+?)_[a-z0-9-]+__/i;
 // Tool name groups for dimension scorers that key off specific built-in tools.
 // Categorization lives here (signal shape) rather than in score.mjs (scoring
 // policy) so a future tool rename only changes one file.
-const SCHEDULED_TOOL_NAMES = new Set(["CronCreate", "CronDelete", "CronList", "ScheduleWakeup"]);
-const REMOTE_TOOL_NAMES = new Set(["RemoteTrigger", "PushNotification", "SendMessage"]);
+const SCHEDULED_TOOL_NAMES = new Set([
+  "CronCreate",
+  "CronDelete",
+  "CronList",
+  "ScheduleWakeup",
+]);
+const REMOTE_TOOL_NAMES = new Set([
+  "RemoteTrigger",
+  "PushNotification",
+  "SendMessage",
+]);
 
 function parsePluginName(toolName) {
   const m = toolName.match(PLUGIN_TOOL_RE);
@@ -38,7 +47,9 @@ async function readHookFires(claudeHome, cutoff) {
   if (!existsSync(path)) return { total: null, byEvent: {} };
   let total = 0;
   const byEvent = {};
-  const rl = createInterface({ input: createReadStream(path, { encoding: "utf8" }) });
+  const rl = createInterface({
+    input: createReadStream(path, { encoding: "utf8" }),
+  });
   for await (const raw of rl) {
     if (!raw) continue;
     let entry;
@@ -64,7 +75,8 @@ export async function gatherInsightsSignals({
   lookbackDays = 30,
   includeTranscripts = false,
 } = {}) {
-  if (!claudeHome) throw new Error("gatherInsightsSignals: claudeHome required");
+  if (!claudeHome)
+    throw new Error("gatherInsightsSignals: claudeHome required");
   const usageDir = join(claudeHome, "usage-data");
   if (!existsSync(usageDir)) return null;
 
@@ -98,20 +110,25 @@ export async function gatherInsightsSignals({
       if (typeof count !== "number") continue;
       toolInvocationsTotal += count;
       // "TaskCreate" is current; "Task" appears in older session-meta files.
-      if (name === "TaskCreate" || name === "Task") taskInvocationsTotal += count;
+      if (name === "TaskCreate" || name === "Task")
+        taskInvocationsTotal += count;
       if (SCHEDULED_TOOL_NAMES.has(name)) scheduledInvocationsTotal += count;
       if (REMOTE_TOOL_NAMES.has(name)) remoteInvocationsTotal += count;
       const plugin = parsePluginName(name);
-      if (plugin) toolInvocationsByPlugin[plugin] = (toolInvocationsByPlugin[plugin] || 0) + count;
+      if (plugin)
+        toolInvocationsByPlugin[plugin] =
+          (toolInvocationsByPlugin[plugin] || 0) + count;
     }
 
     const facet = facets.get(m.session_id);
     if (facet) {
       if (facet.session_type === "multi_task") multiTaskSessionCount += 1;
-      if (facet.outcome) outcomeCounts[facet.outcome] = (outcomeCounts[facet.outcome] || 0) + 1;
+      if (facet.outcome)
+        outcomeCounts[facet.outcome] = (outcomeCounts[facet.outcome] || 0) + 1;
       const fc = facet.friction_counts || {};
       for (const [k, v] of Object.entries(fc)) {
-        if (typeof v === "number") frictionCounts[k] = (frictionCounts[k] || 0) + v;
+        if (typeof v === "number")
+          frictionCounts[k] = (frictionCounts[k] || 0) + v;
       }
     }
   }
@@ -157,12 +174,21 @@ export async function gatherInsightsSignals({
     for (const m of inWindow) {
       const path = transcriptIndex.get(m.session_id);
       if (!path) continue;
-      const { modes, hasWorktreeState, learningModeMatches } = await scanTranscriptModes(path);
+      const { modes, hasWorktreeState, learningModeMatches } =
+        await scanTranscriptModes(path);
       if (modes.has("auto")) autoModeSessionCount += 1;
       if (modes.has("bypassPermissions")) bypassPermissionsSessionCount += 1;
+      // Union: native permissionMode === "plan" OR a planning-equivalent
+      // skill invocation. Both routes are surfaced via modes.has("plan")
+      // from scanTranscriptModes — see PLANNING_SKILL_COMMANDS there.
       if (modes.has("plan")) planModeSessionCount += 1;
       if (hasWorktreeState) worktreeUsageSessionCount += 1;
-      if (learningModeMatches > 0) learningModeSessionCount += 1;
+      // Union: ★ Insight banners OR a learning-skill invocation. One
+      // increment per session even if both fire (matchesTotal stays
+      // banner-only — it measures banner occurrences, not session
+      // adoption, and the skill signal carries no occurrence semantics).
+      if (learningModeMatches > 0 || modes.has("learning"))
+        learningModeSessionCount += 1;
       learningModeMatchesTotal += learningModeMatches;
     }
     result.transcriptsScanned = true;

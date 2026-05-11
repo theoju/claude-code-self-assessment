@@ -202,4 +202,161 @@ describe("scanTranscriptModes", () => {
     const r = await scanTranscriptModes(path);
     expect(r.learningModeMatches).toBe(1);
   });
+
+  // Mode equivalents from skill invocations. The Planning Setup scorer already
+  // credits the user for having superpowers (brainstorming, writing-plans,
+  // executing-plans) — see score.mjs:288. The Execution scorer needs the
+  // matching signal so a user whose planning ritual is `/superpowers:*`
+  // doesn't score 0 just because they don't press shift+tab+enter.
+  it("detects /superpowers:writing-plans as plan-mode-equivalent", async () => {
+    const lines = [
+      JSON.stringify({
+        type: "user",
+        message: {
+          content:
+            "<command-name>/superpowers:writing-plans</command-name> plan this",
+        },
+      }),
+    ];
+    writeFileSync(path, lines.join("\n"));
+    const r = await scanTranscriptModes(path);
+    expect(r.modes.has("plan")).toBe(true);
+  });
+
+  it("detects /superpowers:brainstorming as plan-mode-equivalent", async () => {
+    const lines = [
+      JSON.stringify({
+        type: "user",
+        message: {
+          content: "<command-name>/superpowers:brainstorming</command-name>",
+        },
+      }),
+    ];
+    writeFileSync(path, lines.join("\n"));
+    const r = await scanTranscriptModes(path);
+    expect(r.modes.has("plan")).toBe(true);
+  });
+
+  it("detects /superpowers:executing-plans as plan-mode-equivalent", async () => {
+    const lines = [
+      JSON.stringify({
+        type: "user",
+        message: {
+          content: "<command-name>/superpowers:executing-plans</command-name>",
+        },
+      }),
+    ];
+    writeFileSync(path, lines.join("\n"));
+    const r = await scanTranscriptModes(path);
+    expect(r.modes.has("plan")).toBe(true);
+  });
+
+  it("detects /superpowers:subagent-driven-development as plan-mode-equivalent", async () => {
+    const lines = [
+      JSON.stringify({
+        type: "user",
+        message: {
+          content:
+            "<command-name>/superpowers:subagent-driven-development</command-name>",
+        },
+      }),
+    ];
+    writeFileSync(path, lines.join("\n"));
+    const r = await scanTranscriptModes(path);
+    expect(r.modes.has("plan")).toBe(true);
+  });
+
+  it("detects /ultraplan as plan-mode-equivalent", async () => {
+    const lines = [
+      JSON.stringify({
+        type: "user",
+        message: { content: "<command-name>/ultraplan</command-name>" },
+      }),
+    ];
+    writeFileSync(path, lines.join("\n"));
+    const r = await scanTranscriptModes(path);
+    expect(r.modes.has("plan")).toBe(true);
+  });
+
+  it("detects planning skill markup without leading slash", async () => {
+    // /btw audit showed some commands log without the leading slash.
+    const lines = [
+      JSON.stringify({
+        type: "user",
+        message: {
+          content: "<command-name>superpowers:brainstorming</command-name>",
+        },
+      }),
+    ];
+    writeFileSync(path, lines.join("\n"));
+    const r = await scanTranscriptModes(path);
+    expect(r.modes.has("plan")).toBe(true);
+  });
+
+  it("does NOT add 'plan' mode for arbitrary skills", async () => {
+    const lines = [
+      JSON.stringify({
+        type: "user",
+        message: { content: "<command-name>/superpowers:loop</command-name>" },
+      }),
+    ];
+    writeFileSync(path, lines.join("\n"));
+    const r = await scanTranscriptModes(path);
+    expect(r.modes.has("plan")).toBe(false);
+  });
+
+  it("detects /thariq-skills as learning-mode-equivalent", async () => {
+    const lines = [
+      JSON.stringify({
+        type: "user",
+        message: { content: "<command-name>/thariq-skills</command-name>" },
+      }),
+    ];
+    writeFileSync(path, lines.join("\n"));
+    const r = await scanTranscriptModes(path);
+    expect(r.modes.has("learning")).toBe(true);
+  });
+
+  it("detects /boris as learning-mode-equivalent", async () => {
+    const lines = [
+      JSON.stringify({
+        type: "user",
+        message: { content: "<command-name>/boris</command-name>" },
+      }),
+    ];
+    writeFileSync(path, lines.join("\n"));
+    const r = await scanTranscriptModes(path);
+    expect(r.modes.has("learning")).toBe(true);
+  });
+
+  it("detects learning skill markup without leading slash", async () => {
+    const lines = [
+      JSON.stringify({
+        type: "user",
+        message: { content: "<command-name>boris</command-name>" },
+      }),
+    ];
+    writeFileSync(path, lines.join("\n"));
+    const r = await scanTranscriptModes(path);
+    expect(r.modes.has("learning")).toBe(true);
+  });
+
+  it("does NOT add 'learning' mode for arbitrary skills", async () => {
+    const lines = [
+      JSON.stringify({
+        type: "user",
+        message: { content: "<command-name>/some-other-skill</command-name>" },
+      }),
+    ];
+    writeFileSync(path, lines.join("\n"));
+    const r = await scanTranscriptModes(path);
+    expect(r.modes.has("learning")).toBe(false);
+  });
+
+  it("native permissionMode='plan' still works alongside skill detection", async () => {
+    const lines = [JSON.stringify({ permissionMode: "plan" })];
+    writeFileSync(path, lines.join("\n"));
+    const r = await scanTranscriptModes(path);
+    expect(r.modes.has("plan")).toBe(true);
+  });
 });
