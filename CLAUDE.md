@@ -122,6 +122,34 @@ two-axis Slack/console renderers don't fall back to the unmeasured form.
   out of the repo — name committed assets around it (e.g.
   `mastery-dashboard.png`) rather than adding a per-file `!exception`
   that future contributors have to maintain.
+- **Release flow goes through a release-branch PR**, not a direct push.
+  The auto-mode classifier blocks `git push` against `main` even for
+  trivial `chore(release): bump version` commits. Standard release
+  shape: branch `chore/release-X.Y.Z`, bump `package.json`, open PR,
+  squash-merge, tag the new main HEAD, `gh release create`. The tag
+  itself (not the version bump commit) is the user-facing artifact, so
+  you can shortcut the version bump if needed — but having
+  `package.json` track the tag avoids drift.
+- **Force-push to feature branches is blocked by
+  `~/.claude/hooks/block-destructive.sh`** — the user has to run
+  `! git push --force-with-lease ...` from their prompt. This applies to
+  the rebase-then-update-PR flow when the open PR conflicts with main
+  after sibling PRs land. Alternative: open a fresh PR from a new
+  branch and close the original as superseded (no force-push, but loses
+  discussion).
+- **/ship halts at Stage 0 (pre-flight check 3) when a PR already
+  exists for the current branch.** Re-running Stages 2-4 (verify-agent
+  / simplify / code review) on an already-PR'd branch requires
+  dispatching those review agents manually. Useful after merging a
+  sibling PR that changed the diff, or when post-implementation review
+  is requested after the initial /ship already opened the PR.
+- **Reviewer subagents sometimes misread diffs.** Both `feature-dev:code-reviewer`
+  dispatches on PRs #48 and #49 in the v0.9.6 cycle reported "no
+  implementation, only docs" / "cannot read the diff" despite the
+  diffs being substantial. Always sanity-check reviewer claims against
+  `git diff <base>...HEAD` before acting on findings. The fix-the-bug
+  reflex is to verify the substantiveness of the report, not the
+  substantiveness of the code.
 
 ## Privacy
 
