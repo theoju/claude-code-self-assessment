@@ -1,8 +1,13 @@
 // @vitest-environment jsdom
-import { describe, it, expect } from "vitest";
-import { render } from "@testing-library/react";
+import { describe, it, expect, vi } from "vitest";
+import { render, fireEvent, createEvent } from "@testing-library/react";
 import RadarChart from "../RadarChart";
 import type { Dimension } from "@/app/lib/assessment";
+
+const pushMock = vi.fn();
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ push: pushMock }),
+}));
 
 function dim(id: string, score: number, target = 90): Dimension {
   return {
@@ -30,18 +35,17 @@ function dim(id: string, score: number, target = 90): Dimension {
 }
 
 describe("RadarChart", () => {
-  it("renders an svg with concentric rings, radial lines, and two paths", () => {
+  it("renders an svg with rings, radial lines, and the score+target paths", () => {
     const dims = [dim("a", 60), dim("b", 70), dim("c", 80), dim("d", 50)];
     const { container } = render(<RadarChart dimensions={dims} />);
     const svg = container.querySelector("svg");
     expect(svg).toBeTruthy();
-    // 5 ring circles + n score-point dots (radius 3)
-    expect(container.querySelectorAll("circle").length).toBe(5 + dims.length);
-    // n radial lines
+    // 5 ring circles + n visible score dots + n transparent hit-area circles.
+    expect(container.querySelectorAll("circle").length).toBe(
+      5 + dims.length + dims.length,
+    );
     expect(container.querySelectorAll("line").length).toBe(dims.length);
-    // 2 paths: target + score
     expect(container.querySelectorAll("path").length).toBe(2);
-    // n labels
     expect(container.querySelectorAll("text").length).toBe(dims.length);
   });
 
@@ -51,17 +55,21 @@ describe("RadarChart", () => {
     const paths = container.querySelectorAll("path");
     expect(paths.length).toBe(2);
     const scorePath = paths[1].getAttribute("d") || "";
-    // First M coordinate should be (cx, cy - radius) for the first dim at score 100
     // size 500 → cx=cy=250, radius=180 → first vertex ≈ (250.0, 70.0)
     expect(scorePath).toMatch(/^M250\.0,70\.0/);
   });
 
-  it("respects custom size", () => {
+  it("uses a padded viewBox so labels at the radius edge don't clip", () => {
     const dims = [dim("a", 50), dim("b", 50), dim("c", 50)];
     const { container } = render(<RadarChart dimensions={dims} size={300} />);
-    expect(container.querySelector("svg")?.getAttribute("viewBox")).toBe(
-      "0 0 300 300",
-    );
+    // Padded viewBox: `-PAD_L -PAD_T (size+PAD_L+PAD_R) (size+PAD_T+PAD_B)`.
+    // For size=300 with PAD_L=60, PAD_R=80, PAD_T=24, PAD_B=40 →
+    // viewBox="-60 -24 440 364". The exact numbers are an implementation
+    // detail; what matters is that x-start is negative and width > size.
+    const vb = container.querySelector("svg")?.getAttribute("viewBox") || "";
+    const [x, , w] = vb.split(" ").map(Number);
+    expect(x).toBeLessThan(0);
+    expect(w).toBeGreaterThan(300);
   });
 
   it("does not draw an execution polygon when showExecution is false (default)", () => {
@@ -74,7 +82,7 @@ describe("RadarChart", () => {
     expect(container.querySelectorAll("path").length).toBe(2);
   });
 
-  it("draws an execution polygon spanning only the dimensions with executionScore set", () => {
+  it("draws an execution polygon spanning only dimensions with executionScore set", () => {
     const dims = [
       { ...dim("a", 60), executionScore: 30 },
       { ...dim("b", 70), executionScore: null },
@@ -87,11 +95,11 @@ describe("RadarChart", () => {
     expect(container.querySelectorAll("path").length).toBe(3);
     const execPath = container.querySelectorAll("path")[2];
     expect(execPath.getAttribute("stroke-dasharray")).toBe("3 3");
-    // 5 rings + 4 score dots + 3 execution dots (only measured vertices)
-    expect(container.querySelectorAll("circle").length).toBe(5 + 4 + 3);
+    // 5 rings + 4 setup dots + 3 execution dots + 4 hit-area circles.
+    expect(container.querySelectorAll("circle").length).toBe(5 + 4 + 3 + 4);
   });
 
-  it("italicizes labels and appends a footnote marker for unmeasured-execution dims", () => {
+  it("italicizes labels and renders (1) marker for unmeasured-execution dims", () => {
     const dims = [
       { ...dim("a", 60), executionScore: 30 },
       { ...dim("b", 70), executionScore: null }, // unmeasured
@@ -105,9 +113,9 @@ describe("RadarChart", () => {
       (t) => t.getAttribute("font-style") === "italic",
     );
     expect(italicLabels.length).toBe(2);
-    // Each italic label should contain the ¹ marker as a tspan.
+    // Each italic label contains a `(1)` tspan rather than the old `¹`.
     for (const t of italicLabels) {
-      expect(t.querySelector("tspan")?.textContent).toBe("¹");
+      expect(t.querySelector("tspan")?.textContent).toBe("(1)");
     }
     // Without showExecution, no italic markers regardless of executionScore.
     const { container: c2 } = render(<RadarChart dimensions={dims} />);
@@ -127,8 +135,101 @@ describe("RadarChart", () => {
     const { container } = render(
       <RadarChart dimensions={dims} showExecution />,
     );
-    // Only 2 paths (target + score). 1 execution dot still drawn.
     expect(container.querySelectorAll("path").length).toBe(2);
-    expect(container.querySelectorAll("circle").length).toBe(5 + 3 + 1);
+    // 5 rings + 3 setup dots + 1 execution dot + 3 hit-area circles.
+    expect(container.querySelectorAll("circle").length).toBe(5 + 3 + 1 + 3);
+  });
+
+  // --- New tests for tooltip + click-to-navigate ---
+
+  it("reveals a tooltip group when a vertex hit-area is hovered", () => {
+    const dims = [dim("alpha", 60), dim("beta", 70), dim("gamma", 80)];
+    const { container } = render(<RadarChart dimensions={dims} />);
+    expect(container.querySelector(".radar-tooltip")).toBeNull();
+    const hit = container.querySelector('[data-dim-id="beta"]');
+    expect(hit).toBeTruthy();
+    fireEvent.mouseEnter(hit!);
+    const tooltip = container.querySelector(".radar-tooltip");
+    expect(tooltip).toBeTruthy();
+    // Tooltip surfaces the dimension title.
+    expect(tooltip!.textContent).toContain("beta");
+    // Setup row carries the raw score / target tuple.
+    expect(tooltip!.textContent).toMatch(/Setup.*70.*raw 70\/90/);
+    fireEvent.mouseLeave(hit!);
+    expect(container.querySelector(".radar-tooltip")).toBeNull();
+  });
+
+  it("omits the Execution numeric row for unmeasured dims", () => {
+    const dims = [
+      { ...dim("a", 60), executionScore: 30, executionRawScore: 20 },
+      { ...dim("b", 70), executionScore: null }, // unmeasured
+    ];
+    const { container } = render(
+      <RadarChart dimensions={dims} showExecution />,
+    );
+    // Measured dim shows Execution row with numeric content.
+    fireEvent.mouseEnter(container.querySelector('[data-dim-id="a"]')!);
+    expect(container.querySelector(".radar-tooltip")!.textContent).toMatch(
+      /Execution.*30/,
+    );
+    fireEvent.mouseLeave(container.querySelector('[data-dim-id="a"]')!);
+    // Unmeasured dim's tooltip shows the "unmeasured (1)" placeholder, not raw
+    // numbers.
+    fireEvent.mouseEnter(container.querySelector('[data-dim-id="b"]')!);
+    const t = container.querySelector(".radar-tooltip")!;
+    expect(t.textContent).toContain("unmeasured (1)");
+    expect(t.textContent).not.toMatch(/Execution.*\d+%.*\(raw/);
+  });
+
+  it("navigates to /dimensions/<id> when a vertex hit-area is clicked (mouse)", () => {
+    pushMock.mockClear();
+    const dims = [dim("alpha", 60), dim("beta", 70)];
+    const { container } = render(<RadarChart dimensions={dims} />);
+    const hit = container.querySelector('[data-dim-id="beta"]')!;
+    fireEvent.pointerDown(hit, { pointerType: "mouse" });
+    expect(pushMock).toHaveBeenCalledWith("/dimensions/beta");
+  });
+
+  it("makes axis labels clickable as a second hit target", () => {
+    pushMock.mockClear();
+    const dims = [dim("alpha", 60), dim("beta", 70)];
+    const { container } = render(<RadarChart dimensions={dims} />);
+    const labels = container.querySelectorAll("text.radar-label");
+    expect(labels.length).toBe(2);
+    fireEvent.pointerDown(labels[1], { pointerType: "mouse" });
+    expect(pushMock).toHaveBeenCalledWith("/dimensions/beta");
+  });
+
+  // jsdom + @testing-library don't propagate pointerType through the init
+  // object; force it onto the event before dispatch so React's synthetic
+  // event reads "touch".
+  function touchPointerDown(el: Element) {
+    const event = createEvent.pointerDown(el);
+    Object.defineProperty(event, "pointerType", { value: "touch" });
+    fireEvent(el, event);
+  }
+
+  it("touch: first tap reveals tooltip without navigating; second tap navigates", () => {
+    pushMock.mockClear();
+    const dims = [dim("alpha", 60), dim("beta", 70)];
+    const { container } = render(<RadarChart dimensions={dims} />);
+    const hit = container.querySelector('[data-dim-id="beta"]')!;
+    touchPointerDown(hit);
+    expect(pushMock).not.toHaveBeenCalled();
+    expect(container.querySelector(".radar-tooltip")).toBeTruthy();
+    touchPointerDown(hit);
+    expect(pushMock).toHaveBeenCalledWith("/dimensions/beta");
+  });
+
+  it("touch: tapping a different dim swaps the tooltip rather than navigating", () => {
+    pushMock.mockClear();
+    const dims = [dim("alpha", 60), dim("beta", 70), dim("gamma", 80)];
+    const { container } = render(<RadarChart dimensions={dims} />);
+    touchPointerDown(container.querySelector('[data-dim-id="beta"]')!);
+    touchPointerDown(container.querySelector('[data-dim-id="gamma"]')!);
+    expect(pushMock).not.toHaveBeenCalled();
+    expect(container.querySelector(".radar-tooltip")!.textContent).toContain(
+      "gamma",
+    );
   });
 });
