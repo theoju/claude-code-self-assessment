@@ -1,0 +1,197 @@
+{
+  "_meta": {
+    "generated": "Hand-maintained. Keyed by signalsSummary field name (the LHS of satisfiedWhen predicates in rubric.json). Each entry pairs a signal with its source category and a one-line plain-English description for the /methodology/probes page.",
+    "sourceCategories": [
+      "settings",
+      "filesystem",
+      "plugins",
+      "transcripts",
+      "history"
+    ]
+  },
+  "outputStyle": {
+    "source": "settings",
+    "path": "~/.claude/settings.json → outputStyle (root)",
+    "description": "Root string field; verbatim copy. Default, Explanatory, Learning, Concise, or custom."
+  },
+  "effortLevel": {
+    "source": "settings",
+    "path": "~/.claude/settings.json → effortLevel (root)",
+    "description": "Reasoning effort string. Default for Opus 4.7 is xhigh; max is per-session opt-in."
+  },
+  "skipDangerous": {
+    "source": "settings",
+    "path": "~/.claude/settings.json → skipDangerousModePermissionPrompt",
+    "description": "True if the user has bypassed dangerous-action confirmation prompts globally."
+  },
+  "allowListCount": {
+    "source": "settings",
+    "path": "~/.claude/settings.json → permissions.allow.length",
+    "description": "Number of allowlist entries. Higher count = less friction from permission prompts."
+  },
+  "hasWildcardAllow": {
+    "source": "settings",
+    "path": "~/.claude/settings.json → permissions.allow (any entry contains '*')",
+    "description": "True if at least one allowlist entry uses a wildcard."
+  },
+  "autoCompactWindow": {
+    "source": "settings",
+    "path": "~/.claude/settings.json → env.CLAUDE_CODE_AUTO_COMPACT_WINDOW",
+    "description": "Truthy when the auto-compact context window override is set (deferring auto-compact past the 200k default)."
+  },
+  "autoMemoryEnabled": {
+    "source": "settings",
+    "path": "~/.claude/settings.json → env.CLAUDE_CODE_DISABLE_AUTO_MEMORY (inverse)",
+    "description": "True unless the user has explicitly opted out of auto-memory. Default-on; inverse-flag semantics."
+  },
+  "hasStopHook": {
+    "source": "settings",
+    "path": "~/.claude/settings.json → hooks.Stop",
+    "description": "True if at least one Stop hook is defined."
+  },
+  "hasFormatterHook": {
+    "source": "settings",
+    "path": "~/.claude/settings.json → hooks.PostToolUse (formatter detection)",
+    "description": "True if a PostToolUse hook on Edit|Write runs a known formatter (prettier, ruff, gofmt, rustfmt, shfmt, or generic 'format' token)."
+  },
+  "hasStopHookNotification": {
+    "source": "settings",
+    "path": "~/.claude/settings.json → hooks.Stop (notification detection)",
+    "description": "True if a Stop hook fires a macOS/system notification when Claude finishes (terminal-notifier, osascript display notification, say, etc.)."
+  },
+  "hasCustomSpinnerVerbs": {
+    "source": "settings",
+    "path": "~/.claude/settings.json → customSpinnerVerbs",
+    "description": "True if the user has defined custom spinner verbs (cosmetic personalization, Boris tip 4)."
+  },
+  "hasClaudeInChrome": {
+    "source": "settings",
+    "path": "~/.claude.json (CLI runtime state)",
+    "description": "True if the Claude in Chrome browser-automation integration is enabled."
+  },
+  "hasRemoteControl": {
+    "source": "settings",
+    "path": "~/.claude.json → remote-control opt-in",
+    "description": "True if remote-control (spawn local sessions from mobile) is opted in."
+  },
+  "mcpServersConnected": {
+    "source": "settings",
+    "path": "~/.claude.json → mcpServers (connected count)",
+    "description": "Number of currently-connected MCP servers (not just installed — actively connected at gather time)."
+  },
+  "claudeMdExists": {
+    "source": "filesystem",
+    "path": "<project>/CLAUDE.md or ~/.claude/CLAUDE.md",
+    "description": "True if project memory exists either at the project root or at the global user level."
+  },
+  "personalSkillNames": {
+    "source": "filesystem",
+    "path": "~/.claude/skills/<name>/SKILL.md (substantive filter applied)",
+    "description": "Array of personal skill directory names that pass the substantiveness check (skill body references run/use/prefer, not just a stub)."
+  },
+  "hasShipCommand": {
+    "source": "filesystem",
+    "path": "~/.claude/commands/ship.md or <project>/.claude/commands/ship.md",
+    "description": "True if a /ship command exists in personal or project command library."
+  },
+  "hasVerifyAgent": {
+    "source": "filesystem",
+    "path": "~/.claude/agents + plugin agents (filename + body + plugin scan)",
+    "description": "True if a verification-flavored agent exists. Matches: filename ^verify, body tokens like 'verify' or 'code-reviewer', plugin name pr-review-toolkit."
+  },
+  "hasIsolatedAgent": {
+    "source": "filesystem",
+    "path": "agents/*.md frontmatter (personal + project + plugin cache)",
+    "description": "True if any agent declares isolation: worktree in its frontmatter."
+  },
+  "hasCodeReviewPlugin": {
+    "source": "plugins",
+    "path": "~/.claude/settings.json → enabledPlugins (regex /^code-review(@|$)/i)",
+    "description": "True if the code-review plugin is enabled. Anchored regex rejects pr-review-toolkit, code-review-helper, pre-code-review."
+  },
+  "hasSlackPlugin": {
+    "source": "plugins",
+    "path": "~/.claude/settings.json → enabledPlugins (slack/* match)",
+    "description": "True if a Slack-flavored plugin is enabled (case-insensitive substring)."
+  },
+  "hasVercelCli": {
+    "source": "plugins",
+    "path": "shell: `which vercel` (PATH lookup)",
+    "description": "True if the Vercel CLI binary is on PATH. External tool detection — not from .claude/."
+  },
+  "parallelWorktreeAdoption": {
+    "source": "transcripts",
+    "path": "Derived OR of three signals (PR #50 v1.3 broadening)",
+    "description": "True if any of: 3+ za/zb/zc-style aliases, 3+ worktree shell shortcuts, or 3+ parallel-worktree sessions in the lookback window."
+  },
+  "planThenLaunchSessions": {
+    "source": "transcripts",
+    "path": "projects/*/*.jsonl scan",
+    "description": "Count of sessions where the first assistant turn after ExitPlanMode is a tool_use call (Boris tip 65: delegation over guidance)."
+  },
+  "shipVerifyStageRecent": {
+    "source": "transcripts",
+    "path": "projects/*/*.jsonl scan for /ship verify-agent fires",
+    "description": "Count of recent /ship runs that reached the verify-agent stage."
+  },
+  "goCommandUses": {
+    "source": "history",
+    "path": "~/.claude/history.jsonl + transcript MAX-merge",
+    "description": "Count of /go invocations (verify reflex). MAX-merged across history.jsonl and transcripts since /go can be invoked from either surface."
+  },
+  "batchCommandUses": {
+    "source": "history",
+    "path": "~/.claude/history.jsonl + transcript MAX-merge",
+    "description": "Count of /batch invocations. Parallel-worktree sweep, Boris tip 30."
+  },
+  "btwCommandUses": {
+    "source": "history",
+    "path": "~/.claude/history.jsonl (primary)",
+    "description": "Count of /btw side-chain question invocations. Boris tip 33."
+  },
+  "voiceCommandUses": {
+    "source": "history",
+    "path": "~/.claude/history.jsonl + transcript MAX-merge",
+    "description": "Count of /voice invocations. Boris tip 60 (typed counterpart to mic mode)."
+  },
+  "clearCommandUses": {
+    "source": "history",
+    "path": "~/.claude/history.jsonl",
+    "description": "Count of /clear invocations. Resets context aggressively (vs /compact which preserves)."
+  },
+  "compactCommandUses": {
+    "source": "history",
+    "path": "~/.claude/history.jsonl",
+    "description": "Count of /compact invocations. Boris tip 54."
+  },
+  "focusCommandUses": {
+    "source": "history",
+    "path": "~/.claude/history.jsonl + transcript MAX-merge",
+    "description": "Count of /focus invocations. Locks Claude into a specified directory subtree."
+  },
+  "scheduleCommandUses": {
+    "source": "history",
+    "path": "~/.claude/history.jsonl + transcript MAX-merge",
+    "description": "Count of /schedule invocations. Cloud-hosted recurring jobs that run laptop-closed."
+  },
+  "loopCommandUses": {
+    "source": "history",
+    "path": "~/.claude/history.jsonl + transcript MAX-merge (broad: any /loop)",
+    "description": "Count of /loop invocations (any kind). Local autonomous loops up to 3 days."
+  },
+  "rewindCommandUses": {
+    "source": "history",
+    "path": "~/.claude/history.jsonl + transcript MAX-merge",
+    "description": "Count of /rewind invocations. Backtracks to a prior conversational state. Boris tip 62."
+  },
+  "simplifyCommandUses": {
+    "source": "history",
+    "path": "~/.claude/history.jsonl + transcript MAX-merge",
+    "description": "Count of /simplify invocations. Parallel-agent code-quality sweep, Boris tip 41."
+  },
+  "fewerPermsCommandUses": {
+    "source": "history",
+    "path": "~/.claude/history.jsonl + transcript MAX-merge",
+    "description": "Count of /fewer-permission-prompts invocations. Analyzes recent tool calls and proposes allowlist additions."
+  }
+}
