@@ -6,6 +6,7 @@ import {
   renderMarkdown,
   siteHomepage,
 } from "@/app/lib/boris-content";
+import PageNav from "@/app/components/PageNav";
 
 export const dynamic = "force-static";
 
@@ -43,11 +44,10 @@ export default async function TipPage({ params }: Props) {
 
   return (
     <main className="max-w-3xl mx-auto px-8 py-12">
-      <div className="mb-8 text-xs uppercase tracking-[0.15em] text-[color:var(--color-mute)]">
-        <Link href="/" className="hover:text-[color:var(--color-accent)]">
-          ← Back to dashboard
-        </Link>
-      </div>
+      <PageNav
+        current="tip"
+        context={{ label: `Tip ${tip.n}`, parentKey: "dashboard" }}
+      />
 
       <header className="mb-10 pb-6 border-b border-[color:var(--color-line)]">
         <div className="text-xs uppercase tracking-[0.15em] text-[color:var(--color-mute)] mb-2">

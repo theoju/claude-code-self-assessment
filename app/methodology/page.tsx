@@ -1,4 +1,5 @@
 import Link from "next/link";
+import PageNav from "@/app/components/PageNav";
 
 export const dynamic = "force-static";
 
@@ -7,14 +8,7 @@ export const metadata = { title: "Methodology — Claude Code Self-Assessment" }
 export default function MethodologyPage() {
   return (
     <main className="max-w-3xl mx-auto px-8 py-12 prose-invert">
-      <div className="text-xs uppercase tracking-[0.15em] text-[color:var(--color-mute)] mb-3">
-        <Link
-          href="/"
-          className="underline decoration-dotted underline-offset-2 hover:text-[color:var(--color-accent)]"
-        >
-          ← Dashboard
-        </Link>
-      </div>
+      <PageNav current="methodology" />
       <h1 className="text-4xl font-semibold tracking-tight mb-6">
         Methodology
       </h1>
@@ -80,9 +74,14 @@ export default function MethodologyPage() {
             are opted in.
           </li>
           <li>
-            <strong>Planning &amp; Delegation</strong> — plan mode adoption
+            <strong>Planning &amp; Delegation</strong> — plan-mode adoption
             within multi-task sessions (linear; gated when no multi-task
-            sessions exist).
+            sessions exist). Recognized signals include built-in plan mode plus
+            planning-flavored skill invocations (e.g.{" "}
+            <span className="mono">superpowers:writing-plans</span>,{" "}
+            <span className="mono">superpowers:brainstorming</span>) — skill
+            invocations are scanned from transcripts so a planning skill counts
+            the same as the toggle.
           </li>
           <li>
             <strong>Integrations</strong> —{" "}
@@ -123,10 +122,14 @@ export default function MethodologyPage() {
             <span className="mono">learningModeSessionRatio × 100</span>. Counts
             sessions where Claude emitted the{" "}
             <span className="mono">★ Insight</span> banner from the
-            explanatory-output-style plugin. Platform Setup credits
+            explanatory-output-style plugin <em>or</em> the user invoked a
+            learning-flavored skill (e.g.{" "}
+            <span className="mono">superpowers:brainstorming</span>,
+            explanatory-output-style skills). Platform Setup credits
             installation; this scorer credits actual use. Caveat: the substring
             match depends on the plugin&apos;s banner string, so a future plugin
-            upgrade could regress this signal silently.
+            upgrade could regress one half of the signal — the skill-invocation
+            half remains stable.
           </li>
         </ul>
       </Section>
@@ -390,15 +393,6 @@ pbpaste | npm run import-insights   # pipe the clipboard
           License: MIT. Issues, PRs, and rubric improvements welcome on GitHub.
         </p>
       </Section>
-
-      <div className="mt-12 text-xs text-[color:var(--color-mute)]">
-        <Link
-          href="/"
-          className="underline decoration-dotted underline-offset-2 hover:text-[color:var(--color-accent)]"
-        >
-          ← Back to dashboard
-        </Link>
-      </div>
     </main>
   );
 }

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import PageNav from "@/app/components/PageNav";
 import RadarChart from "@/app/components/RadarChart";
 import ClaudeMdHealth from "@/app/components/ClaudeMdHealth";
 import ProgressionTimeline from "@/app/components/ProgressionTimeline";
@@ -60,6 +61,7 @@ export default async function Page() {
 
   return (
     <main className="max-w-[1200px] mx-auto px-8 py-12">
+      <PageNav current="dashboard" />
       <header className="mb-12 border-b border-[color:var(--color-line)] pb-8">
         <div className="flex items-baseline gap-3 text-xs uppercase tracking-[0.15em] text-[color:var(--color-mute)] mb-3">
           <span>Claude Code Self-Assessment</span>

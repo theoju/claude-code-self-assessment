@@ -2,6 +2,7 @@ import Link from "next/link";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { evaluatePredicate } from "@/app/lib/assessment";
+import PageNav from "@/app/components/PageNav";
 
 export const dynamic = "force-static";
 export const metadata = {
@@ -167,14 +168,7 @@ export default function ProbesPage() {
 
   return (
     <main className="max-w-6xl mx-auto px-6 py-12">
-      <div className="text-xs uppercase tracking-[0.15em] text-[color:var(--color-mute)] mb-3">
-        <Link
-          href="/methodology"
-          className="underline decoration-dotted underline-offset-2 hover:text-[color:var(--color-accent)]"
-        >
-          ← Methodology
-        </Link>
-      </div>
+      <PageNav current="probes" />
       <h1 className="text-4xl font-semibold tracking-tight mb-3">Probes</h1>
       <p className="text-sm text-[color:var(--color-mute)] mb-6 leading-relaxed max-w-3xl">
         {probes.length} predicate-backed checks across{" "}
@@ -257,22 +251,6 @@ export default function ProbesPage() {
           </section>
         );
       })}
-
-      <div className="mt-12 text-xs text-[color:var(--color-mute)]">
-        <Link
-          href="/methodology"
-          className="underline decoration-dotted underline-offset-2 hover:text-[color:var(--color-accent)]"
-        >
-          ← Methodology
-        </Link>
-        {" · "}
-        <Link
-          href="/"
-          className="underline decoration-dotted underline-offset-2 hover:text-[color:var(--color-accent)]"
-        >
-          Dashboard
-        </Link>
-      </div>
     </main>
   );
 }

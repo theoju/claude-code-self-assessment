@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import {
   loadAssessment,
@@ -7,6 +6,7 @@ import {
   trendGlyph,
 } from "@/app/lib/assessment";
 import { explainerFor, plusTenPath } from "@/app/lib/dimension-explainer";
+import PageNav from "@/app/components/PageNav";
 
 export const dynamic = "force-dynamic";
 
@@ -35,17 +35,18 @@ export default async function DimensionPage({ params }: Props) {
 
   return (
     <main className="max-w-3xl mx-auto px-8 py-12">
-      <div className="mb-8 text-xs uppercase tracking-[0.15em] text-[color:var(--color-mute)]">
-        <Link href="/" className="hover:text-[color:var(--color-accent)]">
-          ← Back to dashboard
-        </Link>
-      </div>
+      <PageNav
+        current="dimension"
+        context={{ label: dim.title, parentKey: "dashboard" }}
+      />
 
       <header className="mb-10 pb-6 border-b border-[color:var(--color-line)]">
         <div className="text-xs uppercase tracking-[0.15em] text-[color:var(--color-mute)] mb-2">
           Dimension · weight ×{dim.weight}
         </div>
-        <h1 className="text-4xl font-semibold tracking-tight mb-4">{dim.title}</h1>
+        <h1 className="text-4xl font-semibold tracking-tight mb-4">
+          {dim.title}
+        </h1>
         <div className="flex items-baseline gap-4 flex-wrap">
           <span className="mono text-5xl font-semibold text-[color:var(--color-accent)]">
             {dim.score}
@@ -58,7 +59,9 @@ export default async function DimensionPage({ params }: Props) {
               · execution {dim.executionScore} / {dim.target}
             </span>
           ) : null}
-          <span className={`text-sm mono ${tierColor(dim.tier)}`}>{tierLabel(dim.tier)}</span>
+          <span className={`text-sm mono ${tierColor(dim.tier)}`}>
+            {tierLabel(dim.tier)}
+          </span>
           <span className="text-sm text-[color:var(--color-mute)]">
             {trendGlyph(dim.trend)} {dim.trend}
           </span>
@@ -82,9 +85,12 @@ export default async function DimensionPage({ params }: Props) {
           </h2>
           <div className="bg-[color:var(--color-panel)] border border-[color:var(--color-line)] rounded-xl p-5">
             <div className="text-sm mb-3">
-              <span className="mono text-[color:var(--color-accent)]">base {explainer.base}</span>{" "}
+              <span className="mono text-[color:var(--color-accent)]">
+                base {explainer.base}
+              </span>{" "}
               <span className="text-[color:var(--color-mute)]">
-                + contributions below, clamped to 0–100, then normalized to target.
+                + contributions below, clamped to 0–100, then normalized to
+                target.
               </span>
             </div>
             <ul className="space-y-2 text-sm">
@@ -94,8 +100,13 @@ export default async function DimensionPage({ params }: Props) {
                     +{t.max} max
                   </span>
                   <span>
-                    <span className="text-[color:var(--color-text)] font-medium">{t.label}</span>
-                    <span className="text-[color:var(--color-mute)]"> — {t.contributes}</span>
+                    <span className="text-[color:var(--color-text)] font-medium">
+                      {t.label}
+                    </span>
+                    <span className="text-[color:var(--color-mute)]">
+                      {" "}
+                      — {t.contributes}
+                    </span>
                   </span>
                 </li>
               ))}
@@ -132,7 +143,9 @@ export default async function DimensionPage({ params }: Props) {
               ))}
             </ul>
           ) : (
-            <p className="text-sm text-[color:var(--color-mute)]">No outstanding gaps.</p>
+            <p className="text-sm text-[color:var(--color-mute)]">
+              No outstanding gaps.
+            </p>
           )}
         </div>
       </section>
@@ -183,12 +196,17 @@ export default async function DimensionPage({ params }: Props) {
             <div className="text-sm font-medium text-[color:var(--color-text)] mb-1">
               {path.step}
             </div>
-            <div className="text-xs text-[color:var(--color-mute)]">{path.rationale}</div>
+            <div className="text-xs text-[color:var(--color-mute)]">
+              {path.rationale}
+            </div>
           </div>
         ) : (
           <p className="text-sm text-[color:var(--color-mute)]">
             No next-action recorded for this dimension. Add one in{" "}
-            <span className="mono text-[color:var(--color-text)]">app/data/rubric.json</span>.
+            <span className="mono text-[color:var(--color-text)]">
+              app/data/rubric.json
+            </span>
+            .
           </p>
         )}
       </section>
@@ -206,11 +224,17 @@ export default async function DimensionPage({ params }: Props) {
               <span className="font-mono text-[10px] px-1.5 py-0.5 rounded bg-[color:var(--color-panel-2)] border border-[color:var(--color-line)] shrink-0">
                 {a.effort}
               </span>
-              <span className={`flex-1 ${a.satisfied ? "line-through" : ""}`}>{a.action}</span>
+              <span className={`flex-1 ${a.satisfied ? "line-through" : ""}`}>
+                {a.action}
+              </span>
               {a.satisfied ? (
                 <span
                   className="text-[10px] mono text-[color:var(--color-good)] shrink-0"
-                  title={a.satisfiedWhen ? `Satisfied: ${a.satisfiedWhen}` : "Already done"}
+                  title={
+                    a.satisfiedWhen
+                      ? `Satisfied: ${a.satisfiedWhen}`
+                      : "Already done"
+                  }
                 >
                   ✓ done
                 </span>
