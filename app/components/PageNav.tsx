@@ -6,7 +6,8 @@ type PageKey =
   | "probes"
   | "progression"
   | "dimension"
-  | "tip";
+  | "tip"
+  | "docs";
 
 interface NavItem {
   key: PageKey;
