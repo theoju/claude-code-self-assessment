@@ -39,10 +39,24 @@ scripts/
   claude-md-audit.mjs    # report-only CLAUDE.md health audit
 app/
   page.tsx               # main dashboard (Platform Setup tile + Execution tile + radar)
-  components/RadarChart.tsx  # SVG radar; italic + 0.65 opacity + ¹ tspan for unmeasured-ex dims
-  methodology/page.tsx   # full formula breakdown for each scorer
+  components/
+    PageNav.tsx          # shared 4-entry nav (Dashboard · Methodology · Probes · Progression)
+                         # active item gets aria-current="page"; context breadcrumb for detail pages
+    RadarChart.tsx       # SVG radar; italic + 0.65 opacity + ¹ tspan for unmeasured-ex dims
+    InsightsNarrative.tsx # captured /insights narrative, max-h-[24rem] with scrollbar
+    ProgressionTimeline.tsx # milestone timeline rendering
+  methodology/
+    page.tsx             # full formula breakdown for each scorer (12-col editorial grid)
+    probes/page.tsx      # predicate-backed checks; card layout grouped by signal source
+  progression/page.tsx   # milestones from /insights history (moved out of dashboard in v0.9.7)
+  dimensions/[id]/page.tsx # per-dimension drilldown
+  tips/[n]/page.tsx      # Boris tip detail with prev/next nav
+  docs/ship-pattern/page.tsx # renders docs/ship-pattern.md as a dashboard page (PR #58)
+  lib/
+    doc-markdown.tsx     # markdown renderer for in-repo docs (H1, GFM tables, HR, OL) — superset of boris-content.tsx
   data/
     rubric.json          # committed: titles, weights, targets, Boris tip refs
+    probe-catalog.json   # committed: signal → source + path + description (probes page metadata)
     assessment.json      # gitignored: latest snapshot
     assessment-history.json  # gitignored: trend series (90 entries rolling)
     insights-narrative.md    # gitignored: user-imported /insights markdown
@@ -54,7 +68,7 @@ app/
 ## Tests
 
 ```bash
-npx vitest run            # 223 tests, ~3s
+npx vitest run            # 494 tests, ~5s
 ```
 
 If a test fails after a scoring change, update the fixture in
@@ -150,6 +164,19 @@ two-axis Slack/console renderers don't fall back to the unmeasured form.
   `git diff <base>...HEAD` before acting on findings. The fix-the-bug
   reflex is to verify the substantiveness of the report, not the
   substantiveness of the code.
+
+## Issue tracking
+
+- Jira instance: `designitright.atlassian.net`.
+- Project: **Claude-Code-Extensions** (key: `CCE`). All tickets for work
+  in this repo live here; ticket keys follow the `CCE-N` pattern.
+- Reference the key in PR titles and commit messages when the work maps
+  to a ticket (e.g. `feat(rubric): expand /ship next-action — CCE-12`).
+- When future automation in this repo needs Jira integration (status
+  reports, ticket creation, transitions), target this instance and
+  project — don't spin up a second project for sub-areas. The
+  Atlassian MCP server (`atlassian:*` tools) is the canonical
+  integration surface.
 
 ## Privacy
 
