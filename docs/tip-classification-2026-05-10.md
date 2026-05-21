@@ -1,8 +1,8 @@
-# Boris-Tip Classification & 30-day Habit Counts (2026-05-10, v3.3)
+# Boris-Tip Classification & 30-day Habit Counts (2026-05-10, v3.4)
 
 **Source:** `app/data/boris-tip-index.json` + `boris-tips-content.json` (75 tips loaded). Rows 76–87 are backfilled from `docs/boris-tips-reference-2026-05-10.md` — the captured Boris/team threads from Jan 2 → Apr 16, 2026. The repo data file still holds only 75 tips; the 12 backfilled rows are sourced from the reference doc until the data file catches up.
-**Captured:** 2026-05-11T04:10:00Z (evening refresh after v0.9.6: PRs #48 + #49 merged, radar UX shipped via v0.9.5).
-**Lookback:** 14 days on the current snapshot (per `/self-assessment --insights-lookback 14`); 30 days for the v3.2 baseline rows further down. Values reflect post-v0.9.6 scorer behavior.
+**Captured:** 2026-05-11T04:10:00Z (evening refresh after v0.9.6: PRs #48 + #49 merged, radar UX shipped via v0.9.5). **v3.4 update reflects v0.9.7 UI-only release** — no scorer or rubric changes.
+**Lookback:** 14 days on the current snapshot (per `/self-assessment --insights-lookback 14`); 30 days for the v3.2 baseline rows further down. Values reflect post-v0.9.6 scorer behavior; v0.9.7 did not move any scorer.
 
 ## Why this artifact exists
 
@@ -29,6 +29,7 @@ The 60→49 drop traced to (1) lookback narrowing 30→14 days, (2) 14-day behav
 - **PR #51 radar interactivity (merged → v0.9.5)** — Dashboard UX, not a scorer change. Tooltip overlays on vertex hover/tap (Setup + Execution rows with raw points), click-to-navigate to `/dimensions/<id>`, asymmetric viewBox padding to fix label truncation, footnote glyph `¹` → `(1)`. Touch UX: first tap reveals tooltip, second tap navigates. No tip-classification impact.
 - **PR #48 P2.2 + P6.1 (merged → v0.9.6)** — Added `outputStyle` (Boris tip 34) and `hasCodeReviewPlugin` (Boris tip 44) probes. New rubric next-actions: `learning/output-style-tuned` with `satisfiedWhen: outputStyle=Explanatory|Learning` (this user reads `"Concise"`, intentionally unsatisfied — coaching opportunity), and `verification/code-review-plugin` with `satisfiedWhen: hasCodeReviewPlugin=true` (this user reads true — `code-review@claude-plugins-official` enabled). Schema-sampling gate deferred 4 other P2/P6 candidates (sandbox, PostCompact hook, auto-dream, per-worktree /color) to Bucket-C — fields don't exist in real `~/.claude/` data.
 - **PR #49 exec-scorer skill equivalents (merged → v0.9.6)** — Not a new probe. Closed structural blind spot in Planning + Learning exec scorers so `/superpowers:brainstorming`, `/superpowers:writing-plans`, `/superpowers:executing-plans`, `/superpowers:subagent-driven-development`, `/ultraplan`, `/thariq-skills`, `/boris` invocations count as plan-mode / learning-mode equivalents. **Planning Execution 45 → 79 (↗✦ +34)** on the post-merge snapshot — multi-task plan-mode rate jumped 43% → 75% with zero behavior change.
+- **PR #56 + PR #57 (merged → v0.9.7)** — UI-only release. Unified `PageNav` component across all surfaces with `aria-current="page"` for assistive tech; every secondary page (methodology, probes, dimension, tip, progression) adopted the dashboard's 1200px masthead pattern (tagline row + 4xl title + muted subtitle + `border-b`); probes page redesigned from a 7-column table to colored-left-bar cards; methodology adopted a 12-column editorial grid; captured-narrative box capped at `max-h-[24rem]` with cross-browser scrollbar styling; **Progression milestones moved out of the dashboard into a dedicated `/progression` route**; Coverage removed from primary nav. Zero scorer or rubric changes — assessment numbers are identical pre/post-v0.9.7.
 
 Tip-row impacts since v3.2 (rows referenced by classification-doc numbering, not the reference-doc numbering — the two are independent schemes; see footnote at end of doc):
 
