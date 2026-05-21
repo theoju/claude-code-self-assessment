@@ -151,15 +151,15 @@ knobs? Useful, but you can max it out without ever using Claude Code well.
 `~/.claude/projects/*/conversations*.jsonl` within the insights lookback
 window and deriving aggregates per session:
 
-| Signal                                       | Source                                |
-| -------------------------------------------- | ------------------------------------- |
-| Plan-mode entries                            | `EnterPlanMode` events in transcripts |
-| Auto-mode session count                      | Auto-mode markers                     |
-| Bypass-permissions session count             | Bypass-permissions markers (penalty)  |
-| Worktree usage                               | Worktree state events                 |
-| Learning-mode session count and matches      | Learning-mode markers                 |
-| Subagent dispatch and tool counts            | session-meta `tool_counts`            |
-| Hook fires                                   | `~/.claude/usage-data/session-meta/*.json` (seeded by `/insights`) |
+| Signal                                  | Source                                                             |
+| --------------------------------------- | ------------------------------------------------------------------ |
+| Plan-mode entries                       | `EnterPlanMode` events in transcripts                              |
+| Auto-mode session count                 | Auto-mode markers                                                  |
+| Bypass-permissions session count        | Bypass-permissions markers (penalty)                               |
+| Worktree usage                          | Worktree state events                                              |
+| Learning-mode session count and matches | Learning-mode markers                                              |
+| Subagent dispatch and tool counts       | session-meta `tool_counts`                                         |
+| Hook fires                              | `~/.claude/usage-data/session-meta/*.json` (seeded by `/insights`) |
 
 This scan is expensive — full transcript history each run. Off by default;
 turn it on once you have a baseline.
@@ -243,13 +243,13 @@ regressions.
 
 ## Troubleshooting
 
-| Symptom                                                          | Likely cause                                                                                     | Fix                                                                                                                 |
-| ---------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------- |
-| `Slack post skipped: SLACK_WEBHOOK_URL not set`                  | `.env.local` missing the webhook                                                                 | Add `SLACK_WEBHOOK_URL=…` to `.env.local`.                                                                          |
-| All dimensions show `→ flat` even after a real change            | History didn't pick up the change yet, or the change wasn't substantive enough to move the score | Re-run after the change settles; check the dimension's `evidence`/`gaps` lists.                                     |
-| `automation` score didn't go up after adding hooks               | `~/.claude/usage-data/session-meta/` not seeded yet                                              | Run `/insights` once in Claude Code, then re-run `/self-assessment`. |
-| Dashboard shows stale data                                       | The page is statically rendered against the last `assessment.json`                               | Re-run `npm run assess` and reload the page.                                                                        |
-| `--include-transcripts` is slow on a large `~/.claude/projects/` | Full transcript history scan                                                                     | Lower `--insights-lookback` to narrow the window, or accept the wait.                                               |
+| Symptom                                                          | Likely cause                                                                                     | Fix                                                                             |
+| ---------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------- |
+| `Slack post skipped: SLACK_WEBHOOK_URL not set`                  | `.env.local` missing the webhook                                                                 | Add `SLACK_WEBHOOK_URL=…` to `.env.local`.                                      |
+| All dimensions show `→ flat` even after a real change            | History didn't pick up the change yet, or the change wasn't substantive enough to move the score | Re-run after the change settles; check the dimension's `evidence`/`gaps` lists. |
+| `automation` score didn't go up after adding hooks               | `~/.claude/usage-data/session-meta/` not seeded yet                                              | Run `/insights` once in Claude Code, then re-run `/self-assessment`.            |
+| Dashboard shows stale data                                       | The page is statically rendered against the last `assessment.json`                               | Re-run `npm run assess` and reload the page.                                    |
+| `--include-transcripts` is slow on a large `~/.claude/projects/` | Full transcript history scan                                                                     | Lower `--insights-lookback` to narrow the window, or accept the wait.           |
 
 For more failure modes, see
 [`.claude/skills/self-assessment/gotchas.md`](../.claude/skills/self-assessment/gotchas.md).
@@ -260,6 +260,18 @@ For more failure modes, see
 
 A scheduled run (macOS `launchd` or cloud routine) can fire `/self-assessment`
 each morning and post the result to Slack. See `ROUTINE.md` for setup.
+
+---
+
+## Recommended pattern: `/ship`
+
+The rubric's highest-weighted automation next-action is authoring a
+personal `/ship` slash command. It lives in `~/.claude/commands/` (not
+this repo) and chains test → verify → simplify → review → commit →
+push+PR → Jira. See [`docs/ship-pattern.md`](./ship-pattern.md) for a
+short summary and
+[`docs/superpowers/specs/2026-05-09-ship-slash-command-design.md`](./superpowers/specs/2026-05-09-ship-slash-command-design.md)
+for the full spec.
 
 ---
 
