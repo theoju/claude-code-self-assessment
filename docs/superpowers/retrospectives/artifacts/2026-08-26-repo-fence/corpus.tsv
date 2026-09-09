@@ -1,0 +1,17 @@
+BLOCK	git -C /tmp/fakerepo commit -m x	global option shifts the subcommand
+BLOCK	git --git-dir=/tmp/fakerepo/.git commit -m x	global option shifts the subcommand
+BLOCK	git -c user.name=x -C /tmp/fakerepo commit -m y	two global options
+BLOCK	python3 -c "open('/tmp/fakerepo/f','w')"	write through an interpreter
+BLOCK	perl -e 'unlink "/tmp/fakerepo/f"'	write through an interpreter
+BLOCK	/tmp/fakerepo/scripts/build.sh	a script that writes, named by path only
+BLOCK	cd /tmp/fakerepo && git commit -m x	cwd-changing form
+BLOCK	echo x > /tmp/fakerepo/f.txt	plain redirect
+BLOCK	gh -R theoju/engineering-docs-agent pr merge 1	remote mutation, repo named by slug
+ALLOW	printf '%s -> %s' a b   # /tmp/fakerepo	arrow inside a format string
+ALLOW	echo 'before -> after /tmp/fakerepo'	arrow inside a quoted string
+ALLOW	cp /tmp/fakerepo/a.py /tmp/out.py	copy OUT of the repo
+ALLOW	cat /tmp/fakerepo/a.py	plain read
+ALLOW	git -C /tmp/fakerepo log --oneline	read-only git
+ALLOW	grep -rn foo /tmp/fakerepo	plain read
+ALLOW	rm /tmp/other/f.txt   # unrelated to /tmp/fakerepo	mutation elsewhere, repo only mentioned
+ALLOW	echo "commit the fix" > /tmp/notes.txt	writes elsewhere, verb-like words in a string

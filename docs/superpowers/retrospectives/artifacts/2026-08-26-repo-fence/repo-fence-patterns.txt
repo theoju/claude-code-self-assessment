@@ -1,0 +1,41 @@
+repo-fence.sh — the two classifier regexes, recovered 2026-09-09
+================================================================
+
+The hook itself (117 lines) and its 25-test harness were deleted on 2026-08-26
+and the scratchpad copies did not survive. These two POSIX ERE patterns are all
+that could be recovered, and they carry different confidence levels. Read the
+confidence marker before using either.
+
+The hook's decision was:
+
+    BLOCK  iff  (VERB matches OR REDIR matches) AND the command text contains
+                the fenced repo's path
+
+That conjunction is the whole classifier. `analyze.py` reimplements it at its
+`verdict = "BLOCK" if ((verb or redir) and names) else "ALLOW"` line.
+
+
+REDIR — COMPLETE, verbatim
+--------------------------
+(^|[^0-9<>&])>>?[[:space:]]*[^|&[:space:]]
+
+Matches `>` or `>>` not preceded by a digit or another redirection character,
+followed by optional whitespace and a non-pipe target. Intent: catch shell
+output redirection. Actual effect: also fires on `->` inside any quoted string
+or comment, which is false-positive rows 10 and 11 of corpus.tsv.
+
+
+VERB — PARTIAL, DO NOT TREAT AS THE SHIPPED PATTERN
+---------------------------------------------------
+(^|[;&|(]|[[:space:]])(git[[:space:]]+(commit|push|merge|...)|gh[[:space:]]+(pr[[:space:]]+(create|merge|...))|sed[[:space:]]+-i|tee|mv|cp|rm|mkdir|...)([[:space:]]|$)
+
+The three `...` above are ELISIONS in the surviving transcription, not literal
+regex content. The full alternation lists for the `git` subcommands, the `gh`
+subcommands, and the trailing bare-command group are lost.
+
+Consequence: re-running `analyze.py` against a hook rebuilt from this pattern
+reproduces the FALSE POSITIVES faithfully (those come from REDIR and from the
+`cp`/`rm` alternatives, all of which survive) but UNDERSTATES the false
+negatives, because a shorter alternation list matches fewer commands. The
+published result — 11 of 17 wrong, 7 false negative, 4 false positive — comes
+from the run against the real hook on 2026-08-26 and cannot be regenerated.
