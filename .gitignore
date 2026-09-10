@@ -50,8 +50,13 @@ app/data/coverage-history.json
 
 # User-specific Claude Code settings (the command file in .claude/commands stays committed)
 .claude/settings.local.json
+.claude/*.bak
 .claude/scheduled_tasks.lock
 .claude/worktrees/
+
+# Python bytecode — docs/superpowers/retrospectives/artifacts/ carries .py
+# primary sources that get compiled when someone syntax-checks them.
+__pycache__/
 
 # TypeScript incremental build artifact
 tsconfig.tsbuildinfo
