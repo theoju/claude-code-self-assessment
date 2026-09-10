@@ -200,7 +200,7 @@ two-axis Slack/console renderers don't fall back to the unmeasured form.
   `INTERACTIVE_ENTRYPOINTS = {cli, claude-desktop}` — and every other
   `entrypoint` value resolves to `observer` or `sdk_orchestrated`. **Never
   invert this into "enumerate the SDK entrypoints and let the rest fall
-  through to `unknown`."** `unknown` is *admitted* by the
+  through to `unknown`."** `unknown` is _admitted_ by the
   `interactive_or_unknown` universe, so an unrecognized entrypoint that
   degrades to `unknown` silently enters the posture denominator. That is
   exactly what shipped: `sdk-py` was unhandled, 226 automated agent sessions
@@ -592,6 +592,66 @@ model-effort, parallel, permissions, planning`) — **`scheduled`, `remote`,
   disagreeing is expected, not corruption. Treat graph edge counts as
   lossy-by-construction unless the corpus fits in a single chunk.
 - **Plan-step verification must use the actual consumer tool, not just filesystem checks.** When a plan step produces a published artifact — a markdown link inside a built docs site, a TypeScript import, a JSON Schema reference, an OpenAPI route — the verification step must invoke the tool that consumes the artifact (`mkdocs build --strict`, `npx tsc --noEmit`, `ajv validate`, etc.), not `test -f`. A filesystem path can resolve correctly on disk while violating the consumer's validity contract (e.g., mkdocs strict-mode rejects link targets outside `docs_dir`, regardless of whether `test -f` passes). Reference incident: ADIS PR #411 broke docker-push because Task δ.2's `test -f` verified the runbook existed on disk; the published link to it from `docs/site-src/ops/runbooks.md` failed `mkdocs build --strict`. Closed by PR #416. The cost of running the real consumer tool in a plan step is a one-off; the cost of a half-verified plan landing is a deploy outage.
+- **Cross-repo write fencing is a native `permissions.deny` rule, not a hook —
+  and the absolute-path form needs a doubled slash.** Sessions rooted in one
+  repo can and did mutate a sibling: between 2026-08-07 and 2026-08-22 three
+  session roots wrote into `engineering-docs-agent`, 12 files were written from
+  more than one root, and on 2026-08-16 two sessions edited the same files
+  within the same UTC second. The fix is a deny rule naming the sibling repo by
+  absolute path, placed in the _other_ repos' settings:
+
+  ```json
+  "deny": [
+    "Edit(//<absolute-path-to-sibling-repo>/**)",
+    "Write(//<absolute-path-to-sibling-repo>/**)",
+    "NotebookEdit(//<absolute-path-to-sibling-repo>/**)"
+  ]
+  ```
+
+  Currently deployed with `<absolute-path-to-sibling-repo>` =
+  `/Users/theo/Projects/engineering-docs-agent`, in this repo's
+  `.claude/settings.local.json` and in `advanced-data-importer`'s **tracked**
+  `.claude/settings.json`.
+
+  Five properties are empirically verified (2026-08-26, re-confirmed
+  2026-09-10): a _project_ deny reaches outside the project tree; `deny` beats
+  a conflicting `allow`; settings are re-read mid-session with no restart;
+  `Read` is a separate permission subject, so denying the write tools leaves
+  reads working without an extra `allow`; and the denial is **path-level, not
+  tool-level** — an `Edit(...)` rule alone was observed blocking `Write` on the
+  same path, with the message `File is in a directory that is denied by your
+permission settings`. List all three write tools anyway: it costs nothing and
+  removes the dependency on that last behaviour holding. **The doubled slash is
+  load-bearing** — a single `/` inside `Tool(...)` is read as a gitignore-style
+  pattern rooted at the settings file's own directory, so `Edit(/…)` scopes to
+  `<project>/.claude/…` and fences nothing, while still parsing as valid JSON
+  and passing lint. **Verify by attempting a real write** to the fenced path and
+  confirming the denial, never by reading the settings file back — that is the
+  only check separating a working fence from an inert one. Put the rule in a
+  repo's **tracked** `.claude/settings.json` when that repo has worktrees:
+  `settings.local.json` fences exactly one project root, whereas a tracked file
+  materialises in every worktree checkout (the sibling repo audited here had 17
+  roots; the local-settings form covered 1). Accepted gap: `Bash` deny rules
+  match command strings rather than resolved paths, so a shell redirect into
+  the fenced repo is not covered. Postmortem:
+  `docs/superpowers/retrospectives/2026-08-26-repo-fence-postmortem.md`.
+
+- **Don't rebuild the `repo-fence` text-classifier hook.** A `PreToolUse` hook
+  that decides "does this command mutate repo X?" by pattern-matching the
+  command string was built, installed with a green 25-test harness, and then
+  measured at **11 of 17 commands wrong — 7 false negative, 4 false positive**
+  against a labelled corpus. Both error directions come from a single cause: it
+  classifies an unbounded language (every shell spelling that can write a file)
+  by surface text, so tightening a pattern to kill a false positive widens the
+  false-negative set and vice versa. `git -C <path> commit`,
+  `python3 -c "open(…,'w')"`, and a script named by path only all slipped
+  through, while `->` inside a quoted string and a `cp` _out of_ the repo were
+  blocked — and it blocked the very command that installed its replacement. The
+  green test suite measured only the spellings its author had already imagined.
+  Removed 2026-08-26; evidence preserved under
+  `docs/superpowers/retrospectives/artifacts/2026-08-26-repo-fence/`. If a
+  control must answer "does this mutate X?", give it a resolved path, not
+  command text.
 
 ## Issue tracking
 
