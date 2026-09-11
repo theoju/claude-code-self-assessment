@@ -1,8 +1,8 @@
 {
   "version": "1",
   "last_successful_run": {
-    "head_sha": "46dd59776bc7e5e5b91bff82a84fb2c4d1b494ec",
-    "completed_at": "2026-09-10T12:11:59.387982+00:00"
+    "head_sha": "9ca4413fab0478168908db5e16c3f31d94a547b1",
+    "completed_at": "2026-09-11T12:10:01.369115+00:00"
   },
   "dismissed_gap_flags": {},
   "pr_summaries": {
@@ -155,6 +155,27 @@
         "notes": null,
         "error": null,
         "partial": false
+      }
+    },
+    "theoju/claude-code-self-assessment#227": {
+      "merge_sha": "9ca4413fab0478168908db5e16c3f31d94a547b1",
+      "fingerprint": "e6d7c2a0894b9d2f",
+      "last_seen_at": "2026-09-11T12:12:04.657041+00:00",
+      "summary": {
+        "pr_number": 227,
+        "what_changed": "Housekeeping follow-up to PR #226: added `.gitignore` rules to cover `.claude/*.bak` backup files and `__pycache__/` directories, and tracked a previously-untracked handoff artifact `docs/superpowers/cce-145-handoff-prompt.md`. No behavior change.",
+        "why": "The repo-fence work in #226 left stray untracked artifacts: editing tools produce `.bak` files beside the already-ignored `.claude/settings.local.json` (risking accidental commit of local permissions), syntax-checking Python retrospective artifacts left `__pycache__` bytecode with no ignore rule, and a 105-line handoff doc had been sitting untracked, cluttering `git status`.",
+        "breaking": false,
+        "doc_targets": [
+          {
+            "lens": "core",
+            "action": "create",
+            "page_hint": "2026-09-11-post-fence-housekeeping.md",
+            "doc_kind": "decision",
+            "notes": "Minor housekeeping digest; low-priority, optional to publish. Documents the .gitignore additions and the newly-tracked handoff doc as a follow-up to the repo-fence retrospective."
+          }
+        ],
+        "notes": "Purely internal chore with no architecture or behavior impact; a digest-style note is sufficient rather than a dedicated architecture page."
       }
     }
   }
