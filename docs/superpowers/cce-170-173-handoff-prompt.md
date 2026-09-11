@@ -125,7 +125,12 @@ oversight; there was nothing to regression-test.
 ## Rules for all four
 
 - One PR per ticket. Reference the key in the title, per this repo's
-  convention.
+  convention. **Open the PRs; do not merge any of them without asking me.**
+- Tests you will touch live in `tests/orchestrator/`:
+  `test_citation_repair.py`, `test_citation_repair_wiring.py`,
+  `test_verify_citations.py`. This repo's CLAUDE.md has the runner command and
+  the `tests/scripts/` import-mode trap (CCE-122) — read it before adding a
+  test module.
 - TDD. Each fix needs a test that fails before and passes after, and that can
   actually observe the thing its name claims — see the CCE-173 warning.
 - Do **not** build a `PreToolUse` hook that classifies command text. One was
