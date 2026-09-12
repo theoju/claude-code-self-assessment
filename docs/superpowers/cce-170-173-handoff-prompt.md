@@ -126,6 +126,13 @@ oversight; there was nothing to regression-test.
 
 - One PR per ticket. Reference the key in the title, per this repo's
   convention. **Open the PRs; do not merge any of them without asking me.**
+- Work on branches in the main checkout; do **not** create a worktree. Four
+  sequential tickets, three of them sharing one file — a worktree buys no
+  isolation here and reintroduces the `gh pr merge --delete-branch` trap
+  (it fails mid-cleanup when `main` is checked out in the parent, leaving the
+  remote branch alive and local main un-fast-forwarded). A worktree also sits
+  outside the absolute-path `permissions.deny` glob that fences this repo from
+  sibling sessions.
 - Tests you will touch live in `tests/orchestrator/`:
   `test_citation_repair.py`, `test_citation_repair_wiring.py`,
   `test_verify_citations.py`. This repo's CLAUDE.md has the runner command and
