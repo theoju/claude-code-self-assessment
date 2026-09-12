@@ -12,6 +12,9 @@ when it detects merged work worth surfacing in a user-facing
 changelog. Most entries are written by the agent and reviewed via
 the `docs-agent/YYYY-MM-DD` PR.
 
+## 2026-09-12T11:34:57.975116+00:00
+- PR #230: Added a paste-ready handoff prompt (`docs/superpowers/cce-170-173-handoff-prompt.md`) for a fresh session in the sibling `engineering-docs-agent` repo to work through Jira tickets CCE-170/171/172/173. It sequences the fixes with rationale, flags one finding as possibly stale pending re-verification, calls out two known process traps to avoid repeating, and clarifies that the target repo's merge-on-green-suite policy still requires asking before merging.
+
 ## 2026-09-11T12:10:01.369115+00:00
 - PR #227: Housekeeping follow-up to PR #226: added `.gitignore` rules to cover `.claude/*.bak` backup files and `__pycache__/` directories, and tracked a previously-untracked handoff artifact `docs/superpowers/cce-145-handoff-prompt.md`. No behavior change.
 
