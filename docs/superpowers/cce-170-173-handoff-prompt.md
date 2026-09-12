@@ -44,6 +44,14 @@ Watch out — the file _does_ handle OSError at `:377`, `:501`, `:549`, `:596`
 and `:621`, which makes the gap easy to miss. `:501` guards only
 `path.read_text()`; the citation loop starts after it.
 
+**Two call sites, not one — the ticket says one.** The symbol-citation loop has
+the identical defect: `_resolve_target` is called at `:544`, _outside_ the
+`try` that opens at `:547`, and it raises `OSError(errno=63)` on the same
+over-long token (measured — see the probe cited in §2). Guard both loops. A fix
+scoped to `:511-527` alone leaves an equivalent hole 30 lines below it, and the
+`:549` handler in the "already handled" list above is precisely the one that
+_looks_ like it covers the symbol loop but only wraps `target.read_text()`.
+
 ## 2. CCE-171 findings 2 and 3
 
 Same file, same session, after finding 1 lands.
@@ -63,7 +71,7 @@ session started.
 `_resolves` (`:433-469`) does no normalisation. All four arms are plain string
 joins plus `.exists()`, and pathlib's `/` operator never collapses `..` — it is
 string concatenation, so `.exists()` hands the un-collapsed path to `stat(2)`
-and the *kernel* walks it out of the repo. Measured end-to-end against the repo
+and the _kernel_ walks it out of the repo. Measured end-to-end against the repo
 venv: a page citing `docs/../../claude-extensions/README.md` yields
 `check_path(...) == (True, "ok")`. The blocking rule passes a citation that
 points into a sibling repo.
@@ -76,7 +84,7 @@ Three corrections to the shape as the ticket states it:
   which `docs/` supplies.
 - **`/etc/passwd`-style examples are unreachable, and for the wrong reason.**
   `_REPO_PATH_RE` requires a `.ext` on the final component, so
-  `docs/../../../../etc/passwd` is rejected by the *regex* — not by any
+  `docs/../../../../etc/passwd` is rejected by the _regex_ — not by any
   containment logic. Do not frame the ticket around that example; it reads as
   unreachable and invites dismissal of a real defect.
 - **The failure mode is fresh-checkout divergence, not security.** A page citing
@@ -87,12 +95,26 @@ Three corrections to the shape as the ticket states it:
 The fix belongs in `_relativize` (`:245-253`), not `_resolves`. The asymmetry is
 the bug: absolute tokens already get both normalisation and containment
 (`.resolve().relative_to(repo_root)` returns `None` when outside — measured,
-`/etc/passwd` → `None`); relative tokens get neither. Normalise there and return
-`None` on escape — one change covers every call site and reuses the function's
-existing "None means not a repo citation" contract. Note that the `rel in files`
-arm is inherently safe (`git ls-files` cannot emit a `..` component); only the
-on-disk `.exists()` fallback is the hole, and that fallback exists to cover
-same-run siblings not yet staged.
+an absolute path into a sibling repo yields `None`); relative tokens get
+neither. Normalise there and return `None` on escape — one change covers every
+call site and reuses the function's existing "None means not a repo citation"
+contract. Note that the `rel in files` arm is safe by construction
+(`git ls-files` cannot emit a `..` component — reasoned, not measured); the
+hole is the on-disk `.exists()` fallback, which exists to cover same-run
+siblings not yet staged. All **three** `.exists()` arms are unnormalised
+(`repo_root/rel`, `docs_dir/rel`, `roots/rel`), not just the first — the
+`_relativize` fix covers all three, which is part of why it is the right site.
+
+Do not cite `/etc/passwd` → `None` as the containment evidence, even though it
+is true of `_relativize` in isolation: that token never reaches the function,
+because `_REPO_PATH_RE` rejects it for lacking an extension. Using it makes the
+finding look like an unreachable security theory — the trap this section warns
+about two paragraphs up.
+
+Every measurement in this section is reproducible with
+`docs/superpowers/artifacts/2026-09-12-cce171-citation-probe.py` in
+`claude-code-self-assessment`; run it from this repo's checkout root with the
+repo venv and `PYTHONDONTWRITEBYTECODE=1`.
 
 ## 3. CCE-173 — the run cap recovers state by string-matching its own output
 
