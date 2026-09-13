@@ -19,6 +19,14 @@ three session roots mutated this repo concurrently between 2026-08-07 and
 not. Background:
 `claude-code-self-assessment/docs/superpowers/retrospectives/2026-08-26-repo-fence-postmortem.md`.
 
+**Where to read those paths.** Every `claude-code-self-assessment/...` path in
+this prompt lives in the repo the prompt was written from —
+`theoju/claude-code-self-assessment`, checked out locally at
+`~/Projects/claude-extensions` under a different directory name. Read them
+there: `~/Projects/claude-code-self-assessment` does not exist on this machine,
+so following these paths literally returns ENOENT. That same repo is the
+CCE-170 host named in §4.
+
 **The order below is load-bearing. Do not reorder it.**
 
 ## 1. CCE-171 finding 1 — unguarded OSError in the blocking citation loop
