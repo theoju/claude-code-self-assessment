@@ -290,6 +290,25 @@ two-axis Slack/console renderers don't fall back to the unmeasured form.
   written file. The 2026-05-31 cycle landed this contract; surfacing a
   satisfied action as a TODO again is a regression — fix the data layer,
   not the report.
+- **Before fixing accidental persistence, check what reads it.** A file
+  committed by mistake is still a record, and something may depend on it.
+  CCE-170 (PR #265 in `engineering-docs-agent`) correctly stopped hosts
+  committing `.engineering-docs-agent/current_run.json` — and that file's git
+  history was the only durable archive of CCE-141 diagnostic firings, the data
+  CCE-172 is gated on. The fix was right; the consequence was invisible at
+  review time because the dependency was on a side effect, not an interface.
+  Grep for readers of the artifact — including analyses and git-history
+  mining — before removing it, and if something depends on it, replace the
+  channel in the same PR. Filed as CCE-174; design at
+  `docs/superpowers/specs/2026-09-13-cce172-shortening-observations-design.md`.
+- **Detection shipped in place of a withdrawn fix needs an exit criterion in
+  the same PR.** State the threshold that opens the follow-up and the date at
+  which zero findings means delete the detector. CCE-141 withdrew its repair
+  against "a measured production value of zero firings" and shipped a
+  diagnostic with no such criterion; at 3 weeks and 4 hosts it had still
+  recorded nothing, and the question "do we have data yet?" had to be answered
+  from scratch (2026-09-13). A detector carried indefinitely for a measured
+  zero is the withdrawn fix's mistake in a cheaper disguise.
 
 ## Conventions
 
@@ -652,6 +671,16 @@ permission settings`. List all three write tools anyway: it costs nothing and
   `docs/superpowers/retrospectives/artifacts/2026-08-26-repo-fence/`. If a
   control must answer "does this mutate X?", give it a resolved path, not
   command text.
+
+- **A zero from a key that does not exist looks exactly like a real zero.**
+  When measuring an absence, print the object's actual keys before trusting a
+  count, and prove the recording channel works by finding some _other_ value it
+  captured. On 2026-09-13 a probe for `pages_authored` returned "0 pages
+  authored" from 19 runs — the field has never existed in that schema. The
+  finding-count zero it sat beside was real, but only became credible once
+  `prose_contamination_rescued` was found in the same snapshots, proving the
+  channel records what runs write. Report a measured absence only with that
+  positive control alongside it.
 
 ## Issue tracking
 
