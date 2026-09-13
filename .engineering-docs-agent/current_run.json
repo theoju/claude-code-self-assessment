@@ -1,9 +1,18 @@
 {
   "current_run": {
-    "started_at": "2026-09-12T11:34:57.975116+00:00",
-    "head_sha": "432b271e250287b49e1b01f2e7f44742c863a370",
-    "partial": false,
-    "partial_reasons": [],
+    "started_at": "2026-09-13T12:41:31.925863+00:00",
+    "head_sha": "134bb3837e9051f48d8830d3203c9961800d8d11",
+    "partial": true,
+    "partial_reasons": [
+      "lint_block: /home/runner/work/claude-code-self-assessment/claude-code-self-assessment/docs/site-src/2026-09-13-cce171-citation-traversal-finding.md internal_links: broken internal link(s): docs/superpowers/retrospectives/2026-08-26-repo-fence-postmortem.md",
+      "lint_block: /home/runner/work/claude-code-self-assessment/claude-code-self-assessment/docs/site-src/2026-09-13-cce171-citation-traversal-finding.md citation_exists: cites nonexistent path 'a/../scripts/lint/citation_exists.py'",
+      "lint_block: /home/runner/work/claude-code-self-assessment/claude-code-self-assessment/docs/site-src/2026-09-13-cce101-eligibility-followup.md citation_exists: cites nonexistent path 'engineering-docs-agent/CLAUDE.md'; cites nonexistent path 'scripts/orchestrator_runner.py'",
+      "lint_block: /home/runner/work/claude-code-self-assessment/claude-code-self-assessment/docs/site-src/2026-09-13-cce172-durable-citation-counter-spec.md citation_exists: cites nonexistent path 'engineering-docs-agent/CLAUDE.md'",
+      "schema_invalid: fact-checker: 'ok' is a required property",
+      "fact_checker_unavailable: docs/site-src/2026-09-13-handoff-prompt-checkout-path-clarification.md",
+      "held_back_no_advance_no_cursor: degraded run had no admitted PR with a usable merge_sha; baseline unchanged"
+    ],
+    "citation_findings_emitted": 0,
     "fact_check_warnings": [],
     "source_drift": [],
     "citation_drift": {
