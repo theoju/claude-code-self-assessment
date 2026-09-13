@@ -132,8 +132,9 @@ uncertainties blocked it; all three were tested empirically and resolved YES:
 | Test | Question                                              | Result                                                                                         |
 | ---- | ----------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
 | T1   | Does a _project_ deny reach outside the project tree? | Yes — an `Edit` on `/private/tmp/…` was denied from a `claude-extensions` session              |
-| T2   | Does `deny` beat an existing `allow`?                 | Yes — `Bash(cat *)` was allowed, `cat` still blocked. Settings re-read mid-session, no restart |
+| T2   | Does `deny` beat an existing `allow`?                 | Yes — `Bash(cat *)` was allowed, `cat` still blocked. `permissions.*` is re-read mid-session, no restart — but this does NOT generalise; see T4 |
 | T3   | Does an `Edit(...)` deny also stop `Write`?           | Yes — same denial                                                                              |
+| T4   | Does T2's "no restart" hold for `sandbox.filesystem.denyWrite`? | **No** — added 2026-09-12. The sandbox profile is compiled at process launch and never re-read; removing the entry changed nothing until the terminal was fully quit |
 
 **Why this works where the hook could not:** deny rules are evaluated against
 the tool call's **resolved `file_path`**, after the harness has normalised it.
@@ -223,6 +224,17 @@ executed. The analysis lived only in an ephemeral scratchpad for fourteen days.
    worked zero times.
 6. **Capture throwaway analysis the day you produce it.** Scratchpads do not
    survive two weeks.
+7. **Two config layers, opposite reload semantics.** `permissions.*` is re-read
+   mid-session (T2). `sandbox.filesystem.*` is compiled into a macOS seatbelt
+   profile at process launch, inherited by every child, and can only be
+   tightened — never loosened — for the life of that process tree. Editing it
+   does nothing until the terminal application is fully quit; restarting Claude
+   Code from inside the same sandboxed tree re-inherits the old profile. Two
+   sessions were spent on 2026-09-12 re-removing a `denyWrite` entry that was
+   already gone, because T2 was read as covering both layers. The tell is
+   `EPERM` rather than `EACCES`, plus unrelated commands (`ps`, `kill`) failing
+   with "operation not permitted": a settings rule blocks one tool, a seatbelt
+   profile blocks syscalls.
 
 ## Open at time of writing
 
