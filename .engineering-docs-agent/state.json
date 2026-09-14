@@ -2,7 +2,7 @@
   "version": "1",
   "last_successful_run": {
     "head_sha": "432b271e250287b49e1b01f2e7f44742c863a370",
-    "completed_at": "2026-09-12T11:34:57.975116+00:00"
+    "completed_at": "2026-09-14T13:57:02.446094+00:00"
   },
   "dismissed_gap_flags": {},
   "pr_summaries": {
@@ -190,6 +190,109 @@
         "doc_targets": [],
         "notes": "This PR adds an internal, unpublished handoff/planning artifact under docs/superpowers/ (explicitly excluded from the mkdocs site per docs_dir scoping to docs/site-src/), not a user-visible product or architecture change. No published-docs update is warranted; treating it as the \u00a74 'no documentation-relevant change' exception."
       }
+    },
+    "theoju/claude-code-self-assessment#232": {
+      "merge_sha": "8b143a84268c3639936967532b0243af1570cce7",
+      "fingerprint": "e6d7c2a0894b9d2f",
+      "last_seen_at": "2026-09-14T14:05:36.468083+00:00",
+      "summary": {
+        "pr_number": 232,
+        "what_changed": "Updates the CCE-170/171/172/173 handoff prompt document to pre-verify finding 3 from CCE-171, which had previously been left as 'verify before fixing.' The update reports that `_resolves` was read in full (not just its docstring) and its behavior measured against the engineering-docs-agent venv: it performs no path normalization, so a citation like `docs/../../claude-extensions/README.md` passes the blocking lint check as valid, even though it points into a sibling repo. The fix location is moved from `_resolves` to `_relativize` (lines 245-253), since relative path tokens skip the normalization and containment checks that absolute tokens already get. A verification probe script is added as a supporting artifact. No code in this repo changes \u2014 the actual implementation lives in the engineering-docs-agent repo, which this session cannot write to due to a permissions fence.",
+        "why": "PR #230 shipped the handoff prompt with finding 3 marked as unverified speculation. Fully reading `_resolves`'s implementation (not just its docstring) revealed the finding does not evaporate as previously allowed: the blocking citation-lint rule actually passes a citation that escapes into a sibling repo via relative-path traversal, confirming a real cross-repo containment bug that needs fixing at `_relativize`.",
+        "breaking": false,
+        "doc_targets": [
+          {
+            "lens": "core",
+            "action": "edit",
+            "page_hint": "2026-09-12-cce171-citation-probe-handoff.md",
+            "doc_kind": "decision",
+            "notes": "No pre-existing page matches this handoff-prompt content in the core lens's available sections (only 'images' exists); treating this as a create rather than an edit of an existing tracked page. Content documents a verified defect finding + probe evidence for a downstream repo fix, appropriate as a decision/investigation record rather than evergreen architecture."
+          }
+        ],
+        "notes": "This PR is doc-only and touches no application code in this repo; the artifact `docs/superpowers/artifacts/2026-09-12-cce171-citation-probe.py` and the handoff prompt markdown are internal planning/handoff documents (docs/superpowers/), not published docs-site content, so no direct 1:1 mapping to an existing docs/site-src page exists. Recommending a single decision-record entry to capture the verified finding for traceability; the underlying code fix, if any, belongs to the engineering-docs-agent repo and is out of scope here."
+      }
+    },
+    "theoju/claude-code-self-assessment#233": {
+      "merge_sha": "13fa5b9c7dd4b8dd5d367b7f7dd57e2d803d614c",
+      "fingerprint": "e6d7c2a0894b9d2f",
+      "last_seen_at": "2026-09-14T14:05:36.468083+00:00",
+      "summary": {
+        "pr_number": 233,
+        "what_changed": "Added a single clarifying paragraph to docs/superpowers/cce-170-173-handoff-prompt.md stating that the three claude-code-self-assessment/... evidence paths cited in the handoff prompt are checked out locally at ~/Projects/claude-extensions, since the repo's local directory name differs from its GitHub repo name. The change is purely additive (8 insertions, 0 deletions, one file) \u2014 the existing claude-code-self-assessment/... citations were deliberately left unrenamed to avoid splitting the document across two names for the same repo.",
+        "why": "The three cited paths in the CCE-170/173 cross-repo handoff prompt were unfollowable as written: the repo is checked out at ~/Projects/claude-extensions, not ~/Projects/claude-code-self-assessment (which doesn't exist), so an agent picking up the handoff couldn't locate the cited evidence. A rewrite of the citations to claude-extensions/... was tried and reverted because the repo name is the durable identifier.",
+        "breaking": false,
+        "doc_targets": [],
+        "notes": "docs/superpowers/cce-170-173-handoff-prompt.md is an internal cross-repo agent-handoff crib sheet (per this repo's CLAUDE.md, docs/superpowers/ holds specs/plans/retrospectives, distinct from the published mkdocs site under docs/site-src/). The change corrects a path-checkout reference for future handoff agents and does not describe any product architecture, operational, or decision change, so no lens doc_target is warranted."
+      }
+    },
+    "theoju/claude-code-self-assessment#234": {
+      "merge_sha": "175162e1e085e8b326ed0579ec2bcbde0a22ed73",
+      "fingerprint": "e6d7c2a0894b9d2f",
+      "last_seen_at": "2026-09-14T14:05:36.468083+00:00",
+      "summary": {
+        "pr_number": 234,
+        "what_changed": "Corrected the repo-fence postmortem's empirical-tests table: the finding that a permission `deny` rule beats an existing `allow` and is re-read mid-session without a restart (T2) is now scoped specifically to `permissions.*` rules, with a pointer to a newly added T4 entry documenting that `sandbox.filesystem.denyWrite` behaves differently \u2014 it is compiled into a macOS seatbelt profile at process launch and requires a restart to pick up changes. A new reusable lesson (#7) was also added, including the diagnostic tell for distinguishing the two layers (`EPERM` vs `EACCES`).",
+        "why": "The postmortem previously implied the 'no restart needed, settings re-read mid-session' behavior applied to both `permissions.*` and `sandbox.filesystem.*` layers. That conflation cost two sessions on 2026-09-12 re-removing a sandbox deny entry that was already gone, because the sandbox layer actually requires a process restart to reload. The fix disambiguates the two mechanisms so future readers don't repeat the mistake.",
+        "breaking": false,
+        "doc_targets": [
+          {
+            "lens": "core",
+            "action": "edit",
+            "page_hint": "retrospectives/2026-08-26-repo-fence-postmortem.md",
+            "doc_kind": "decision",
+            "notes": "PR directly modifies this existing postmortem file (13 insertions, 1 deletion) to scope T2 and add T4 + reusable lesson 7; treat as an edit to the existing doc, not a new page."
+          }
+        ],
+        "notes": null
+      }
+    },
+    "theoju/claude-code-self-assessment#235": {
+      "merge_sha": "f885ec5fcd079afd0e8d0b788babaeff740952cb",
+      "fingerprint": "e6d7c2a0894b9d2f",
+      "last_seen_at": "2026-09-14T14:05:36.468083+00:00",
+      "summary": {
+        "pr_number": 235,
+        "what_changed": "Added a standalone markdown note recording a single surviving CLAUDE.md correction from a closed sibling-repo PR (engineering-docs-agent #225): the CCE-101 auto-merge eligibility description (\"non-partial AND zero fact-checker warnings AND no human commits on the PR\") is still false on that repo's main branch, with a verified anchor string and replacement text so the fix can be applied in one edit later. No code changes; the PR itself does not touch engineering-docs-agent.",
+        "why": "PR #225 sat open for a month and carried three corrections; by 2026-09-13 two had already landed or been superseded, but the CCE-101 eligibility claim remained wrong since CCE-140. The diagnosing session's sandbox fenced writes to engineering-docs-agent, so the fix itself couldn't be applied directly; this note preserves the verified diagnosis (gate chain read from scripts/orchestrator_runner.py:4022) rather than letting it expire in a session transcript.",
+        "breaking": false,
+        "doc_targets": [
+          {
+            "lens": "core",
+            "action": "create",
+            "page_hint": "2026-09-13-cce101-eligibility-followup.md",
+            "doc_kind": "decision",
+            "notes": "Surfaces the CCE-101 auto-merge eligibility correction (still outstanding on engineering-docs-agent's main) captured in docs/superpowers/2026-09-13-cce101-eligibility-claim-followup.md, so the pending fix and its verified anchor/replacement text are discoverable from the docs site rather than only in the source-tree note."
+          }
+        ],
+        "notes": "The PR's only file change is itself a documentation artifact (a superpowers-directory investigation note), not a source change \u2014 the proposed doc_target surfaces that finding on the published core lens since the underlying fix targets a different repo (engineering-docs-agent) and hasn't landed yet."
+      }
+    },
+    "theoju/claude-code-self-assessment#236": {
+      "merge_sha": "134bb3837e9051f48d8830d3203c9961800d8d11",
+      "fingerprint": "e6d7c2a0894b9d2f",
+      "last_seen_at": "2026-09-14T14:05:36.468083+00:00",
+      "summary": {
+        "pr_number": 236,
+        "what_changed": "Added a design spec (no code) proposing a durable counter, `citation_shortening_observations` in `state.json`, to record findings from the CCE-141 citation-shortening diagnostic. The spec documents a 2026-09-13 audit showing zero `citation_shortening_suspected` findings recorded across all 4 hosts with the agent installed and their full git history, despite 19 runs on one host since CCE-141 shipped \u2014 confirming the current diagnostic produces no data that survives. Also added a short follow-up note on CCE-101 eligibility claims.",
+        "why": "CCE-172 (stopping the page-author agent from shortening citation paths) is gated on reading what the CCE-141 diagnostic collected, but the diagnostic has recorded nothing usable. Committing the counter to `state.json` instead of the uncommitted `current_run.json` (removed by #265) makes the signal durable across PR merges, and the spec sets an explicit exit criterion (`total_ever >= 20` or 90 days) so the detector isn't carried indefinitely without a decision point.",
+        "breaking": false,
+        "doc_targets": [
+          {
+            "lens": "core",
+            "action": "create",
+            "page_hint": "2026-09-14-cce172-shortening-observations-spec.md",
+            "doc_kind": "decision",
+            "notes": "Summarizes the CCE-172-blocking measurement (zero recorded citation_shortening_suspected findings across 4 hosts) and the proposed durable state.json counter + exit criterion; source design doc lives in-repo at docs/superpowers/specs/2026-09-13-cce172-shortening-observations-design.md."
+          }
+        ],
+        "notes": "No available architecture/operations/archive sections exist yet under the core lens root (only 'images'), so this used a flat dated slug per the create-target fallback rule. If/when an archive section is added to core, future decision-type pages should route there instead.",
+        "error": null,
+        "partial": false
+      }
     }
+  },
+  "deferral_counts": {
+    "theoju/claude-code-self-assessment#232": 1,
+    "theoju/claude-code-self-assessment#235": 1
   }
 }
