@@ -121,4 +121,11 @@ held back. The entire diagnosis had to come from diffing `state.json` between
 
 ## Tickets
 
-Not yet filed. This note is the primary source.
+**CCE-175** — *Baseline deadlock: the deferral-skip hatch can never arm, because
+its counter persists only on merge.* Filed 2026-09-14 as a Bug, carrying the
+full analysis. This note remains the primary source.
+
+Related but distinct, all shipped and all in `main`: CCE-109 (the original doom
+loop), CCE-140 (the cursor-backed advance and the skip hatch), CCE-151 (the
+cursor walk on every path), CCE-152 (the PR-boundary authoring cut). CCE-175 is
+the gap none of them closed.
