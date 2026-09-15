@@ -1,9 +1,14 @@
 {
   "current_run": {
-    "started_at": "2026-09-12T11:34:57.975116+00:00",
-    "head_sha": "432b271e250287b49e1b01f2e7f44742c863a370",
-    "partial": false,
-    "partial_reasons": [],
+    "started_at": "2026-09-15T12:37:49.109764+00:00",
+    "head_sha": "cd85a220d5c50532db5b256c9b0d8e3bcb9255b8",
+    "partial": true,
+    "partial_reasons": [
+      "prose_contamination_rescued: source-collector",
+      "lint_block: docs/site-src/2026-09-13-cce101-eligibility-followup.md citation_exists: cites nonexistent path 'engineering-docs-agent/CLAUDE.md'; cites nonexistent path 'scripts/orchestrator_runner.py'; cites nonexistent path 'scripts/jira_transition_on_merge.py'",
+      "lint_block: docs/site-src/2026-09-13-cce172-durable-counter-spec.md citation_exists: cites nonexistent path 'scripts/lint/citation_exists.py'; cites nonexistent path 'templates/state.schema.json'"
+    ],
+    "citation_findings_emitted": 0,
     "fact_check_warnings": [],
     "source_drift": [],
     "citation_drift": {
