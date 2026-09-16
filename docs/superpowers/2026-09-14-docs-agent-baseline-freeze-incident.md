@@ -14,14 +14,14 @@ has grown to 15 PRs, which is now itself enough to trip `time_budget_exceeded`.
 
 ## The proximate cause rotates; the outcome does not
 
-| Night | Content failure | Structural outcome |
-| ----- | --------------- | ------------------ |
-| 09-09 | `lint_block` | `held_back_no_advance_no_cursor` |
-| 09-10 | `lint_block` | same |
-| 09-11 | `schema_invalid` | same |
-| 09-12 | `time_budget_exceeded` | same |
-| 09-13 | `time_budget_exceeded` | same |
-| 09-14 | `schema_invalid` | same |
+| Night | Content failure        | Structural outcome               |
+| ----- | ---------------------- | -------------------------------- |
+| 09-09 | `lint_block`           | `held_back_no_advance_no_cursor` |
+| 09-10 | `lint_block`           | same                             |
+| 09-11 | `schema_invalid`       | same                             |
+| 09-12 | `time_budget_exceeded` | same                             |
+| 09-13 | `time_budget_exceeded` | same                             |
+| 09-14 | `schema_invalid`       | same                             |
 
 Three different triggers, one invariant result, plus `auto_merge_skipped:
 partial_run` on all six. **Fixing any single trigger changes nothing** — they
@@ -43,9 +43,9 @@ investigation did not stop at `schema_invalid: page-author: None is not of type
 5. The next run reads `main`'s `state.json`: same baseline, same counts.
 6. Goto 1.
 
-CCE-140 built the deferral-skip hatch precisely against this: *"Skip after 3
+CCE-140 built the deferral-skip hatch precisely against this: _"Skip after 3
 consecutive deferrals... A loud, recorded loss beats an indefinite silent
-stall."* But the counter that arms the hatch is persisted in the artifact the
+stall."_ But the counter that arms the hatch is persisted in the artifact the
 stall prevents from landing. **The valve can never reach its own threshold.**
 
 This is the CCE-109 doom loop reinstated by a route neither CCE-140 nor CCE-151
@@ -95,6 +95,43 @@ maps are built in-memory each run from `pr.get("number")` and never round-trip
 through JSON. The surviving candidate is a PR present in `deferred_pages_by_pr`
 but absent from `prs` / `window_prs`.
 
+### Narrowed 2026-09-16 (source reading, nothing executed)
+
+Three corrections to the framing above, all read from
+`scripts/orchestrator_runner.py`. No run was performed.
+
+**1. `window_prs` is not a candidate — it is always the full window.** The
+snapshot is taken at `:2247` (`window_prs = list(prs)`, commented "the full
+window, oldest-first, before admission truncation") and the only truncation,
+`prs = prs[:i]`, is at `:2284`. `pr_by_number` is built at `:2378`, after the
+cut. So `window_pr_numbers` contains every held PR, always. Drop "absent from
+`window_prs`" from the hypothesis; the asymmetry is `deferred_pages_by_pr` vs
+`prs` alone.
+
+**2. The counter does not merely fail to increment — it actively deletes.**
+Because a held PR is always in the window, rule 3 ("not in this window at all
+-> carried forward unchanged") never protects it. It always lands on the
+pop-or-increment branch of `next_deferral_counts` (`:764-769`), so on every
+night it is absent from `still_deferred_numbers` its key is `pop`ped. That is
+why no held PR ever appears in the map, and it confirms `#221: 1` as a fossil:
+#221 has genuinely left the window, so rule 3 does carry it forward. Starvation
+was the gentler reading; deletion is what the code does.
+
+**3. `partition_deferrals` is exonerated.** `:731-738` splits on count vs
+threshold and drops nothing, so it cannot be the leak.
+
+**Consequence for where to look:** the leak can only occur on a
+**non-truncated** night. On a `time_budget_exceeded` night,
+`admission_deferred = prs[i:]` enters `_deferred_all` **unfiltered** (`:3008`),
+so those PRs do reach `still_deferred` and should increment in-run. Of the six
+nights tabulated above, only 09-09, 09-10 (`lint_block`) and 09-11, 09-14
+(`schema_invalid`) qualify.
+
+This also means the run-branch `state.json` alone cannot separate the two
+defects: on a truncated night an in-run increment should appear and does not,
+which the primary root cause already explains (increments exist only on
+branches that never merge) without invoking the second defect at all.
+
 ## Observability gap found on the way
 
 The nightly log (457 lines) never names which PRs were admitted, deferred, or
@@ -104,11 +141,17 @@ held back. The entire diagnosis had to come from diffing `state.json` between
 ## Recommended next steps
 
 1. **Reproduce locally** in an unfenced session: run the orchestrator dry-run
-   against the real `state.json` and window, printing `deferred_pages_by_pr`,
-   `window_prs`, `still_deferred`, and `held_back`. That names the blocking PR
-   and settles the open sub-question in one run. CLAUDE.md's diagnostic reflex
-   for CCE-151 says the same: print `deferred_pages_by_pr` and `held_back`
-   before suspecting the linter.
+   against the real `state.json` and window. Per the 2026-09-16 narrowing, this
+   is now **one** question rather than four sets — print
+   `set(deferred_pages_by_pr) - set(pr_by_number)` **on a non-truncated night**
+   (`time_truncated is False`). A non-empty result names the blocking PR and
+   settles the sub-question; an empty result falsifies the second-defect
+   hypothesis entirely and sends the investigation back to the primary cause.
+   `window_prs` and `still_deferred` no longer need printing —
+   `window_pr_numbers` is provably the full window, and `still_deferred` is
+   derivable from the difference above. CLAUDE.md's diagnostic reflex for
+   CCE-151 says the same: print `deferred_pages_by_pr` and `held_back` before
+   suspecting the linter.
 2. **Do not** fix `schema_invalid` or the lint block first. The table above
    shows those rotate; the next night simply picks a different trigger.
 3. **Structural fix direction:** the deferral counter must advance somewhere
@@ -121,8 +164,8 @@ held back. The entire diagnosis had to come from diffing `state.json` between
 
 ## Tickets
 
-**CCE-175** — *Baseline deadlock: the deferral-skip hatch can never arm, because
-its counter persists only on merge.* Filed 2026-09-14 as a Bug, carrying the
+**CCE-175** — _Baseline deadlock: the deferral-skip hatch can never arm, because
+its counter persists only on merge._ Filed 2026-09-14 as a Bug, carrying the
 full analysis. This note remains the primary source.
 
 Related but distinct, all shipped and all in `main`: CCE-109 (the original doom
