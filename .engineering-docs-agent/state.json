@@ -2,7 +2,7 @@
   "version": "1",
   "last_successful_run": {
     "head_sha": "175162e1e085e8b326ed0579ec2bcbde0a22ed73",
-    "completed_at": "2026-09-15T12:37:49.109764+00:00"
+    "completed_at": "2026-09-16T12:33:43.940838+00:00"
   },
   "dismissed_gap_flags": {},
   "pr_summaries": {
@@ -253,7 +253,7 @@
     "theoju/claude-code-self-assessment#235": {
       "merge_sha": "f885ec5fcd079afd0e8d0b788babaeff740952cb",
       "fingerprint": "e6d7c2a0894b9d2f",
-      "last_seen_at": "2026-09-15T12:45:13.658908+00:00",
+      "last_seen_at": "2026-09-16T12:38:58.175401+00:00",
       "summary": {
         "pr_number": 235,
         "what_changed": "Added a follow-up note in docs/superpowers/ documenting a verified, still-open CLAUDE.md correction in the sibling engineering-docs-agent repo: the claim that CCE-101 auto-merge eligibility depends on fact-checker warnings remains false on that repo's main branch, contradicted by `_maybe_auto_merge`'s own docstring. The note captures the verified anchor and replacement text so the fix can be applied in a single edit later.",
@@ -274,7 +274,7 @@
     "theoju/claude-code-self-assessment#236": {
       "merge_sha": "134bb3837e9051f48d8830d3203c9961800d8d11",
       "fingerprint": "e6d7c2a0894b9d2f",
-      "last_seen_at": "2026-09-15T12:45:13.658908+00:00",
+      "last_seen_at": "2026-09-16T12:38:58.175401+00:00",
       "summary": {
         "pr_number": 236,
         "what_changed": "Adds a design spec proposing a durable counter (`citation_shortening_observations` in `state.json`, with `total_ever` plus a `recent[]` FIFO sample, single writer in `state_io.py`) to unblock CCE-172, plus a short followup note on the CCE-101 eligibility claim. No code changes in this repo \u2014 the spec documents work that will land in the sibling `engineering-docs-agent` repo.",
@@ -291,10 +291,31 @@
         ],
         "notes": "The PR's actual artifacts (docs/superpowers/specs/2026-09-13-cce172-shortening-observations-design.md and the CCE-101 followup note) already live in this repo's own docs/superpowers tree and are not themselves lens-published pages; the doc_target here is a distilled decision-record entry for the published docs site rather than a copy of the spec file."
       }
+    },
+    "theoju/claude-code-self-assessment#238": {
+      "merge_sha": "cd85a220d5c50532db5b256c9b0d8e3bcb9255b8",
+      "fingerprint": "e6d7c2a0894b9d2f",
+      "last_seen_at": "2026-09-16T12:38:58.175401+00:00",
+      "summary": {
+        "pr_number": 238,
+        "what_changed": "Added three rules to the project's CLAUDE.md drawn from the CCE-170/171/172/173 work cycle: (1) before removing an accidentally-persisted file, check what reads it, since a file committed by mistake can still be the only durable record of prior diagnostic data; (2) a detection-only fix shipped in place of a withdrawn repair must state, in the same PR, both the threshold that opens a follow-up and the date at which zero findings means deleting the detector; (3) a zero returned from a schema key that doesn't actually exist is indistinguishable from a real zero, so any reported absence needs a positive control (evidence the recording channel does capture other real values) alongside it. No code changed; CLAUDE.md consumers treat the file as data, not an importable module.",
+        "why": "Each rule was extracted from something that cost real time in the CCE-170/171/172/173 cycle rather than from an abstract principle: CCE-170 correctly removed an accidentally-committed file whose git history turned out to be the only archive CCE-172 depended on; CCE-141's detection-only diagnostic shipped with no exit criterion and sat silent for three weeks across four hosts before anyone could answer whether it had data; and a probe for a nonexistent `pages_authored` field silently reported a false zero until a genuine positive-control field was found in the same snapshots. Codifying these prevents the same failure modes recurring in future cycles.",
+        "breaking": false,
+        "doc_targets": [
+          {
+            "lens": "core",
+            "action": "create",
+            "page_hint": "2026-09-16-claude-md-hard-rules-cce170-173.md",
+            "doc_kind": "decision",
+            "notes": "core lens has no architecture/archive/operations subdirectories yet (only 'images'), so this lands as a flat dated page at the lens root; doc_kind=decision routes it into the archive section once that structure exists. Summarizes the three new CLAUDE.md rules/conventions and their originating incidents for future doc consumers who don't read CLAUDE.md directly."
+          }
+        ],
+        "notes": "Source change is entirely within CLAUDE.md (project instructions), which itself is not a docs-site page; the doc_target here is a lens-side digest of the new rules for discoverability, not a mirror of CLAUDE.md's full text."
+      }
     }
   },
   "deferral_counts": {
-    "theoju/claude-code-self-assessment#235": 1,
-    "theoju/claude-code-self-assessment#236": 1
+    "theoju/claude-code-self-assessment#235": 2,
+    "theoju/claude-code-self-assessment#236": 2
   }
 }

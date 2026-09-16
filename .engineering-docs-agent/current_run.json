@@ -1,12 +1,14 @@
 {
   "current_run": {
-    "started_at": "2026-09-15T12:37:49.109764+00:00",
-    "head_sha": "cd85a220d5c50532db5b256c9b0d8e3bcb9255b8",
+    "started_at": "2026-09-16T12:33:43.940838+00:00",
+    "head_sha": "0a94b8a8bd0fddde6103bc4ec017d417ce03ffc5",
     "partial": true,
     "partial_reasons": [
       "prose_contamination_rescued: source-collector",
-      "lint_block: docs/site-src/2026-09-13-cce101-eligibility-followup.md citation_exists: cites nonexistent path 'engineering-docs-agent/CLAUDE.md'; cites nonexistent path 'scripts/orchestrator_runner.py'; cites nonexistent path 'scripts/jira_transition_on_merge.py'",
-      "lint_block: docs/site-src/2026-09-13-cce172-durable-counter-spec.md citation_exists: cites nonexistent path 'scripts/lint/citation_exists.py'; cites nonexistent path 'templates/state.schema.json'"
+      "lint_block: docs/site-src/2026-09-13-cce101-eligibility-followup.md citation_exists: cites nonexistent path 'engineering-docs-agent/CLAUDE.md'; cites nonexistent path 'scripts/orchestrator_runner.py'",
+      "lint_block: docs/site-src/2026-09-13-cce172-durable-counter-spec.md citation_exists: cites nonexistent path 'templates/state.schema.json'; cites nonexistent path 'engineering-docs-agent/CLAUDE.md'",
+      "held_back_no_advance_no_cursor: degraded run had no admitted PR with a usable merge_sha; baseline unchanged",
+      "pr_summaries_reused: 2/3 PRs served from cache, 2 pr-summarizer dispatches skipped"
     ],
     "citation_findings_emitted": 0,
     "fact_check_warnings": [],
