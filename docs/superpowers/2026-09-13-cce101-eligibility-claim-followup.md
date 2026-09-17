@@ -73,3 +73,83 @@ Diagnosed from a session whose sandbox profile fenced writes to
 `engineering-docs-agent` (see the repo-fence postmortem, lesson 7). Reads and
 `gh` worked; file writes did not. Captured here the day it was produced rather
 than left in a session transcript.
+
+---
+
+# Decisions taken 2026-09-16
+
+Four questions were put to the operator; all four recommendations were accepted.
+This section is the ready-to-apply result. Nothing below has been applied —
+the diagnosing session remained write-fenced to `engineering-docs-agent`.
+
+Apply in the order given: **change 3 first** (it moves text), then **change 1**
+(it edits text that change 3 may have moved), then **change 2**.
+
+## Change 1 — the CCE-101 eligibility correction (Q1: delete the duplication)
+
+Rejected: correcting the sentence in place. It has already gone stale twice —
+CCE-140 rewrote the gate, CCE-144 added the `blind` check, and neither updated
+the bullet. Re-syncing a duplicate a third time buys one more cycle.
+
+Also rejected: adding a test that asserts the documented gate order matches the
+code. That builds a verifier for a duplicate which need not exist; deleting the
+duplicate makes the verifier unnecessary.
+
+The replacement text is in the section above ("The fix"), unchanged. Its shape
+is the decision: it names the gates in order and then says *read the chain at
+`_maybe_auto_merge`* rather than restating it. The anchor was verified unique
+on 2026-09-13; re-verify before applying.
+
+## Change 2 — a new CLAUDE.md meta-bullet (Q3: invariant + why, not mechanism)
+
+The bullets that stayed true state **why**. The bullets that rotted transcribe
+**how**. Make that a rule rather than a pattern, and add it to CLAUDE.md:
+
+```
+- **State the invariant and why it holds; point at code for the mechanism.**
+  A bullet that transcribes a mechanism has a shelf life — "Eligible =
+  non-partial AND zero fact-checker warnings" was true when written and wrong
+  two tickets later, because nothing ties a CLAUDE.md behavioral claim to the
+  code it describes. A bullet that states the invariant and its reason survives
+  refactoring: "a blind run cannot auto-merge, because a cursor-backed advance
+  proves what the run SAW and a blind run did not see" stays true across any
+  reordering of the gate chain. When the mechanism genuinely must be findable,
+  name the function and stop — the reader can run `grep`, and the function
+  cannot drift from itself. Reference: CCE-101 eligibility claim, stale from
+  CCE-140 (2026-06) until 2026-09.
+```
+
+## Change 3 — ordering convention (Q4: adopt now, independent of CCE-176)
+
+**Why now rather than after CCE-176.** CCE-176 records that
+`load_voice_samples` truncates at 20,000 chars and that CLAUDE.md is 41,475 —
+so the newest 52% never reaches `page-author`. Because the file is append-only
+by convention, every new lesson lands precisely where the agent cannot read it.
+Fixing the loader fixes today's cap; a file ordered to degrade gracefully
+survives whatever the cap becomes next.
+
+Adopt: **most load-bearing invariants first; provenance, incident narratives
+and trap lists after.** If a cap truncates, it should cut history, not rules.
+
+This composes with change 2 — invariants are short and belong at the top;
+the "four traps this touched", incident timelines, run IDs and spec links are
+exactly what should fall below any cut.
+
+The reordering pass is a large diff with no behavioral change. Do it as its own
+PR, never mixed with a content edit, so the diff stays reviewable.
+
+**Measured starting point (2026-09-13, CLAUDE.md at 41,475 chars):**
+
+| | Above the 20,000 cut | Below (invisible to the agent) |
+| --- | --- | --- |
+| Bullets | 22 | 4 |
+| Notable | the stale CCE-101 claim at offset 8,075 | CCE-124, 139, 141, 151 and the whole SDD fidelity-gate section |
+
+The compounding case worth fixing first: the agent reads the stale CCE-101
+claim and is structurally prevented from reaching the CCE-144 bullet that
+contradicts it.
+
+## Not decided here
+
+Whether change 3 warrants its own CCE ticket. It is recorded here either way;
+CCE-176 covers the loader defect, not the authoring convention.
