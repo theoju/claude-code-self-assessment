@@ -1,6 +1,7 @@
 - [Home](index.md)
 - [Self-Assessment](self-assessment.md)
 - [Ship Pattern](ship-pattern.md)
+- [Diagrams](diagrams/index.md)
 - Reference
     - [Boris Tips](boris-tips-reference-2026-05-10.md)
     - [Tip Classification](tip-classification-2026-05-10.md)
