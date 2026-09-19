@@ -1,0 +1,338 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "Self-Assessment Skill Architecture",
+    "locale": "en",
+    "quality_profile": "showcase",
+    "repository": {
+      "url": "https://github.com/theoju/claude-code-self-assessment",
+      "provider": "github",
+      "link_mode": "web",
+      "revision": "0a94b8a8bd0fddde6103bc4ec017d417ce03ffc5"
+    },
+    "viewBox": [1370, 640],
+    "views": [
+      {
+        "id": "entry-points",
+        "label": "Entry points",
+        "focus": ["skill", "routine", "runner"],
+        "note": "The skill and the launchd job both end in run-assessment.mjs; launchd skips the skill layer."
+      },
+      {
+        "id": "scoring-pipeline",
+        "label": "Scoring pipeline",
+        "focus": ["claude-home", "signals", "score", "rubric", "rank", "data"],
+        "note": "Signals from ~/.claude are scored against rubric.json, then ranked into next actions."
+      },
+      {
+        "id": "outputs",
+        "label": "Outputs",
+        "focus": ["runner", "progression", "data", "dashboard", "slack"],
+        "note": "Everything lands in app/data/ for the local dashboard; Slack is opt-in and aggregate-only."
+      }
+    ]
+  },
+  "components": [
+    {
+      "id": "skill",
+      "type": "frontend",
+      "label": "/self-assessment",
+      "sublabel": "SKILL.md + 3 spokes",
+      "pos": [40, 320],
+      "size": [160, 64],
+      "sources": [
+        { "path": ".claude/skills/self-assessment/SKILL.md", "label": "skill" },
+        {
+          "path": ".claude/commands/self-assessment.md",
+          "label": "slash command"
+        }
+      ]
+    },
+    {
+      "id": "routine",
+      "type": "external",
+      "label": "launchd job",
+      "sublabel": "daily 07:15",
+      "pos": [40, 110],
+      "size": [160, 64],
+      "sources": [
+        {
+          "path": "scripts/launchd/claude-self-assessment.plist.template",
+          "label": "plist"
+        }
+      ]
+    },
+    {
+      "id": "runner",
+      "type": "backend",
+      "label": "run-assessment.mjs",
+      "sublabel": "main() orchestrator",
+      "pos": [310, 320],
+      "size": [170, 64],
+      "sources": [
+        { "path": "scripts/run-assessment.mjs", "line": 268, "label": "main()" }
+      ]
+    },
+    {
+      "id": "signals",
+      "type": "backend",
+      "label": "signals.mjs",
+      "sublabel": "Setup + Execution signals",
+      "pos": [540, 320],
+      "size": [160, 64],
+      "sources": [
+        {
+          "path": "scripts/signals.mjs",
+          "line": 682,
+          "label": "gatherSignals()"
+        },
+        {
+          "path": "scripts/insights-signals.mjs",
+          "line": 73,
+          "label": "gatherInsightsSignals()"
+        },
+        {
+          "path": "scripts/_usage-data.mjs",
+          "line": 655,
+          "label": "classifySessionKind()"
+        }
+      ]
+    },
+    {
+      "id": "score",
+      "type": "backend",
+      "label": "score.mjs",
+      "sublabel": "12 dims · 2 axes",
+      "pos": [760, 320],
+      "size": [140, 64],
+      "sources": [
+        { "path": "scripts/score.mjs", "line": 1123, "label": "scoreAll()" },
+        {
+          "path": "scripts/score.mjs",
+          "line": 1211,
+          "label": "computeTrends()"
+        }
+      ]
+    },
+    {
+      "id": "rank",
+      "type": "backend",
+      "label": "rank-next-actions.mjs",
+      "sublabel": "weight × deficit",
+      "pos": [960, 320],
+      "size": [170, 64],
+      "sources": [
+        {
+          "path": "scripts/rank-next-actions.mjs",
+          "line": 20,
+          "label": "rankNextActions()"
+        },
+        {
+          "path": "scripts/predicate.mjs",
+          "line": 86,
+          "label": "evaluatePredicate()"
+        }
+      ]
+    },
+    {
+      "id": "data",
+      "type": "database",
+      "label": "app/data/",
+      "sublabel": "assessment.json",
+      "pos": [1190, 320],
+      "size": [140, 64]
+    },
+    {
+      "id": "progression",
+      "type": "backend",
+      "label": "progression.mjs",
+      "sublabel": "milestone timeline",
+      "pos": [540, 130],
+      "size": [160, 64],
+      "sources": [
+        {
+          "path": "scripts/progression.mjs",
+          "line": 262,
+          "label": "detectMilestones()"
+        },
+        {
+          "path": "scripts/config-progression.mjs",
+          "line": 118,
+          "label": "detectConfigMilestones()"
+        }
+      ]
+    },
+    {
+      "id": "claude-home",
+      "type": "database",
+      "label": "~/.claude/",
+      "sublabel": "settings · usage-data",
+      "tag": "transcripts opt-in",
+      "pos": [540, 520],
+      "size": [160, 64]
+    },
+    {
+      "id": "rubric",
+      "type": "database",
+      "label": "rubric.json",
+      "sublabel": "weights · targets",
+      "pos": [860, 520],
+      "size": [160, 64],
+      "sources": [{ "path": "app/data/rubric.json", "label": "rubric" }]
+    },
+    {
+      "id": "slack",
+      "type": "external",
+      "label": "Slack webhook",
+      "sublabel": "aggregate only",
+      "pos": [310, 520],
+      "size": [170, 64],
+      "sources": [
+        { "path": "scripts/slack.mjs", "line": 140, "label": "postToSlack()" }
+      ]
+    },
+    {
+      "id": "dashboard",
+      "type": "frontend",
+      "label": "Next.js dashboard",
+      "sublabel": "localhost:3737",
+      "pos": [1190, 520],
+      "size": [140, 64],
+      "sources": [{ "path": "app/page.tsx", "label": "dashboard" }]
+    }
+  ],
+  "boundaries": [
+    {
+      "kind": "region",
+      "label": "scripts/ · Node ESM pipeline",
+      "wraps": ["runner", "signals", "score", "rank", "progression"]
+    },
+    {
+      "kind": "region",
+      "label": "app/ · Next.js 16",
+      "wraps": ["data", "dashboard"]
+    }
+  ],
+  "connections": [
+    {
+      "id": "skill-runs-assess",
+      "from": "skill",
+      "to": "runner",
+      "label": "npm run assess",
+      "variant": "emphasis"
+    },
+    {
+      "id": "routine-runs-node",
+      "from": "routine",
+      "to": "runner",
+      "label": "node, no skill",
+      "fromSide": "right",
+      "toSide": "top"
+    },
+    {
+      "id": "runner-signals",
+      "from": "runner",
+      "to": "signals",
+      "variant": "emphasis"
+    },
+    {
+      "id": "signals-score",
+      "from": "signals",
+      "to": "score",
+      "variant": "emphasis"
+    },
+    {
+      "id": "score-rank",
+      "from": "score",
+      "to": "rank",
+      "variant": "emphasis"
+    },
+    { "id": "rank-data", "from": "rank", "to": "data", "variant": "emphasis" },
+    {
+      "id": "home-read",
+      "from": "claude-home",
+      "to": "signals",
+      "label": "read-only",
+      "fromSide": "top",
+      "toSide": "bottom"
+    },
+    {
+      "id": "rubric-score",
+      "from": "rubric",
+      "to": "score",
+      "label": "targets",
+      "fromSide": "top",
+      "toSide": "bottom"
+    },
+    {
+      "id": "rubric-rank",
+      "from": "rubric",
+      "to": "rank",
+      "label": "next-actions",
+      "fromSide": "top",
+      "toSide": "bottom"
+    },
+    {
+      "id": "runner-progression",
+      "from": "runner",
+      "to": "progression",
+      "fromSide": "top",
+      "toSide": "left"
+    },
+    {
+      "id": "progression-data",
+      "from": "progression",
+      "to": "data",
+      "label": "progression.json"
+    },
+    {
+      "id": "runner-slack",
+      "from": "runner",
+      "to": "slack",
+      "label": "POST if enabled",
+      "variant": "dashed",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "labelAt": [395, 452]
+    },
+    {
+      "id": "data-dashboard",
+      "from": "data",
+      "to": "dashboard",
+      "label": "reads JSON",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "labelAt": [1260, 452]
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "Entry",
+      "items": [
+        "Skill runs npm run assess -- $ARGUMENTS, then reports the top 3 rankedNextActions",
+        "setup.md runs first when assessment.config.json is missing",
+        "launchd calls run-assessment.mjs directly at 07:15"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "Scoring",
+      "items": [
+        "Two axes, never collapsed: Platform Setup vs Execution",
+        "Per dimension: clamp(round(raw / target × 100))",
+        "main() threads data through each stage and writes app/data/ itself"
+      ]
+    },
+    {
+      "dot": "violet",
+      "title": "Guarantees",
+      "items": [
+        "Local only; Slack needs slack.enabled + SLACK_WEBHOOK_URL",
+        "Posture ratios count interactive sessions only (fail-closed)",
+        "CLAUDE.md and plans audits are report-only"
+      ]
+    }
+  ]
+}

@@ -13,6 +13,9 @@ you enable the Slack notifier.
   the trend history works).
 - **[Ship Pattern](ship-pattern.md)** — the recommended `/ship` slash
   command shape (8-stage personal shipping chain).
+- **[Diagrams](diagrams/index.md)** — interactive architecture
+  diagrams of this repo, each pinned to the commit it was rendered
+  from.
 - **Reference** — full tip catalog and classification breakdown.
 - **[What's New](whats-new.md)** — release notes and recent changes
   (curated by the engineering-docs-agent).
