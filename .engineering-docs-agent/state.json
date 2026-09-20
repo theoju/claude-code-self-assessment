@@ -2,31 +2,10 @@
   "version": "1",
   "last_successful_run": {
     "head_sha": "175162e1e085e8b326ed0579ec2bcbde0a22ed73",
-    "completed_at": "2026-09-15T12:37:49.109764+00:00"
+    "completed_at": "2026-09-20T12:15:42.517628+00:00"
   },
   "dismissed_gap_flags": {},
   "pr_summaries": {
-    "theoju/claude-code-self-assessment#197": {
-      "merge_sha": "017f671a3f30a7a3a5bc620172cbeb86f6f74240",
-      "fingerprint": "e6d7c2a0894b9d2f",
-      "last_seen_at": "2026-08-21T08:02:55.672830+00:00",
-      "summary": {
-        "pr_number": 197,
-        "what_changed": "Added a GitHub Actions CI workflow (`.github/workflows/ci.yml`) that runs on every pull request and push to `main`: install deps, lint, typecheck, unit tests, and build. Restored working lint by adding eslint 9 and eslint-config-next 16 as devDependencies with a flat `eslint.config.mjs` (Next 16 removed the old `next lint` subcommand, which had silently been broken with no fallback), repointed the `lint` script at `eslint .`, fixed the small number of real lint findings after excluding vendored/build directories from the ignore set, and fixed two pre-existing TypeScript errors that `next build` doesn't catch.",
-        "why": "The repo had no CI gating code changes \u2014 all existing workflows were path-gated to `docs/site-src/**`, so PRs touching `scripts/` or `app/` merged with zero automated verification (confirmed empirically: PR #196 reported no checks). Separately, lint had been dead since the Next 16 upgrade because nothing in CI ever ran it, letting the breakage go unnoticed.",
-        "breaking": false,
-        "doc_targets": [
-          {
-            "lens": "core",
-            "action": "create",
-            "page_hint": "2026-08-21-ci-lint-restoration.md",
-            "doc_kind": "decision",
-            "notes": "Records the gap (no code CI, dead lint since Next 16) and the fix (new ci.yml gating lint/typecheck/test/build, eslint 9 flat config). No architecture/ or operations/ section exists yet under core (available_sections only lists images), so this lands as a flat dated page at the lens root; consider migrating into an operations/ section if/when CI and workflow docs accumulate there."
-          }
-        ],
-        "notes": "PR also updated the repo's own CLAUDE.md and several test files as part of restoring a clean lint/typecheck baseline; these are implementation details already covered by the single summary page above and don't warrant separate doc targets. Follow-up mentioned in the PR body (branch-protection rule requiring the new check) is not yet implemented and isn't reflected as a separate doc target."
-      }
-    },
     "theoju/claude-code-self-assessment#196": {
       "merge_sha": "d69710b5e1d7427501d6623b4eb404676ea37ac3",
       "fingerprint": "e6d7c2a0894b9d2f",
@@ -253,7 +232,7 @@
     "theoju/claude-code-self-assessment#235": {
       "merge_sha": "f885ec5fcd079afd0e8d0b788babaeff740952cb",
       "fingerprint": "e6d7c2a0894b9d2f",
-      "last_seen_at": "2026-09-15T12:45:13.658908+00:00",
+      "last_seen_at": "2026-09-20T12:23:11.953249+00:00",
       "summary": {
         "pr_number": 235,
         "what_changed": "Added a follow-up note in docs/superpowers/ documenting a verified, still-open CLAUDE.md correction in the sibling engineering-docs-agent repo: the claim that CCE-101 auto-merge eligibility depends on fact-checker warnings remains false on that repo's main branch, contradicted by `_maybe_auto_merge`'s own docstring. The note captures the verified anchor and replacement text so the fix can be applied in a single edit later.",
@@ -274,7 +253,7 @@
     "theoju/claude-code-self-assessment#236": {
       "merge_sha": "134bb3837e9051f48d8830d3203c9961800d8d11",
       "fingerprint": "e6d7c2a0894b9d2f",
-      "last_seen_at": "2026-09-15T12:45:13.658908+00:00",
+      "last_seen_at": "2026-09-20T12:23:11.953249+00:00",
       "summary": {
         "pr_number": 236,
         "what_changed": "Adds a design spec proposing a durable counter (`citation_shortening_observations` in `state.json`, with `total_ever` plus a `recent[]` FIFO sample, single writer in `state_io.py`) to unblock CCE-172, plus a short followup note on the CCE-101 eligibility claim. No code changes in this repo \u2014 the spec documents work that will land in the sibling `engineering-docs-agent` repo.",
@@ -291,10 +270,77 @@
         ],
         "notes": "The PR's actual artifacts (docs/superpowers/specs/2026-09-13-cce172-shortening-observations-design.md and the CCE-101 followup note) already live in this repo's own docs/superpowers tree and are not themselves lens-published pages; the doc_target here is a distilled decision-record entry for the published docs site rather than a copy of the spec file."
       }
+    },
+    "theoju/claude-code-self-assessment#238": {
+      "merge_sha": "cd85a220d5c50532db5b256c9b0d8e3bcb9255b8",
+      "fingerprint": "e6d7c2a0894b9d2f",
+      "last_seen_at": "2026-09-20T12:23:11.953249+00:00",
+      "summary": {
+        "pr_number": 238,
+        "what_changed": "Added three new rules to the project's CLAUDE.md, all drawn from the CCE-170/171/172/173 work cycle: (1) before removing accidental persistence of a file, check whether anything depends on it as a side-effect data source, not just as an imported interface; (2) when a diagnostic is shipped in place of a withdrawn fix, the same PR must state both the threshold that opens a follow-up and the date at which zero findings means deleting the detector; and (3) a zero reported for a telemetry key that doesn't actually exist in the schema looks identical to a real zero, so any reported absence should be checked against the object's actual keys and paired with a positive control. No code changed; only CLAUDE.md.",
+        "why": "Each rule encodes a mistake that cost time during the CCE-170/171/172/173 cycle: CCE-170 correctly removed accidental commits of engineering-docs-agent's current_run.json, but that file's git history was the only durable archive of CCE-141 diagnostic firings needed for CCE-172, and the dependency was invisible at review time because nothing 'imports' a file committed by mistake. CCE-141 shipped a detection-only diagnostic with no exit criterion, so after three weeks and four hosts of zero findings the team had to re-derive from scratch whether they had enough data. And a probe for a non-existent 'pages_authored' field silently reported a false zero until a positive control (a different field known to be populated) confirmed the recording channel actually worked.",
+        "breaking": false,
+        "doc_targets": [
+          {
+            "lens": "core",
+            "action": "create",
+            "page_hint": "2026-09-13-claude-md-process-rules-cce170-173.md",
+            "doc_kind": "decision",
+            "notes": "Digest of the three CLAUDE.md hard-rule/convention additions from PR #238 (CCE-170/171/172/173 cycle): check readers before removing accidental persistence, require exit criteria for detection-in-place-of-fix, and require positive controls alongside reported-zero telemetry. No existing architecture or archive page in the core lens (only diagrams/images sections exist) maps to this process-lessons content, so it's filed as a new dated entry at the lens root."
+          }
+        ],
+        "notes": "This PR is CLAUDE.md-only (project memory/process rules); it has no architecture surface to edit, so the single doc target captures the rules as a decision/lessons-learned record rather than mapping to an existing architecture page."
+      }
+    },
+    "theoju/claude-code-self-assessment#240": {
+      "merge_sha": "a8e5d057a24c6f9d8411fa364583a69dd19cc157",
+      "fingerprint": "e6d7c2a0894b9d2f",
+      "last_seen_at": "2026-09-20T12:23:11.953249+00:00",
+      "summary": {
+        "pr_number": 240,
+        "what_changed": "Adds an incident/root-cause analysis documenting that the engineering-docs-agent nightly pipeline has published no documentation for 23 days across ~23 runs. The proximate content failure rotates night to night (lint_block, schema_invalid, time_budget_exceeded), but the structural outcome is always the same: a held-back partial run with no cursor advance. Root cause: CCE-140's deferral-skip counter (meant to force a loud recorded loss after 3 consecutive deferrals) only persists in state.json on a merged PR branch, but a content failure always produces a partial, non-merged run, so the counter is swept away on auto-close and can never reach its own threshold \u2014 the release valve is behind the door it's meant to open. No fix is attempted; this PR is analysis-only, capturing the diagnosis (including a deliberately left-open asymmetry between the filtered deferral-counter input and the unfiltered held_back set) since claude-mem capture was unavailable.",
+        "why": "The nightly docs pipeline appeared to fail for a different reason each night, tempting point-fixes (e.g. the newest schema_invalid on page-author) that would not have resolved the underlying 23-day stall. Recording the structural root cause \u2014 that CCE-140's own recovery mechanism cannot activate under the exact conditions it was designed to escape \u2014 prevents future diagnosis from re-treating this as a CCE-152 recurrence or stopping at whichever trigger is currently visible.",
+        "breaking": false,
+        "doc_targets": [
+          {
+            "lens": "core",
+            "action": "create",
+            "page_hint": "2026-09-14-docs-agent-baseline-freeze-incident.md",
+            "doc_kind": "decision",
+            "notes": "No 'archive' or 'operations' section exists yet under the core lens root (only diagrams/images), so this incident/postmortem is placed as a flat dated slug at the lens root per the create-page fallback rule."
+          }
+        ],
+        "notes": "Analysis-only PR; the actual fix for the deferral-counter persistence gap is not yet implemented, so this doc may need a follow-up edit once that fix lands.",
+        "error": null,
+        "partial": false
+      }
+    },
+    "theoju/claude-code-self-assessment#243": {
+      "merge_sha": "ed299e6adb5efa55f4d7bf131483dc7d9fc99352",
+      "fingerprint": "e6d7c2a0894b9d2f",
+      "last_seen_at": "2026-09-20T12:23:11.953249+00:00",
+      "summary": {
+        "pr_number": 243,
+        "what_changed": "Appended a \"Decisions taken 2026-09-16\" section to the CCE-101 eligibility-claim follow-up note (docs/superpowers/2026-09-13-cce101-eligibility-claim-followup.md), recording four accepted decisions as ready-to-apply text: fix the stale eligibility-claim prose by deleting the duplication rather than re-syncing it; track the voice-sample truncation defect as CCE-176; add a documentation meta-bullet convention (state the invariant and reason, point at code for mechanism); and adopt a file-ordering convention (invariants near the top, incident timelines/traps below) independent of the CCE-176 fix. No code or CLAUDE.md content was actually changed \u2014 the authoring session stayed write-fenced to engineering-docs-agent and left the decisions for a follow-up apply PR, with an explicit apply order (reorder first, then edit-1, then edit-2) called out for reviewability.",
+        "why": "A CLAUDE.md eligibility-claim bullet was accurate when written but drifted out of sync after two later gate rewrites (CCE-140, CCE-144) never updated the prose describing them \u2014 a recurring, measured duplication problem rather than a one-off typo. Separately, CCE-176 established that the CLAUDE.md loader truncates at 20,000 chars against a 41,475-char file, so append-only convention means every newly added lesson lands past the cutoff the authoring agent can actually read. This PR records the team's resolved decisions on both issues (and two related process questions) so a subsequent PR can apply them cleanly.",
+        "breaking": false,
+        "doc_targets": [
+          {
+            "lens": "core",
+            "action": "create",
+            "page_hint": "2026-09-17-cce101-decisions-recorded.md",
+            "doc_kind": "decision",
+            "notes": "Record-only entry: captures the four accepted CCE-101/CCE-176 decisions (eligibility-claim dedup, truncation ticket, doc meta-bullet convention, file-ordering convention) as a decision-log digest. No behavior changed yet; a follow-up apply PR will implement the reorder + edits and should trigger its own doc_target when it lands."
+          }
+        ],
+        "notes": "This PR is itself a planning/decision-recording artifact (docs/superpowers/, not the published docs site) with an explicit statement that nothing was applied. The recommended doc_target is a lightweight decision digest rather than an edit to any published lens page, since the substantive CLAUDE.md/code changes are deferred to a follow-up PR that should be summarized separately when merged."
+      }
     }
   },
   "deferral_counts": {
-    "theoju/claude-code-self-assessment#235": 1,
-    "theoju/claude-code-self-assessment#236": 1
+    "theoju/claude-code-self-assessment#235": 2,
+    "theoju/claude-code-self-assessment#236": 2,
+    "theoju/claude-code-self-assessment#240": 1,
+    "theoju/claude-code-self-assessment#243": 1
   }
 }
