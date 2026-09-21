@@ -1,5 +1,24 @@
 # Handoff prompt — CCE-175 baseline deadlock (paste into a fresh session)
 
+> **SUPERSEDED 2026-09-20. Do not work from this prompt.**
+>
+> CCE-175 was fixed and merged while this doc was being written — PR #274,
+> `fix(orchestrator): break the deferral deadlock with a stall clock`, merged to
+> `theoju/engineering-docs-agent` `main` at `c5dc23b2` on 2026-09-21T04:03:55Z.
+> The ticket is Done. Its write-up reaches the same diagnosis this doc landed on
+> after correction: the counters increment correctly each run and are discarded
+> when the nightly PR closes unmerged, so the threshold of 3 is unreachable
+> because the base never moves.
+>
+> **The freeze did not lift.** The stall clock addresses the *degraded* path, and
+> 2 of the last 3 nightlies were *blind* — `schema_invalid: source-collector:
+> 'prs' is a required property` (#271 on 09-18, #273 on 09-20). A blind run emits
+> no `state.json` at all, so the stall clock has nothing to write. That is now
+> tracked as **CCE-177**, which is where the live work is.
+>
+> Kept for its method warning at the end, and as the record of a false finding and
+> its correction (CCE-175 comments 16047 and 16090).
+
 Open the session with cwd `~/Projects/engineering-docs-agent`, from a **new terminal tab**
 — not from a shell that is a descendant of another Claude process, or it inherits that
 process's seatbelt profile and lands write-fenced.
