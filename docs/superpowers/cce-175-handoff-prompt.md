@@ -32,14 +32,16 @@ production data and part is still inferred; the Iron Law applies to the inferred
 - **PR #221 merged 2026-08-14, eight days before the baseline** — it is outside the review
   window. Per `next_deferral_counts` rule 3, a PR not in the window is carried forward
   unchanged, so that `1` is a fossil that never moves.
-- The window's real PRs (cached summaries `#219`–`#239`, 13 entries) have accumulated
-  **zero** deferrals, while `held_back` has been non-empty on every run.
-- Therefore the skip threshold of 3 is unreachable for exactly the PRs the valve exists to
-  release. **The counter is not merely failing to persist — it never increments.**
-- Merge-as-promotion is dead in both run shapes: a blind run (#271, 2026-09-18) emits no
-  `state.json` at all; a degraded run (#272, 2026-09-19) emits one that is semantically
-  identical to `main` (all four top-level keys compare equal; the +132/-13 diff is
-  formatting churn only).
+- **The counters increment correctly inside each run and are then thrown away.** PR #272
+  (unmerged) computes `deferral_counts` with 15 entries — `#221` at 2 and fourteen window
+  PRs at 1. Because that PR never merges, `main` keeps the stale `{#221: 1}`, and the next
+  night recomputes from it and lands on 2 again. **The threshold of 3 is unreachable
+  because the base never moves, not because counting fails.** This is the originally filed
+  root cause, confirmed — not a different one.
+- A degraded run's `state.json` write IS promotable: #272 advances `completed_at` while
+  leaving `last_successful_run.head_sha` at `12c3125c`, so merging it persists the counters
+  **without** advancing the watermark past undocumented work. A blind run (#271,
+  2026-09-18) emits no `state.json` at all and has nothing to promote.
 - Degradation is measurable: gap-check coverage fell from 14/15 (2026-09-13) to 5/15
   (2026-09-19) at the same 2100s budget.
 
@@ -60,12 +62,19 @@ the symptom.
 
 ## Step 2 — decide the recovery shape, then ask before acting
 
-This is a real decision, not a detail: **both the deferral-skip valve and a manual baseline
-advance ABANDON the held PRs rather than documenting them.** 28 days of merged work would go
-permanently undocumented either way. Options are roughly:
+**There is an escape that needs no code change: merge the nightly PR by hand.** That
+persists the deferral counters to `main`; two or three merged nightlies later the counts
+reach the threshold of 3 and the skip valve arms itself. Verify before each merge that
+`last_successful_run.head_sha` is unchanged in the diff — that is what makes the merge safe.
 
-1. Let the fixed valve release naturally (~3 nights after the fix lands; abandons the window).
-2. Hand-write a baseline rewind on `main` (abandons it too).
+That is recovery, not a fix: the valve then ABANDONS the held PRs rather than documenting
+them, so ~28 days of merged work goes undocumented. So does a manual baseline rewind.
+Options are roughly:
+
+1. Merge nightlies by hand until the valve arms (~2-3 nights, no code change; abandons the
+   window).
+2. Fix the persistence path so counters survive without an operator merge, then let it
+   release (abandons the window too).
 3. Advance the baseline in stages so the window shrinks to a size the pipeline can process,
    documenting each slice.
 
@@ -104,9 +113,14 @@ changes in apply order **3 → 1 → 2** as recorded in
 The order is load-bearing: change 3 moves text, change 1 edits text that change 3 may have
 moved, change 2 adds a new bullet.
 
-## Spin-off noted, not filed
+## Method warning, learned the hard way here
 
-The nightly `state.json` write produces a ~132-line diff with zero semantic change — the
-serializer emits unstable output for identical state. It inflates every nightly PR and makes
-a real advance hard to spot in review. Worth its own ticket; triage it, don't fold it into
-CCE-175.
+An earlier pass on this ticket claimed the nightly's `state.json` diff was semantically
+empty. It was not. The comparison had been run against `FETCH_HEAD` after
+`git fetch origin pull/272/head:pr272` failed silently under `2>/dev/null`, leaving
+`FETCH_HEAD` pointing at `origin/main` — so it compared `main` against `main` and read the
+tautology as a finding.
+
+**Resolve a PR ref explicitly and check it.** Use `gh pr diff <N>`, or
+`gh pr view <N> --json headRefOid` and `git show <sha>:<path>`. Never let a fetch failure
+reach a comparison, and never pipe one to `/dev/null`.
