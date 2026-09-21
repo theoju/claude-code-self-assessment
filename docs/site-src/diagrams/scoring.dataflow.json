@@ -1,0 +1,299 @@
+{
+  "schema_version": 1,
+  "diagram_type": "dataflow",
+  "meta": {
+    "title": "Self-Assessment Scoring Data Flow",
+    "locale": "en",
+    "quality_profile": "showcase",
+    "viewBox": [
+      1080,
+      660
+    ],
+    "views": [
+      {
+        "id": "setup-axis",
+        "label": "Platform Setup axis",
+        "focus": [
+          "claude-config",
+          "signals",
+          "setup-axis",
+          "assessment"
+        ],
+        "note": "Config state on disk becomes the Platform Setup score: are the tools in place?"
+      },
+      {
+        "id": "execution-axis",
+        "label": "Execution axis",
+        "focus": [
+          "usage-data",
+          "transcripts",
+          "insights",
+          "classify",
+          "exec-axis"
+        ],
+        "note": "Cooked telemetry and opt-in transcripts become the Execution score: are the tools being used?"
+      },
+      {
+        "id": "gates",
+        "label": "Honesty gates",
+        "focus": [
+          "transcripts",
+          "classify",
+          "exec-axis"
+        ],
+        "note": "Session classification decides which sessions may sit in an Execution ratio denominator."
+      }
+    ]
+  },
+  "stages": [
+    {
+      "label": "Sources"
+    },
+    {
+      "label": "Collect"
+    },
+    {
+      "label": "Score"
+    },
+    {
+      "label": "Store"
+    },
+    {
+      "label": "Consume"
+    }
+  ],
+  "nodes": [
+    {
+      "id": "claude-config",
+      "type": "database",
+      "label": "~/.claude/",
+      "sublabel": "settings · craft",
+      "stage": 0,
+      "row": 1,
+      "width": 110
+    },
+    {
+      "id": "usage-data",
+      "type": "database",
+      "label": "usage-data/",
+      "sublabel": "facets · sessions",
+      "stage": 0,
+      "row": 2,
+      "width": 110
+    },
+    {
+      "id": "transcripts",
+      "type": "database",
+      "label": "transcripts",
+      "sublabel": "projects/*.jsonl",
+      "stage": 0,
+      "row": 3,
+      "width": 110
+    },
+    {
+      "id": "signals",
+      "type": "backend",
+      "label": "Setup signals",
+      "sublabel": "signals.mjs",
+      "stage": 1,
+      "row": 1,
+      "width": 110
+    },
+    {
+      "id": "insights",
+      "type": "backend",
+      "label": "Exec signals",
+      "sublabel": "insights-signals",
+      "stage": 1,
+      "row": 2,
+      "width": 110
+    },
+    {
+      "id": "classify",
+      "type": "security",
+      "label": "Session kind",
+      "sublabel": "fail-closed",
+      "stage": 1,
+      "row": 3,
+      "width": 110
+    },
+    {
+      "id": "setup-axis",
+      "type": "backend",
+      "label": "Platform Setup",
+      "sublabel": "12 dimensions",
+      "stage": 2,
+      "row": 1,
+      "width": 110
+    },
+    {
+      "id": "exec-axis",
+      "type": "backend",
+      "label": "Execution",
+      "sublabel": "12 dimensions",
+      "stage": 2,
+      "row": 2,
+      "width": 110
+    },
+    {
+      "id": "assessment",
+      "type": "database",
+      "label": "app/data/",
+      "sublabel": "assessment.json",
+      "stage": 3,
+      "row": 1,
+      "width": 110
+    },
+    {
+      "id": "dashboard",
+      "type": "frontend",
+      "label": "Dashboard",
+      "sublabel": "tiles + radar",
+      "stage": 4,
+      "row": 0,
+      "width": 110
+    },
+    {
+      "id": "slack",
+      "type": "external",
+      "label": "Slack",
+      "sublabel": "aggregate only",
+      "stage": 4,
+      "row": 2,
+      "width": 110
+    }
+  ],
+  "flows": [
+    {
+      "id": "config-signals",
+      "from": "claude-config",
+      "to": "signals",
+      "label": "config state",
+      "classification": "local only",
+      "variant": "emphasis"
+    },
+    {
+      "id": "usage-insights",
+      "from": "usage-data",
+      "to": "insights",
+      "label": "telemetry",
+      "classification": "cooked by /insights",
+      "variant": "emphasis",
+      "route": "straight",
+      "labelDy": -16
+    },
+    {
+      "id": "transcripts-insights",
+      "from": "transcripts",
+      "to": "insights",
+      "label": "commands",
+      "classification": "opt-in scan",
+      "variant": "dashed",
+      "labelDy": -18,
+      "channelX": 245,
+      "route": "vertical-channel",
+      "labelDx": -40
+    },
+    {
+      "id": "transcripts-classify",
+      "from": "transcripts",
+      "to": "classify",
+      "label": "entrypoint",
+      "classification": "opt-in scan",
+      "variant": "dashed",
+      "route": "straight",
+      "labelDy": -24
+    },
+    {
+      "id": "session-universe",
+      "from": "classify",
+      "to": "exec-axis",
+      "label": "denominator",
+      "classification": "interactive only",
+      "variant": "security"
+    },
+    {
+      "id": "signals-setup",
+      "from": "signals",
+      "to": "setup-axis",
+      "label": "presence",
+      "classification": "raw score",
+      "variant": "emphasis",
+      "route": "straight"
+    },
+    {
+      "id": "insights-exec",
+      "from": "insights",
+      "to": "exec-axis",
+      "label": "ratios",
+      "classification": "raw score",
+      "variant": "emphasis",
+      "route": "straight",
+      "labelDy": -16
+    },
+    {
+      "id": "setup-scores",
+      "from": "setup-axis",
+      "to": "assessment",
+      "label": "setup scores",
+      "classification": "0-100",
+      "variant": "emphasis",
+      "route": "straight",
+      "labelDy": -16
+    },
+    {
+      "id": "exec-scores",
+      "from": "exec-axis",
+      "to": "assessment",
+      "label": "exec scores",
+      "classification": "0-100",
+      "variant": "emphasis",
+      "labelDy": 18
+    },
+    {
+      "id": "assessment-dashboard",
+      "from": "assessment",
+      "to": "dashboard",
+      "label": "reads JSON",
+      "classification": "localhost",
+      "variant": "emphasis"
+    },
+    {
+      "id": "assessment-slack",
+      "from": "assessment",
+      "to": "slack",
+      "label": "if enabled",
+      "classification": "no paths or names",
+      "variant": "dashed"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "Two axes",
+      "items": [
+        "Platform Setup asks whether the tools are in place; Execution asks whether they fired",
+        "Both axes score the same 12 dimensions and are never collapsed into one number",
+        "Per dimension: clamp(round(raw / target × 100)); weights and targets come from rubric.json"
+      ]
+    },
+    {
+      "dot": "violet",
+      "title": "Honesty gates",
+      "items": [
+        "Posture ratios count interactive sessions only; an unrecognized entrypoint never dilutes the denominator",
+        "A ratio's numerator must be a subset of its denominator's universe",
+        "null means the transcripts were not scanned — it is not a zero"
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "Windows",
+      "items": [
+        "Cooked telemetry is capped at 30 days (scoring.insightsLookbackDays)",
+        "Cumulative all-time counters stay out of windowed ratios",
+        "The transcript scan is opt-in: --include-transcripts, off by default"
+      ]
+    }
+  ]
+}

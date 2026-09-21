@@ -99,6 +99,28 @@ engineering-docs-agent's nightly fills in lens pages + `whats-new.md`.
 - Plan: `docs/superpowers/plans/archived/2026-06-01-mkdocs-upgrade.md`
 - Config: `.engineering-docs-agent/config.yml` (`framework: mkdocs`)
 
+### Diagrams
+
+Archify diagrams live in **`docs/site-src/diagrams/`** — never `docs/diagrams/`.
+Both halves go there: the `.json` spec (the source of truth) and the delivered
+`.html` (a committed build artifact, ~800 KB each, which mkdocs copies through
+as a static file). Outside `docs_dir` the catalog's relative link fails
+`mkdocs build --strict` even though the file exists on disk — the
+consumer-tool rule above, in its cheapest form. Adding or re-rendering a
+diagram means updating `docs/site-src/diagrams/index.md`'s catalog row in the
+same change, including the commit in "Rendered from".
+
+Render with `archify deliver` (never `validate` alone — `deliver` is the
+acceptance gate) at `--quality showcase`, and pass `--repo-root .` whenever
+the spec declares `meta.repository`, or it refuses to render. Two constraints
+bite in practice: showcase enforces a minimum projected font size at a 1440px
+viewport, which caps an architecture `viewBox` at roughly 1390 units wide; and
+a `dataflow`'s stage pitch is fixed (~215px), so a wider `viewBox` only adds
+empty space — widen the label corridors by making nodes _narrower_ instead.
+Browser evidence via `archify visual-check` does not work here: Chrome fails
+with `sandbox initialization failed: Operation not permitted`, with the shell
+sandbox off and under Playwright alike, so visual review is a human step.
+
 ## Tests
 
 ```bash
