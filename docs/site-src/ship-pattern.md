@@ -43,8 +43,8 @@ To author your own copy:
 2. Create `~/.claude/commands/ship.md` as a thin slash-command entry
    point that delegates to a `ship` skill.
 3. Create `~/.claude/skills/ship/SKILL.md` as the hub and break stage
-   details into spokes (`spokes/pre-flight.md`, `spokes/test-detection.md`,
-   `spokes/jira-update.md`, etc.). Hub-and-spokes keeps the slash command
+   details into spokes (a `pre-flight` spoke, a `test-detection` spoke, a
+   `jira-update` spoke, and so on). Hub-and-spokes keeps the slash command
    small (it's loaded into every session).
 4. Wire test-command detection through a small shell script at
    `~/.claude/skills/ship/lib/detect-test-cmd.sh` (echo the detected

@@ -2,7 +2,7 @@
 
 **Captured:** 2026-05-10
 **Source:** Boris Cherny's tip threads (and team-member additions where noted) on X/Twitter, posted Jan 2 2026 → Apr 16 2026.
-**Purpose:** Canonical reference for the 87-tip classification (`docs/tip-classification-2026-05-10.md`) and the dashboard's `boris-tips-content.json`. The dashboard data file currently holds 75 tips; this reference is the source-of-truth for the missing 12 (rows 76–87 in the classification doc).
+**Purpose:** Canonical reference for the 87-tip classification (`docs/site-src/tip-classification-2026-05-10.md`) and the dashboard's `boris-tips-content.json`. The dashboard data file currently holds 75 tips; this reference is the source-of-truth for the missing 12 (rows 76–87 in the classification doc).
 
 The threads are reproduced as posted, with thread numbers, posting dates, and link placeholders preserved. Tips within each thread are listed in the order Boris posted them.
 
@@ -128,7 +128,7 @@ The threads are reproduced as posted, with thread numbers, posting dates, and li
 
 ## Notes on numbering
 
-The numbering above is sequential across all threads as posted (1–86 in this capture). The dashboard's classification doc treats the canonical Boris post as 87 tips; the 87th may be a more recent thread item not present in this capture. In `docs/tip-classification-2026-05-10.md` the row numbers are mapped to the dashboard's data-file ordering, which clusters related deep-dives differently — see that doc's rows 76–87 for the gap-filled mapping into the 75-row data file.
+The numbering above is sequential across all threads as posted (1–86 in this capture). The dashboard's classification doc treats the canonical Boris post as 87 tips; the 87th may be a more recent thread item not present in this capture. In `docs/site-src/tip-classification-2026-05-10.md` the row numbers are mapped to the dashboard's data-file ordering, which clusters related deep-dives differently — see that doc's rows 76–87 for the gap-filled mapping into the 75-row data file.
 
 ## Provenance
 
