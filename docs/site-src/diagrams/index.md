@@ -1,3 +1,11 @@
+---
+status: draft
+sources:
+  - https://github.com/theoju/claude-code-self-assessment/pull/246
+  - https://github.com/theoju/claude-code-self-assessment/pull/249
+synthesized_into: []
+---
+
 # Diagrams
 
 Interactive diagrams of this repo, generated with the
