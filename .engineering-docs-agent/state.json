@@ -1,162 +1,11 @@
 {
   "version": "1",
   "last_successful_run": {
-    "head_sha": "175162e1e085e8b326ed0579ec2bcbde0a22ed73",
-    "completed_at": "2026-09-15T12:37:49.109764+00:00"
+    "head_sha": "f885ec5fcd079afd0e8d0b788babaeff740952cb",
+    "completed_at": "2026-09-22T12:33:21.937924+00:00"
   },
   "dismissed_gap_flags": {},
   "pr_summaries": {
-    "theoju/claude-code-self-assessment#197": {
-      "merge_sha": "017f671a3f30a7a3a5bc620172cbeb86f6f74240",
-      "fingerprint": "e6d7c2a0894b9d2f",
-      "last_seen_at": "2026-08-21T08:02:55.672830+00:00",
-      "summary": {
-        "pr_number": 197,
-        "what_changed": "Added a GitHub Actions CI workflow (`.github/workflows/ci.yml`) that runs on every pull request and push to `main`: install deps, lint, typecheck, unit tests, and build. Restored working lint by adding eslint 9 and eslint-config-next 16 as devDependencies with a flat `eslint.config.mjs` (Next 16 removed the old `next lint` subcommand, which had silently been broken with no fallback), repointed the `lint` script at `eslint .`, fixed the small number of real lint findings after excluding vendored/build directories from the ignore set, and fixed two pre-existing TypeScript errors that `next build` doesn't catch.",
-        "why": "The repo had no CI gating code changes \u2014 all existing workflows were path-gated to `docs/site-src/**`, so PRs touching `scripts/` or `app/` merged with zero automated verification (confirmed empirically: PR #196 reported no checks). Separately, lint had been dead since the Next 16 upgrade because nothing in CI ever ran it, letting the breakage go unnoticed.",
-        "breaking": false,
-        "doc_targets": [
-          {
-            "lens": "core",
-            "action": "create",
-            "page_hint": "2026-08-21-ci-lint-restoration.md",
-            "doc_kind": "decision",
-            "notes": "Records the gap (no code CI, dead lint since Next 16) and the fix (new ci.yml gating lint/typecheck/test/build, eslint 9 flat config). No architecture/ or operations/ section exists yet under core (available_sections only lists images), so this lands as a flat dated page at the lens root; consider migrating into an operations/ section if/when CI and workflow docs accumulate there."
-          }
-        ],
-        "notes": "PR also updated the repo's own CLAUDE.md and several test files as part of restoring a clean lint/typecheck baseline; these are implementation details already covered by the single summary page above and don't warrant separate doc targets. Follow-up mentioned in the PR body (branch-protection rule requiring the new check) is not yet implemented and isn't reflected as a separate doc target."
-      }
-    },
-    "theoju/claude-code-self-assessment#196": {
-      "merge_sha": "d69710b5e1d7427501d6623b4eb404676ea37ac3",
-      "fingerprint": "e6d7c2a0894b9d2f",
-      "last_seen_at": "2026-08-21T16:48:03.256883+00:00",
-      "summary": {
-        "pr_number": 196,
-        "what_changed": "Reworked the `commands` criterion in the CLAUDE.md health auditor (`scripts/claude-md-audit.mjs`). It previously scored 7 points per fenced code block containing a recognized tool keyword, which rewarded fragmenting commands into many small blocks and ignored commands documented in linked `.md` files. The new `countCommandLines()` counts actual executable command lines inside fences (stripping `$ ` prompts, skipping blanks/comments), and `extractDocRefs`/`resolveLinkedCommands` follow backticked-path, markdown-link, and `@import` references to linked docs (bounded to the target root, `.md` only, max 25 files, 256 KB each) and credit their command lines at half weight (capped at 10 of the 20 possible points). The recognized tool-token list was also broadened to cover Python-first tooling (`uv`, `pytest`, `ruff`, `mypy`, `alembic`, `prefect`) alongside existing tokens. `scoreFile()` gains an optional 4th `opts.linkedCommandLines` parameter (default 0); all existing 3-arg call sites are unaffected.",
-        "why": "A real CLAUDE.md audited at 7/20 on the commands criterion despite thoroughly documenting build/test/run commands, because it consolidated commands into one well-organized fenced block (penalizing consolidation) and referenced 23 linked `.md` docs containing the actual command lines, none of which the auditor read. The criterion was measuring a proxy (fence count) instead of the property it claims to score (does this file tell an agent how to build/test/run), and unrecognized Python tooling made the problem worse for non-JS repos. The fix realigns the metric with intent and was calibrated against the real file (83/B \u2192 96/A, commands 7/20 \u2192 20/20).",
-        "breaking": false,
-        "doc_targets": [
-          {
-            "lens": "core",
-            "action": "create",
-            "page_hint": "2026-08-21-claude-md-audit-command-scoring.md",
-            "doc_kind": "architecture",
-            "notes": "Documents the new countCommandLines/extractDocRefs/resolveLinkedCommands scoring mechanism and the `commands = min(20, ownLines*4 + min(10, linkedLines*2))` formula so the audit tool's behavior is discoverable outside the source diff and design spec. No existing architecture/operations section exists under the core lens yet (only images/), so this lands as a flat root page pending a future architecture/ directory."
-          }
-        ],
-        "notes": "No probe, predicate, or signalsSummary change per the PR's own 'Not in scope' note, so no changes needed to probe-tracker-adjacent docs. The PR's own design spec already lives in-repo at docs/superpowers/specs/2026-08-20-claude-md-commands-scorer-design.md; that is a source-tree planning doc, not a docs-site page, so it is not treated as an existing doc_target match."
-      }
-    },
-    "theoju/claude-code-self-assessment#198": {
-      "merge_sha": "6c32f0f9434db9ade6f04b055b79aba0416de8fd",
-      "fingerprint": "e6d7c2a0894b9d2f",
-      "last_seen_at": "2026-08-21T16:48:03.256883+00:00",
-      "summary": {
-        "pr_number": 198,
-        "what_changed": "Lands a design spec (CCE-163) proposing a redesign of the Memory & Context Management Execution scorer, plus the telemetry survey and probe-catalog/test updates that back it \u2014 no scorer numerator change ships in this PR. The spec documents three measurement defects in the same class as CCE-161's fenced-block-counting bug, surveys 2,019 transcripts over a 30-day window, and finds graphify (127 sessions) as a real but currently uncounted usage signal, while noting claude-mem is passive hook capture (Platform posture, not Execution behavior). It recommends unioning session-coverage across /clear, /compact, graphify invocations, and claude-mem tool_use, gated against interactiveOrUnknownSessionsAnalyzed. One open decision \u2014 whether auto-compact configuration should be evidence-only (A) or suppress the manual-command expectation (B) \u2014 blocks implementation; the spec recommends (A).",
-        "why": "Memory & Context Management currently scores Platform 100 / Execution 33, derived from a two-slash-command numerator (70 session-coverage hits / 353 sessions). CCE-79 established design-before-implement as the required pattern before touching a scorer numerator, given the risk of silently corrupting a ratio (as happened with the /btw cumulative-vs-windowed defect). This PR performs that design step for CCE-163: surveying real telemetry to identify undercounted signals before proposing a redesigned numerator, rather than editing score.mjs directly.",
-        "breaking": false,
-        "doc_targets": [
-          {
-            "lens": "core",
-            "action": "create",
-            "page_hint": "2026-08-21-memory-execution-scorer-redesign-cce163.md",
-            "doc_kind": "decision",
-            "notes": "Digest of the CCE-163 design spec: documents the three measurement defects found in the Memory Execution scorer, the transcript survey results (graphify as the real uncounted signal, claude-mem as posture-not-execution), the recommended union-based session-coverage redesign, and the open auto-compact evidence-vs-suppress decision that blocks implementation. Follow up with an architecture-page edit once the implementation PR lands and the scorer's actual formula changes."
-          }
-        ],
-        "notes": "This is a design-only PR (per its own description) \u2014 the scorer itself (scripts/score.mjs, scripts/_usage-data.mjs) is unchanged in behavior; the touched .mjs/test files support the telemetry survey and probe-catalog updates cited in the spec, not a shipped numerator change. No existing architecture/ or archive/ section exists yet under the core lens (only images/), so the digest target uses a flat root-level slug; once the section structure exists this should move under archive/ or be linked from an architecture/memory-scoring.md page when the follow-up implementation PR lands."
-      }
-    },
-    "theoju/claude-code-self-assessment#199": {
-      "merge_sha": "a23f96584972abbb61852b060f031f7cbb514725",
-      "fingerprint": "e6d7c2a0894b9d2f",
-      "last_seen_at": "2026-08-21T16:48:03.256883+00:00",
-      "summary": {
-        "pr_number": 199,
-        "what_changed": "Fixed the session-kind classifier (`classifySessionKind` in `scripts/_usage-data.mjs`) to fail closed on unrecognized transcript entrypoints. Previously it enumerated known SDK entrypoints and let anything else fall through to `unknown`, which is admitted by the `interactive_or_unknown` posture universe used by Memory & Terminal Execution scoring. An unhandled `sdk-py` entrypoint plus a 5-line scan bound (too shallow for transcripts that lead with `queue-operation`/`attachment` rows) caused 265 of 612 in-window sessions (43%) to misclassify as `unknown`, diluting the Memory Execution denominator to 353 against a true 93 (3.8x) and scoring a well-instrumented machine at 37/100. The fix inverts the classifier to an allow-list (`INTERACTIVE_ENTRYPOINTS = {cli, claude-desktop}`) so every other entrypoint resolves to `observer` or `sdk_orchestrated` instead of `unknown`, and raises the scan bound to `ENTRYPOINT_SCAN_BOUND = 200`.",
-        "why": "Root cause was a classifier that failed open instead of closed: unknown/unhandled entrypoints and an undersized scan window silently entered a posture-scoring denominator meant to represent only user-driven interactive sessions, producing a severely understated Memory Execution score. Fixing this restores denominator integrity (93 true interactive-or-unknown sessions vs. the inflated 353) and moved Memory Execution 37\u219a100 and overall Execution 60\u219a68 on the measured machine.",
-        "breaking": false,
-        "doc_targets": [
-          {
-            "lens": "core",
-            "action": "create",
-            "page_hint": "2026-08-21-session-classifier-fail-closed.md",
-            "doc_kind": "decision",
-            "notes": "Postmortem/decision record for CCE-164: documents the fail-open\u2192fail-closed classifier defect, the 3.8x denominator dilution it caused, and the allow-list + scan-bound fix. No architecture/ or archive/ section exists yet under core (only images/), so this lands as a flat dated page at the lens root per convention."
-          }
-        ],
-        "notes": "PR also updates CLAUDE.md (hard-rules entry already documents the incident and the allow-list contract) and two design docs under docs/superpowers/specs and plans; those are source-of-truth engineering docs already maintained by the repo's own conventions, not additional targets for the docs-agent lens."
-      }
-    },
-    "theoju/claude-code-self-assessment#200": {
-      "merge_sha": "17f307579a2be94ff77373ae49154a21208d833a",
-      "fingerprint": "e6d7c2a0894b9d2f",
-      "last_seen_at": "2026-08-21T16:48:03.256883+00:00",
-      "summary": {
-        "pr_number": 200,
-        "what_changed": "Version-bump-only release PR (0.9.19 \u2192 0.9.20) that ships no new code itself \u2014 it aggregates 20 already-merged commits (73 files, +13,856/-1,092) into a tagged release. Headline groups covered by earlier PRs: the session-classifier fix chain (CCE-161\u2013164) that corrected posture-denominator dilution from misclassified sessions; the Memory Execution numerator redesign (CCE-79, #128); the new mkdocs docs site + GitHub Pages publishing (CCE-81/#121, CCE-82/#125); and a dashboard graphite/electric-blue retheme (#177).",
-        "why": "Routine release cadence to cut a tagged version capturing the accumulated fixes and features since v0.9.19, per the project's release-branch-PR convention.",
-        "breaking": false,
-        "doc_targets": [
-          {
-            "lens": "core",
-            "action": "create",
-            "page_hint": "2026-08-21-release-0.9.20.md",
-            "doc_kind": "decision",
-            "notes": "Release digest only. The substantive underlying changes (session-classifier fixes CCE-161-164, memory scorer redesign CCE-79, mkdocs docs site CCE-81/82, dashboard retheme) are documented by their own respective PR summaries; this entry just anchors the v0.9.20 tag as a point-in-time release note and should link out to those rather than duplicate detail."
-          }
-        ],
-        "notes": "PR itself only touches package.json/package-lock.json (a pure version bump); no functional doc-target is needed beyond a release-note digest, since all real changes were already captured by prior PRs in this cycle.",
-        "error": null,
-        "partial": false
-      }
-    },
-    "theoju/claude-code-self-assessment#202": {
-      "merge_sha": "d66daf1c9b3d7c374387ff99f1d820c13b086c9f",
-      "fingerprint": "e6d7c2a0894b9d2f",
-      "last_seen_at": "2026-08-21T16:48:03.256883+00:00",
-      "summary": {
-        "pr_number": 202,
-        "what_changed": "Rewound the engineering-docs-agent's collection baseline bookmark (`last_successful_run.head_sha`) in `.engineering-docs-agent/state.json` from 17f30757 to 017f671a (the merge of PR #197, parent of #196's merge). This re-opens the nightly collection window to re-include PRs #196, #198, #199, and #200, allowing two docs pages that were stranded by a blocked nightly run to be re-authored on the next cycle. Data-only change; no code was touched.",
-        "why": "The 2026-08-21 nightly run (32460602658, PR #201) authored 5 pages but blocked 2: `2026-08-21-memory-execution-scorer-redesign-cce163.md` (PR #198) was blocked by a CCE-145 linter false positive that has since been fixed upstream, and `2026-08-21-claude-md-audit-command-scoring.md` (PR #196) was blocked by a genuine broken internal link. Despite both being blocked, the collection bookmark still advanced past them, so future nightly runs would never revisit that window and the two pages would stay permanently stranded. Rewinding the baseline recovers the window so both can be re-authored.",
-        "breaking": false,
-        "doc_targets": [
-          {
-            "lens": "core",
-            "action": "create",
-            "page_hint": "2026-08-21-cce145-collection-baseline-rewind.md",
-            "doc_kind": "decision",
-            "notes": "Short incident/recovery note: CCE-145 linter false positive stranded two docs-agent pages behind an advanced collection bookmark; state.json baseline was rewound to 017f671a to reopen the window for PRs #196, #198, #199, #200. No architecture or behavior change beyond the docs-agent's own operational state."
-          }
-        ],
-        "notes": "Pure state/bookmark change confined to the docs-agent pipeline's own tracking file \u2014 no application code or user-facing behavior changed. The doc_target above is a lightweight operational note rather than an architecture-page edit, since core's available_sections has no operations/archive subdirectory yet."
-      }
-    },
-    "theoju/claude-code-self-assessment#204": {
-      "merge_sha": "a5219d762c07d2165de9d6cb592fe9365f7325e7",
-      "fingerprint": "e6d7c2a0894b9d2f",
-      "last_seen_at": "2026-08-21T16:48:03.256883+00:00",
-      "summary": {
-        "pr_number": 204,
-        "what_changed": "Set the engineering-docs-agent's nightly run time budget (`run.time_budget_seconds`) to 2100 seconds in `.engineering-docs-agent/config.yml`, capping how long a single automated docs run is allowed to execute.",
-        "why": "The GitHub App installation token used by the docs-agent has a fixed 3600-second TTL. A run that took longer than that risked having its token expire mid-run, breaking later pipeline stages (e.g. commits/PR creation) with an authentication failure. Capping the budget at 2100s leaves comfortable headroom before expiry.",
-        "breaking": false,
-        "doc_targets": [
-          {
-            "lens": "core",
-            "action": "create",
-            "page_hint": "2026-08-21-docs-agent-time-budget.md",
-            "doc_kind": "decision",
-            "notes": "No architecture/operations/archive section exists yet under the core lens (only 'images'), so this lands as a flat dated page at the lens root; migrate into an operations/ or archive/ section once one exists."
-          }
-        ],
-        "notes": null,
-        "error": null,
-        "partial": false
-      }
-    },
     "theoju/claude-code-self-assessment#227": {
       "merge_sha": "9ca4413fab0478168908db5e16c3f31d94a547b1",
       "fingerprint": "e6d7c2a0894b9d2f",
@@ -253,7 +102,7 @@
     "theoju/claude-code-self-assessment#235": {
       "merge_sha": "f885ec5fcd079afd0e8d0b788babaeff740952cb",
       "fingerprint": "e6d7c2a0894b9d2f",
-      "last_seen_at": "2026-09-15T12:45:13.658908+00:00",
+      "last_seen_at": "2026-09-22T12:46:09.702517+00:00",
       "summary": {
         "pr_number": 235,
         "what_changed": "Added a follow-up note in docs/superpowers/ documenting a verified, still-open CLAUDE.md correction in the sibling engineering-docs-agent repo: the claim that CCE-101 auto-merge eligibility depends on fact-checker warnings remains false on that repo's main branch, contradicted by `_maybe_auto_merge`'s own docstring. The note captures the verified anchor and replacement text so the fix can be applied in a single edit later.",
@@ -274,7 +123,7 @@
     "theoju/claude-code-self-assessment#236": {
       "merge_sha": "134bb3837e9051f48d8830d3203c9961800d8d11",
       "fingerprint": "e6d7c2a0894b9d2f",
-      "last_seen_at": "2026-09-15T12:45:13.658908+00:00",
+      "last_seen_at": "2026-09-22T12:46:09.702517+00:00",
       "summary": {
         "pr_number": 236,
         "what_changed": "Adds a design spec proposing a durable counter (`citation_shortening_observations` in `state.json`, with `total_ever` plus a `recent[]` FIFO sample, single writer in `state_io.py`) to unblock CCE-172, plus a short followup note on the CCE-101 eligibility claim. No code changes in this repo \u2014 the spec documents work that will land in the sibling `engineering-docs-agent` repo.",
@@ -291,10 +140,223 @@
         ],
         "notes": "The PR's actual artifacts (docs/superpowers/specs/2026-09-13-cce172-shortening-observations-design.md and the CCE-101 followup note) already live in this repo's own docs/superpowers tree and are not themselves lens-published pages; the doc_target here is a distilled decision-record entry for the published docs site rather than a copy of the spec file."
       }
+    },
+    "theoju/claude-code-self-assessment#238": {
+      "merge_sha": "cd85a220d5c50532db5b256c9b0d8e3bcb9255b8",
+      "fingerprint": "e6d7c2a0894b9d2f",
+      "last_seen_at": "2026-09-22T12:46:09.702517+00:00",
+      "summary": {
+        "pr_number": 238,
+        "what_changed": "Added three new project-memory rules to CLAUDE.md distilled from the CCE-170/171/172/173 incident cycle: (1) before removing or fixing something that persists data by accident, check what else reads it, since a file committed by mistake can still be a durable record something depends on; (2) a detection mechanism shipped in place of a withdrawn fix must state its exit criterion (threshold and date) in the same PR, so a measured zero doesn't linger as an indefinitely-carried detector; (3) a zero returned from a key that doesn't exist in a schema looks identical to a genuine zero, so any 'absence' finding should be reported alongside a positive control proving the recording channel actually works.",
+        "why": "Each rule captures a concrete process lesson from real incidents in the CCE-170 through CCE-174 cycle: CCE-174 found that removing accidental persistence (a committed diagnostic file) destroyed the only durable archive of CCE-141 firing data another initiative depended on; CCE-141 itself was withdrawn without an exit criterion and sat producing zero findings for three weeks before anyone could answer whether the detector was still needed; and a 2026-09-13 investigation nearly mistook a nonexistent schema field's default zero for a genuine zero finding until a positive-control value was located in the same data. These rules are recorded so future agents avoid repeating the same failure modes.",
+        "breaking": false,
+        "doc_targets": [
+          {
+            "lens": "core",
+            "action": "create",
+            "page_hint": "2026-09-22-cce170-cycle-lessons.md",
+            "doc_kind": "decision",
+            "notes": "Summarizes the three process/lessons-learned rules added to CLAUDE.md from the CCE-170/171/172/173/174/141 incident cycle (accidental-persistence dependency checks, exit criteria for stopgap detectors, and positive-control verification for absence findings). No available architecture/archive section exists yet under the core lens (only diagrams/images), so this lands as a flat dated page at the lens root; move into an archive/ section once one is established."
+          }
+        ],
+        "notes": "This PR only touches CLAUDE.md (project memory), not application code or the docs site itself. The proposed doc target captures the substance of the added rules as a decision/lessons-learned record for the docs site, since CLAUDE.md itself is not part of the published docs lens."
+      }
+    },
+    "theoju/claude-code-self-assessment#240": {
+      "merge_sha": "a8e5d057a24c6f9d8411fa364583a69dd19cc157",
+      "fingerprint": "e6d7c2a0894b9d2f",
+      "last_seen_at": "2026-09-22T12:46:09.702517+00:00",
+      "summary": {
+        "pr_number": 240,
+        "what_changed": "Added a root-cause investigation documenting why the engineering-docs-agent's published documentation baseline has been frozen for 23 days (since 2026-08-22). The analysis identifies that CCE-140's deferral-skip release valve is self-defeating: its counter only persists on a successful merge, so the mechanism designed to unblock stalled merges can never accumulate enough state to reach its own trigger threshold. The report distinguishes this from a prior, superficially similar CCE-152 incident \u2014 same symptom (frozen baseline), different underlying cause.",
+        "why": "The docs-agent pipeline stopped publishing for over three weeks and needed a documented root-cause explanation distinct from the earlier CCE-152 freeze, so operators don't misdiagnose this recurrence as the same bug and apply the wrong fix.",
+        "breaking": false,
+        "doc_targets": [
+          {
+            "lens": "core",
+            "action": "create",
+            "page_hint": "2026-09-14-docs-agent-baseline-freeze-incident.md",
+            "doc_kind": "decision",
+            "notes": "Postmortem/investigation content; no archive or operations section exists yet under core, so filed as a flat dated slug at the lens root per available_sections (diagrams, images only)."
+          }
+        ],
+        "notes": "Source PR already commits the raw incident writeup to docs/superpowers/ in-repo (specs/retrospectives area), which is not part of the published mkdocs lens tree; the proposed doc_target republishes/summarizes it as a lens-visible decision record so it surfaces to readers of the core lens rather than only living in the internal specs directory.",
+        "error": null,
+        "partial": false
+      }
+    },
+    "theoju/claude-code-self-assessment#243": {
+      "merge_sha": "ed299e6adb5efa55f4d7bf131483dc7d9fc99352",
+      "fingerprint": "e6d7c2a0894b9d2f",
+      "last_seen_at": "2026-09-22T12:46:09.702517+00:00",
+      "summary": {
+        "pr_number": 243,
+        "what_changed": "Appends a 'Decisions taken 2026-09-16' section to the existing CCE-101 follow-up note, recording four accepted recommendations as ready-to-apply text: (Q1) fix an eligibility claim by removing a duplication, (Q2) file voice-sample truncation as a new follow-up ticket (CCE-176), (Q3) introduce a new meta-bullet convention, and (Q4) adopt an ordering convention immediately, independent of CCE-176.",
+        "why": "Closes out the review/decision phase on the CCE-101 follow-up note so the four accepted recommendations are captured in writing and ready to be applied in a subsequent change, without blocking on the newly filed CCE-176 ticket.",
+        "breaking": false,
+        "doc_targets": [
+          {
+            "lens": "core",
+            "action": "create",
+            "page_hint": "2026-09-17-cce101-claude-md-decisions.md",
+            "doc_kind": "decision",
+            "notes": "Summarizes the four accepted CCE-101 follow-up decisions (eligibility-claim fix, CCE-176 filing, meta-bullet convention, ordering convention) so they're discoverable outside the raw superpowers note; core lens has no existing archive section yet, so this will be created under the lens's decision area."
+          }
+        ],
+        "notes": "Source change lives at docs/superpowers/2026-09-13-cce101-eligibility-claim-followup.md, an internal planning/decision note rather than a published docs/site-src page; the proposed doc_target surfaces the decision outcome as a discoverable decision record rather than mirroring the internal note verbatim.",
+        "partial": false
+      }
+    },
+    "theoju/claude-code-self-assessment#246": {
+      "merge_sha": "3aad88216a16fb19b8e1044fcefaaafa96089615",
+      "fingerprint": "e6d7c2a0894b9d2f",
+      "last_seen_at": "2026-09-22T12:46:09.702517+00:00",
+      "summary": {
+        "pr_number": 246,
+        "what_changed": "Adds a diagram catalog page (docs/site-src/diagrams/index.md) as a single entry point for architecture diagrams in the docs site, along with the first delivered diagram pair for the self-assessment architecture (self-assessment.architecture.json spec + .html rendered artifact). SUMMARY.md and the site index were updated to surface the new catalog page in navigation.",
+        "why": "The docs site had no central place to discover architecture diagrams; this establishes the catalog convention (JSON spec + delivered HTML, both committed under docs/site-src/diagrams/) and seeds it with the first rendered diagram, verified via mkdocs build --strict and archify deliver --quality showcase (9/9 checks).",
+        "breaking": false,
+        "doc_targets": [
+          {
+            "lens": "core",
+            "action": "edit",
+            "page_hint": "diagrams/index.md",
+            "notes": "PR already updates this catalog directly; confirm the catalog row's 'Rendered from' commit reference stays current."
+          }
+        ],
+        "notes": "The PR itself already delivers the doc changes (catalog page + diagram artifacts); this target is a verification/consistency-tracking entry rather than net-new documentation work."
+      }
+    },
+    "theoju/claude-code-self-assessment#250": {
+      "merge_sha": "1e483d1a071da827e8e19923b71eeb313706a14a",
+      "fingerprint": "e6d7c2a0894b9d2f",
+      "last_seen_at": "2026-09-22T12:46:09.702517+00:00",
+      "summary": {
+        "pr_number": 250,
+        "what_changed": "Added a pasteable handoff prompt document (docs/superpowers/cce-175-handoff-prompt.md) intended to let a fresh, unfenced session pick up work on CCE-175, the baseline deadlock that has frozen the docs pipeline since 2026-08-22. The prompt also restates standing constraints carried forward from related tickets: don't reclassify time_budget_exceeded call sites (CCE-109), don't reintroduce citation repair (CCE-141), and keep tests/scripts/ a non-package (CCE-122).",
+        "why": "The docs pipeline has been stuck in a baseline deadlock since 2026-08-22, blocking progress on CCE-175. A ready-to-paste handoff prompt lets a new session resume the investigation quickly without re-deriving the prior guardrails established by CCE-109, CCE-141, and CCE-122, reducing the risk of re-litigating already-settled fixes.",
+        "breaking": false,
+        "doc_targets": [
+          {
+            "lens": "core",
+            "action": "create",
+            "page_hint": "2026-09-22-cce-175-baseline-deadlock-handoff.md",
+            "doc_kind": "decision",
+            "notes": "Documents the ongoing CCE-175 docs-pipeline deadlock (frozen since 2026-08-22) and the handoff prompt used to resume it, plus the standing constraints (CCE-109, CCE-141, CCE-122) any resuming session must honor. Treat as a living/decision record \u2014 update or retire once CCE-175 resolves."
+          }
+        ],
+        "notes": "This PR itself only adds an internal process artifact (a handoff prompt) rather than shipping a user-facing feature; the proposed doc_target captures it as an incident/decision record for continuity rather than an architecture reference.",
+        "error": null,
+        "partial": false
+      }
+    },
+    "theoju/claude-code-self-assessment#249": {
+      "merge_sha": "d709ff3a694a5561ae70e242c221e20c63893315",
+      "fingerprint": "e6d7c2a0894b9d2f",
+      "last_seen_at": "2026-09-22T12:46:09.702517+00:00",
+      "summary": {
+        "pr_number": 249,
+        "what_changed": "Added a second entry to the Archify diagram catalog: a data-flow diagram for the scoring pipeline (docs/site-src/diagrams/scoring.dataflow.{json,html}), updated the diagram catalog index, and codified the diagram-authoring convention as a new '### Diagrams' subsection in project memory (CLAUDE.md).",
+        "why": "To document the scoring data flow visually and to record the established convention (diagrams must live under docs/site-src/diagrams/, both spec and rendered HTML, catalog updated in the same change, render via archify deliver at showcase quality) so future diagram additions follow the same pattern consistently.",
+        "breaking": false,
+        "doc_targets": [
+          {
+            "lens": "core",
+            "action": "edit",
+            "page_hint": "diagrams/index.md",
+            "doc_kind": "architecture",
+            "notes": "Diagram catalog already updated by the PR itself; this entry reflects keeping the docs lens in sync with the new scoring.dataflow diagram."
+          }
+        ],
+        "notes": "The PR itself is a docs-site change (diagrams + CLAUDE.md convention); CLAUDE.md is project memory, not a lens-published doc page, so no separate doc_target was emitted for it.",
+        "error": null,
+        "partial": false
+      }
+    },
+    "theoju/claude-code-self-assessment#251": {
+      "merge_sha": "bab01322318110c71ceec392db11a912bb0bdc5c",
+      "fingerprint": "e6d7c2a0894b9d2f",
+      "last_seen_at": "2026-09-22T12:46:09.702517+00:00",
+      "summary": {
+        "pr_number": 251,
+        "what_changed": "Corrected three inaccurate claims in the CCE-175 handoff prompt document (previously merged in PR #250). The original text derived its conclusions from comparing origin/main against a stale FETCH_HEAD ref. The PR reverses the prior recommendation: manually merging a degraded nightly build by hand persists the deferral counters without advancing the watermark, rather than resolving the underlying issue as previously claimed.",
+        "why": "PR #250 shipped a handoff prompt whose analysis rested on a stale git ref comparison, producing a wrong operational recommendation for handling degraded nightly builds under CCE-175. This PR corrects the record before the erroneous guidance is acted on.",
+        "breaking": false,
+        "doc_targets": [
+          {
+            "lens": "core",
+            "action": "create",
+            "page_hint": "2026-09-22-cce175-deferral-counter-correction.md",
+            "doc_kind": "decision",
+            "notes": "Captures the corrected understanding of CCE-175 deferral-counter behavior (manual nightly merges persist counters without advancing the watermark) so the erroneous prior claim from PR #250 isn't propagated into other docs."
+          }
+        ],
+        "notes": "The changed file itself (docs/superpowers/cce-175-handoff-prompt.md) is an internal handoff/scratch artifact, not a published lens page, so the doc target proposes a decision-style record of the correction rather than editing that file directly.",
+        "error": null,
+        "partial": false
+      }
+    },
+    "theoju/claude-code-self-assessment#252": {
+      "merge_sha": "e332a5c6d87191425103d3db09d46e6f7adf7845",
+      "fingerprint": "e6d7c2a0894b9d2f",
+      "last_seen_at": "2026-09-22T12:46:09.702517+00:00",
+      "summary": {
+        "pr_number": 252,
+        "what_changed": "Marked the CCE-175 handoff prompt as superseded: the underlying orchestrator deferral-deadlock issue was fixed and merged (engineering-docs-agent PR #274, 'break the deferral deadlock with a stall clock') while the handoff doc was still being written. However, the nightly freeze did not actually lift \u2014 2 of the last 3 nightlies still ran blind \u2014 so a new follow-up issue (CCE-177) was filed to track the persisting problem.",
+        "why": "The handoff prompt became stale mid-authorship once CCE-175 landed upstream, but marking it superseded without further note would have hidden the fact that the fix didn't resolve the observed symptom. CCE-177 exists to carry forward investigation of the still-blind nightlies.",
+        "breaking": false,
+        "doc_targets": [
+          {
+            "lens": "core",
+            "action": "create",
+            "page_hint": "2026-09-22-cce177-nightly-freeze-status.md",
+            "doc_kind": "decision",
+            "notes": "Document the CCE-175 handoff supersession and the still-open CCE-177 nightly-freeze investigation (2 of last 3 nightlies blind despite the CCE-175/PR #274 fix landing)."
+          }
+        ],
+        "notes": "Source PR only touches docs/superpowers/cce-175-handoff-prompt.md, an internal engineering-docs-agent handoff artifact, not a published docs-site page. Recommended doc_target captures the status update for the published core lens since 'core' has no architecture/archive/operations sections yet.",
+        "error": null,
+        "partial": false
+      }
+    },
+    "theoju/claude-code-self-assessment#254": {
+      "merge_sha": "ab6ef21f499f9ef7a003857dbe2a9e7642d63102",
+      "fingerprint": "e6d7c2a0894b9d2f",
+      "last_seen_at": "2026-09-22T12:46:09.702517+00:00",
+      "summary": {
+        "pr_number": 254,
+        "what_changed": "Added the required YAML frontmatter block (status, sources, synthesized_into) to the diagrams catalog page (docs/site-src/diagrams/index.md), which had shipped without it.",
+        "why": "The page's missing frontmatter tripped the docs-agent's Tier-1 frontmatter_schema lint rule (severity: block) on every nightly run that targeted it, which in turn deferred PRs #246 and #249. Adding the frontmatter unblocks those PRs' nightly docs runs.",
+        "breaking": false,
+        "doc_targets": [
+          {
+            "lens": "core",
+            "action": "edit",
+            "page_hint": "diagrams/index.md",
+            "doc_kind": "architecture",
+            "notes": "Frontmatter-only fix; page content itself is unchanged, verified via scripts/lint/frontmatter_schema.py --json and mkdocs build --strict."
+          }
+        ],
+        "notes": "No Jira context linked. This PR is a docs-infrastructure fix (frontmatter compliance) rather than a feature change, so no other lens pages are implicated.",
+        "error": null,
+        "partial": false
+      }
     }
   },
   "deferral_counts": {
-    "theoju/claude-code-self-assessment#235": 1,
-    "theoju/claude-code-self-assessment#236": 1
-  }
+    "theoju/claude-code-self-assessment#236": 2,
+    "theoju/claude-code-self-assessment#240": 1,
+    "theoju/claude-code-self-assessment#243": 1
+  },
+  "skipped_prs": [
+    {
+      "pr": "theoju/claude-code-self-assessment#235",
+      "url": "https://github.com/theoju/claude-code-self-assessment/pull/235",
+      "pages": [
+        "core/2026-09-13-cce101-eligibility-followup.md"
+      ],
+      "deferrals": 1,
+      "skipped_at": "2026-09-22T12:33:21.937924+00:00"
+    }
+  ]
 }

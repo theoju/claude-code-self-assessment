@@ -3,7 +3,9 @@ status: draft
 sources:
   - https://github.com/theoju/claude-code-self-assessment/pull/246
   - https://github.com/theoju/claude-code-self-assessment/pull/249
+  - https://github.com/theoju/claude-code-self-assessment/pull/254
 synthesized_into: []
+doc_kind: architecture
 ---
 
 # Diagrams
