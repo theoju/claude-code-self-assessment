@@ -2,9 +2,46 @@
 
 **Host:** `theoju/engineering-docs-agent` (the dogfood host).
 **Frozen since:** 2026-08-22. Last merged nightly: PR #240, same day.
-**Status:** root cause established at the structural level; one sub-question open.
+**Status:** **Resolved 2026-09-21** — see _Resolution_ below. The open
+sub-question was never answered; the fix removed its relevance.
 **Diagnosed:** 2026-09-14, from a session write-fenced to the subject repo
 (reads and `gh` only — see repo-fence postmortem, reusable lesson 7).
+**Baseline on this host:** still `2026-08-22` as of 2026-09-22 07:00Z — the
+first nightly after the CCE-178 fix had not run yet, and PR #275 (the 09-21
+`partial` run) is still open.
+
+## Resolution (2026-09-21)
+
+Fixed in `engineering-docs-agent` — not by answering the sub-question below,
+but by removing the counter from the escape path entirely:
+
+- **CCE-175 / PR #274** — the hatch now keys off
+  `last_successful_run.completed_at`, which already lives on the default branch
+  and was written but never read. It measures time since anything was promoted.
+  A night that holds nothing back is cursor-backed, so it auto-merges, and
+  merging resets the clock: progress and clock-reset are the same event.
+  `resolve_deferral_stall_days` derives its default as `threshold + 1`, keeping
+  the clock a time-domain mirror of the counter.
+- **CCE-178 / PR #276** — the first production firing exposed two defects in
+  that fix. Emptying `held_back` routed the run through the `else` branch with
+  `advance_cursor_backed = False`, so the forgiven run still could not merge —
+  the same deadlock one layer up; the flag is now `bool(skipped_numbers)`.
+  Separately the escape forgave every deferred PR, including two at **0**
+  deferrals that were blocked by an unrelated page, so forgiveness is now
+  limited to the prefix blocker.
+- **CCE-179 / PR #277** — both lessons recorded in the plugin's `CLAUDE.md`.
+
+**What this note got right:** the deadlock itself — a counter that persists
+only on merge, in the one state where nothing merges. PR #274's own measurement
+reproduces it on the sibling host.
+
+**What is still unexplained:** the asymmetry described under _Open
+sub-question_. On `claude-code-self-assessment` the counts **did** increment on
+the run branch (`{#235: 2, #236: 2, #240: 1, #243: 1}` against
+`{#235: 1, #236: 1}` on `main`), while on this host the branch map was
+byte-identical to `main` — no increment at all. The second-defect hypothesis
+was neither confirmed nor refuted. It gates nothing now, because the escape no
+longer reads the counter.
 
 ## Symptom
 
@@ -140,6 +177,10 @@ held back. The entire diagnosis had to come from diffing `state.json` between
 
 ## Recommended next steps
 
+> **Superseded 2026-09-21.** Steps 1 and 3 were overtaken by CCE-175 (#274) and
+> CCE-178 (#276) — see _Resolution_ above. Step 4, the hand rewind, was not
+> taken. Kept verbatim for the record.
+
 1. **Reproduce locally** in an unfenced session: run the orchestrator dry-run
    against the real `state.json` and window. Per the 2026-09-16 narrowing, this
    is now **one** question rather than four sets — print
@@ -166,7 +207,9 @@ held back. The entire diagnosis had to come from diffing `state.json` between
 
 **CCE-175** — _Baseline deadlock: the deferral-skip hatch can never arm, because
 its counter persists only on merge._ Filed 2026-09-14 as a Bug, carrying the
-full analysis. This note remains the primary source.
+full analysis. This note remains the primary source. **Done 2026-09-21** via
+PR #274, with follow-ups **CCE-178** (#276 — the two defects in that fix) and
+**CCE-179** (#277 — the lessons, in the plugin's `CLAUDE.md`), both Done.
 
 Related but distinct, all shipped and all in `main`: CCE-109 (the original doom
 loop), CCE-140 (the cursor-backed advance and the skip hatch), CCE-151 (the
