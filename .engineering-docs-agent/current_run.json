@@ -1,18 +1,14 @@
 {
   "current_run": {
-    "started_at": "2026-09-22T12:33:21.937924+00:00",
-    "head_sha": "3bd9d89ed5587e6eb68169411d18e9b8efa0e3d1",
+    "started_at": "2026-09-23T12:43:14.805646+00:00",
+    "head_sha": "e7a0c8f9db7306cfde4080429b0975d2472c215f",
     "partial": true,
     "partial_reasons": [
-      "prose_contamination_rescued: source-collector",
       "prose_contamination_rescued: page-author",
-      "lint_block: docs/site-src/2026-09-13-cce101-eligibility-followup.md citation_exists: cites nonexistent path 'engineering-docs-agent/CLAUDE.md'",
-      "lint_block: docs/site-src/2026-09-13-cce172-durable-counter-spec.md citation_exists: cites nonexistent path 'agents/page-author.md'; cites nonexistent path 'scripts/orchestrator_runner.py'; cites nonexistent path 'templates/state.schema.json'; cites nonexistent path 'engineering-docs-agent/CLAUDE.md'",
-      "lint_block: docs/site-src/2026-09-14-docs-agent-baseline-freeze-incident.md citation_exists: cites nonexistent path 'scripts/orchestrator_runner.py'",
-      "lint_block: docs/site-src/2026-09-17-cce101-claude-md-decisions.md citation_exists: cites nonexistent path 'engineering-docs-agent/CLAUDE.md'; cites nonexistent path 'scripts/orchestrator_runner.py'",
-      "deferral_stall_escape: baseline has not advanced in 7.0d (window 4d); forgiving the oldest deferred PR #235 so state can reach main",
-      "deferral_skip: theoju/claude-code-self-assessment#235 skipped after 1 consecutive deferrals (threshold 3); pages=core/2026-09-13-cce101-eligibility-followup.md",
-      "pr_summaries_reused: 2/11 PRs served from cache, 2 pr-summarizer dispatches skipped"
+      "lint_block: docs/site-src/2026-09-21-citation-exists-cleanup.md internal_links: broken internal link(s): docs/site-src/boris-tips-reference-2026-05-10.md, docs/site-src/tip-classification-2026-05-10.md",
+      "schema_invalid: fact-checker: 'ok' is a required property",
+      "fact_checker_unavailable: docs/site-src/2026-09-22-cce170-cycle-lessons.md",
+      "pr_summaries_reused: 10/12 PRs served from cache, 10 pr-summarizer dispatches skipped"
     ],
     "citation_findings_emitted": 0,
     "fact_check_warnings": [],
