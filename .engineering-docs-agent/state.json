@@ -1,8 +1,8 @@
 {
   "version": "1",
   "last_successful_run": {
-    "head_sha": "f885ec5fcd079afd0e8d0b788babaeff740952cb",
-    "completed_at": "2026-09-22T12:33:21.937924+00:00"
+    "head_sha": "ab6ef21f499f9ef7a003857dbe2a9e7642d63102",
+    "completed_at": "2026-09-23T12:43:14.805646+00:00"
   },
   "dismissed_gap_flags": {},
   "pr_summaries": {
@@ -123,7 +123,7 @@
     "theoju/claude-code-self-assessment#236": {
       "merge_sha": "134bb3837e9051f48d8830d3203c9961800d8d11",
       "fingerprint": "e6d7c2a0894b9d2f",
-      "last_seen_at": "2026-09-22T12:46:09.702517+00:00",
+      "last_seen_at": "2026-09-23T13:02:16.080503+00:00",
       "summary": {
         "pr_number": 236,
         "what_changed": "Adds a design spec proposing a durable counter (`citation_shortening_observations` in `state.json`, with `total_ever` plus a `recent[]` FIFO sample, single writer in `state_io.py`) to unblock CCE-172, plus a short followup note on the CCE-101 eligibility claim. No code changes in this repo \u2014 the spec documents work that will land in the sibling `engineering-docs-agent` repo.",
@@ -144,7 +144,7 @@
     "theoju/claude-code-self-assessment#238": {
       "merge_sha": "cd85a220d5c50532db5b256c9b0d8e3bcb9255b8",
       "fingerprint": "e6d7c2a0894b9d2f",
-      "last_seen_at": "2026-09-22T12:46:09.702517+00:00",
+      "last_seen_at": "2026-09-23T13:02:16.080503+00:00",
       "summary": {
         "pr_number": 238,
         "what_changed": "Added three new project-memory rules to CLAUDE.md distilled from the CCE-170/171/172/173 incident cycle: (1) before removing or fixing something that persists data by accident, check what else reads it, since a file committed by mistake can still be a durable record something depends on; (2) a detection mechanism shipped in place of a withdrawn fix must state its exit criterion (threshold and date) in the same PR, so a measured zero doesn't linger as an indefinitely-carried detector; (3) a zero returned from a key that doesn't exist in a schema looks identical to a genuine zero, so any 'absence' finding should be reported alongside a positive control proving the recording channel actually works.",
@@ -165,7 +165,7 @@
     "theoju/claude-code-self-assessment#240": {
       "merge_sha": "a8e5d057a24c6f9d8411fa364583a69dd19cc157",
       "fingerprint": "e6d7c2a0894b9d2f",
-      "last_seen_at": "2026-09-22T12:46:09.702517+00:00",
+      "last_seen_at": "2026-09-23T13:02:16.080503+00:00",
       "summary": {
         "pr_number": 240,
         "what_changed": "Added a root-cause investigation documenting why the engineering-docs-agent's published documentation baseline has been frozen for 23 days (since 2026-08-22). The analysis identifies that CCE-140's deferral-skip release valve is self-defeating: its counter only persists on a successful merge, so the mechanism designed to unblock stalled merges can never accumulate enough state to reach its own trigger threshold. The report distinguishes this from a prior, superficially similar CCE-152 incident \u2014 same symptom (frozen baseline), different underlying cause.",
@@ -188,7 +188,7 @@
     "theoju/claude-code-self-assessment#243": {
       "merge_sha": "ed299e6adb5efa55f4d7bf131483dc7d9fc99352",
       "fingerprint": "e6d7c2a0894b9d2f",
-      "last_seen_at": "2026-09-22T12:46:09.702517+00:00",
+      "last_seen_at": "2026-09-23T13:02:16.080503+00:00",
       "summary": {
         "pr_number": 243,
         "what_changed": "Appends a 'Decisions taken 2026-09-16' section to the existing CCE-101 follow-up note, recording four accepted recommendations as ready-to-apply text: (Q1) fix an eligibility claim by removing a duplication, (Q2) file voice-sample truncation as a new follow-up ticket (CCE-176), (Q3) introduce a new meta-bullet convention, and (Q4) adopt an ordering convention immediately, independent of CCE-176.",
@@ -210,7 +210,7 @@
     "theoju/claude-code-self-assessment#246": {
       "merge_sha": "3aad88216a16fb19b8e1044fcefaaafa96089615",
       "fingerprint": "e6d7c2a0894b9d2f",
-      "last_seen_at": "2026-09-22T12:46:09.702517+00:00",
+      "last_seen_at": "2026-09-23T13:02:16.080503+00:00",
       "summary": {
         "pr_number": 246,
         "what_changed": "Adds a diagram catalog page (docs/site-src/diagrams/index.md) as a single entry point for architecture diagrams in the docs site, along with the first delivered diagram pair for the self-assessment architecture (self-assessment.architecture.json spec + .html rendered artifact). SUMMARY.md and the site index were updated to surface the new catalog page in navigation.",
@@ -230,7 +230,7 @@
     "theoju/claude-code-self-assessment#250": {
       "merge_sha": "1e483d1a071da827e8e19923b71eeb313706a14a",
       "fingerprint": "e6d7c2a0894b9d2f",
-      "last_seen_at": "2026-09-22T12:46:09.702517+00:00",
+      "last_seen_at": "2026-09-23T13:02:16.080503+00:00",
       "summary": {
         "pr_number": 250,
         "what_changed": "Added a pasteable handoff prompt document (docs/superpowers/cce-175-handoff-prompt.md) intended to let a fresh, unfenced session pick up work on CCE-175, the baseline deadlock that has frozen the docs pipeline since 2026-08-22. The prompt also restates standing constraints carried forward from related tickets: don't reclassify time_budget_exceeded call sites (CCE-109), don't reintroduce citation repair (CCE-141), and keep tests/scripts/ a non-package (CCE-122).",
@@ -253,7 +253,7 @@
     "theoju/claude-code-self-assessment#249": {
       "merge_sha": "d709ff3a694a5561ae70e242c221e20c63893315",
       "fingerprint": "e6d7c2a0894b9d2f",
-      "last_seen_at": "2026-09-22T12:46:09.702517+00:00",
+      "last_seen_at": "2026-09-23T13:02:16.080503+00:00",
       "summary": {
         "pr_number": 249,
         "what_changed": "Added a second entry to the Archify diagram catalog: a data-flow diagram for the scoring pipeline (docs/site-src/diagrams/scoring.dataflow.{json,html}), updated the diagram catalog index, and codified the diagram-authoring convention as a new '### Diagrams' subsection in project memory (CLAUDE.md).",
@@ -276,7 +276,7 @@
     "theoju/claude-code-self-assessment#251": {
       "merge_sha": "bab01322318110c71ceec392db11a912bb0bdc5c",
       "fingerprint": "e6d7c2a0894b9d2f",
-      "last_seen_at": "2026-09-22T12:46:09.702517+00:00",
+      "last_seen_at": "2026-09-23T13:02:16.080503+00:00",
       "summary": {
         "pr_number": 251,
         "what_changed": "Corrected three inaccurate claims in the CCE-175 handoff prompt document (previously merged in PR #250). The original text derived its conclusions from comparing origin/main against a stale FETCH_HEAD ref. The PR reverses the prior recommendation: manually merging a degraded nightly build by hand persists the deferral counters without advancing the watermark, rather than resolving the underlying issue as previously claimed.",
@@ -299,7 +299,7 @@
     "theoju/claude-code-self-assessment#252": {
       "merge_sha": "e332a5c6d87191425103d3db09d46e6f7adf7845",
       "fingerprint": "e6d7c2a0894b9d2f",
-      "last_seen_at": "2026-09-22T12:46:09.702517+00:00",
+      "last_seen_at": "2026-09-23T13:02:16.080503+00:00",
       "summary": {
         "pr_number": 252,
         "what_changed": "Marked the CCE-175 handoff prompt as superseded: the underlying orchestrator deferral-deadlock issue was fixed and merged (engineering-docs-agent PR #274, 'break the deferral deadlock with a stall clock') while the handoff doc was still being written. However, the nightly freeze did not actually lift \u2014 2 of the last 3 nightlies still ran blind \u2014 so a new follow-up issue (CCE-177) was filed to track the persisting problem.",
@@ -322,7 +322,7 @@
     "theoju/claude-code-self-assessment#254": {
       "merge_sha": "ab6ef21f499f9ef7a003857dbe2a9e7642d63102",
       "fingerprint": "e6d7c2a0894b9d2f",
-      "last_seen_at": "2026-09-22T12:46:09.702517+00:00",
+      "last_seen_at": "2026-09-23T13:02:16.080503+00:00",
       "summary": {
         "pr_number": 254,
         "what_changed": "Added the required YAML frontmatter block (status, sources, synthesized_into) to the diagrams catalog page (docs/site-src/diagrams/index.md), which had shipped without it.",
@@ -341,12 +341,56 @@
         "error": null,
         "partial": false
       }
+    },
+    "theoju/claude-code-self-assessment#255": {
+      "merge_sha": "3bd9d89ed5587e6eb68169411d18e9b8efa0e3d1",
+      "fingerprint": "e6d7c2a0894b9d2f",
+      "last_seen_at": "2026-09-23T13:02:16.080503+00:00",
+      "summary": {
+        "pr_number": 255,
+        "what_changed": "Fixed all remaining broken citation_exists checks across the published docs site (29 pages audited, 3 failing pages / 6 bad citations found and corrected to 0 failing). The fixes covered three categories: two pages had stale intra-repo paths pointing at docs/ instead of the actual docs/site-src/ location; one scoring-criteria row contained an illustrative example path (`.github/workflows/claude.yml` \"or similar\") that was rewritten as prose instead of being added to the citation-exemption list; and references to three ship-skill spoke files that actually live in the private theoju/claude-config repo were rewritten as plain spoke names rather than path-shaped tokens, avoiding both 404s and disclosure of a private repo's existence/layout on the public site.",
+        "why": "citation_exists is a Tier-1 block in the docs-agent lint, so any page carrying a bad citation silently fails the first PR that touches it and freezes the docs baseline. This is a follow-up to PR #254 addressing the same latent-trap class across the rest of the site.",
+        "breaking": false,
+        "doc_targets": [
+          {
+            "lens": "core",
+            "action": "create",
+            "page_hint": "2026-09-21-citation-exists-cleanup.md",
+            "doc_kind": "decision",
+            "notes": "Records the site-wide citation_exists sweep (29 pages, 3 fixed) and the three failure patterns found (stale intra-repo paths, illustrative example paths, private-repo spoke references) so future contributors recognize the same trap class before it freezes the docs baseline again."
+          }
+        ],
+        "notes": "No existing architecture/operations page was identified to edit for this maintenance-lint fix; core lens currently only has diagrams/images sections, so a flat dated page at the lens root was used per the page_hint fallback rule. A related but separate issue \u2014 page-author emitting plugin-repo paths when documenting plugin work on a non-plugin host \u2014 was explicitly called out in the PR body as needing its own ticket and is not covered by this summary.",
+        "error": null,
+        "partial": false
+      }
+    },
+    "theoju/claude-code-self-assessment#256": {
+      "merge_sha": "e7a0c8f9db7306cfde4080429b0975d2472c215f",
+      "fingerprint": "e6d7c2a0894b9d2f",
+      "last_seen_at": "2026-09-23T13:02:16.080503+00:00",
+      "summary": {
+        "pr_number": 256,
+        "what_changed": "Updated the existing docs-agent baseline-freeze incident retrospective (docs/superpowers/2026-09-14-docs-agent-baseline-freeze-incident.md) to reflect that the incident is actually resolved. Three edits: the status line now shows 'resolved' plus the current baseline (advanced to 2026-09-22T12:31, the first promotion since 08-22, after nightly run #280 auto-merged); a new 'Resolution (2026-09-21)' section separates what held up the freeze (a deadlock reproducible on a sibling host) from what remains unexplained (deferral-counter divergence between the run branch and main on this repo, and zero increments on the dogfood host); and the old 'Recommended next steps' section is kept verbatim but marked superseded. A second commit also corrects an earlier misreading of a `#221: 1` counter entry as a stale fossil \u2014 log evidence from run #280 shows PR #221 (merged 2026-08-14) was in fact the live blocker for the full 31.2-day freeze; the wrong sentence is left in place under a correction marker rather than rewritten.",
+        "why": "The shipped fixes (CCE-175/#274 keying the skip-hatch off last_successful_run.completed_at instead of a merge-only counter; CCE-178/#276 fixing two defects the first production firing exposed; CCE-179/#277 capturing both lessons in the plugin's CLAUDE.md, all merged 2026-09-21) made the incident doc's open-incident framing and its recommended measurement stale and potentially misleading to future readers relying on it as a durable record.",
+        "breaking": false,
+        "doc_targets": [
+          {
+            "lens": "core",
+            "action": "create",
+            "page_hint": "2026-09-22-cce175-baseline-freeze-resolution.md",
+            "doc_kind": "decision",
+            "notes": "Summarizes the CCE-175/178/179 resolution of the docs-agent baseline-freeze incident and the still-open deferral-counter divergence question; source of truth remains docs/superpowers/2026-09-14-docs-agent-baseline-freeze-incident.md, which is an internal retrospective outside the published lens docs tree."
+          }
+        ],
+        "notes": "available_sections['core'] currently only has diagrams/images, so no archive section exists yet for postmortem-style pages; used a flat dated slug at the lens root per the create-target fallback rule. The PR itself edits an internal specs/retrospective doc, not a published lens page directly \u2014 this doc_target is a lens-side pointer summarizing that resolution for readers of the core docs site.",
+        "error": null,
+        "partial": false
+      }
     }
   },
   "deferral_counts": {
-    "theoju/claude-code-self-assessment#236": 2,
-    "theoju/claude-code-self-assessment#240": 1,
-    "theoju/claude-code-self-assessment#243": 1
+    "theoju/claude-code-self-assessment#255": 1
   },
   "skipped_prs": [
     {

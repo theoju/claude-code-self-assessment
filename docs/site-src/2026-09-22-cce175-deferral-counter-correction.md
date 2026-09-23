@@ -58,13 +58,19 @@ explicitly and check the resolution succeeded before diffing against it.
 ## Current status
 
 `docs/superpowers/cce-175-handoff-prompt.md` itself is marked superseded
-as of 2026-09-20: CCE-175 was closed by a different mechanism (a stall
-clock in the orchestrator's deferral logic, landed in
-`theoju/engineering-docs-agent`) rather than by acting on either PR #250's
-or PR #251's manual-merge recommendation. The freeze that motivated
-CCE-175 did not fully lift — a subset of nightly runs fail before writing
-`state.json` at all, which the stall clock has nothing to promote, and
-that gap is now tracked separately. This page exists to record the
-correction itself — the stale-ref failure mode and the corrected
-counter-persistence claim — not as current operational guidance for
-CCE-175.
+as of 2026-09-20: CCE-175 was closed by a different mechanism, not by
+acting on either PR #250's or PR #251's manual-merge recommendation.
+PR #274 (`fix(orchestrator): break the deferral deadlock with a stall
+clock`) merged to `theoju/engineering-docs-agent` `main` at `c5dc23b2`
+on 2026-09-21T04:03:55Z, and its write-up reaches the same diagnosis
+this page corrects to: the counters increment correctly each run and
+are discarded when the nightly PR closes unmerged, so the threshold of
+3 is unreachable because the base never moves. The freeze that
+motivated CCE-175 did not fully lift — the stall clock addresses only
+the *degraded* path, and a blind run (one that fails before writing
+`state.json` at all, e.g. a `schema_invalid` failure on the
+`source-collector`) has nothing for the stall clock to promote. That
+gap is now tracked separately as **CCE-177**. This page exists to
+record the correction itself — the stale-ref failure mode and the
+corrected counter-persistence claim — not as current operational
+guidance for CCE-175 or CCE-177.
