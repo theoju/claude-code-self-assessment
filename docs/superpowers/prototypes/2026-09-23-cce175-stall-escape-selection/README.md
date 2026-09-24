@@ -1,5 +1,35 @@
 # Which PR should the stall escape forgive?
 
+> **RETRACTION — 2026-09-23, same day.** The headline finding below (Defect 1,
+> the `i == 0` silent freeze) **is not reachable**, and this prototype is why
+> the error was made. The real admission gate reads
+> `if deadline is not None and i > 0 and clock() > deadline:` — the `i > 0`
+> clause means it never truncates before admitting the oldest PR, so `prs` is
+> never emptied and `_blocker` always has a candidate. This model ported the
+> truncation but **not the guard on it**, then treated `admittedCount: 0` as a
+> legal state and reported a confident SILENT FREEZE for a configuration
+> production cannot enter.
+>
+> `model.js` is now clamped to match the real gate, and scenarios 2 and 8 no
+> longer show the freeze. The tables further down are **the uncorrected
+> originals**, kept deliberately as the record of the mistake.
+>
+> Caught by writing the end-to-end test: it **passed on first run**, against a
+> real runner reporting `time_budget_exceeded: admitted 1/3 PRs` — one, not
+> zero. The Iron Law did its job; the prototype did not.
+>
+> **What survives:** the `i > 0` clause is load-bearing and was unpinned.
+> `tests/orchestrator/test_deferral_stall_escape.py::test_the_admission_gate_never_truncates_at_index_zero`
+> now pins it, mutation-verified green-with / red-without. Everything else
+> here — Defect 2, the four-rule comparison, the CCE-169 subsumption argument
+> (whose scenario 8 is just Defect 1 inside a cap) — is **unestablished**.
+>
+> **The transferable lesson:** a logic prototype is only worth its fidelity at
+> the exact clause under test. This one was faithful everywhere except the one
+> condition that decided the answer. Port the guard, not just the operation —
+> and diff the model against the source line by line before trusting a verdict
+> it produces. Ticket: CCE-185.
+
 Throwaway logic prototype, 2026-09-23. Captured as a primary source per
 `mattpocock-skills:prototype` step 5. **Not production code — do not import.**
 
