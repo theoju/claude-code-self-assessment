@@ -18,7 +18,8 @@ function advanceCursorList(admitted, deferredTail, heldBack) {
 
 // --- faithful port of partition_deferrals (post CCE-178) ---
 function partitionDeferrals(deferred, counts, threshold, forgive) {
-  const skipped = [], still = [];
+  const skipped = [],
+    still = [];
   for (const n of deferred) {
     const count = counts[n] || 0;
     if (count >= threshold || forgive.has(n)) skipped.push(n);
@@ -67,11 +68,22 @@ const STRATEGIES = {
  */
 function runNight(night, strategyName) {
   const {
-    windowPrs, admittedCount, pagesFailed,
-    baselineAgeDays, stallDays, threshold, counts,
+    admittedCount,
+    pagesFailed,
+    baselineAgeDays,
+    stallDays,
+    threshold,
+    counts,
   } = night;
 
-  const prs = windowPrs.slice(0, admittedCount);          // post-truncation
+  // CCE-169: bound the derived window to the oldest N PRs so a run always
+  // faces a drainable amount of work. Everything past the cap is not in this
+  // run's window at all — not deferred, not held back, not counted.
+  const windowPrs = night.windowCap
+    ? night.windowPrs.slice(0, night.windowCap)
+    : night.windowPrs;
+
+  const prs = windowPrs.slice(0, admittedCount); // post-truncation
   const admissionDeferred = windowPrs.slice(admittedCount);
   const timeTruncated = admissionDeferred.length > 0;
 
@@ -92,25 +104,39 @@ function runNight(night, strategyName) {
   // `advanceRefused` models the CCE-109 guards that can reject a computed
   // cursor (unanchorable merge_sha, non-forward SHA, unreachable from HEAD) —
   // a prefix can be non-empty and STILL not move the baseline.
-  const heldBackUnforgiven = new Set([...deferredPagesByPr, ...admissionDeferred]);
+  const heldBackUnforgiven = new Set([
+    ...deferredPagesByPr,
+    ...admissionDeferred,
+  ]);
   const unforgivenPrefix = advanceCursorList(
-    prs, admissionDeferred, heldBackUnforgiven
+    prs,
+    admissionDeferred,
+    heldBackUnforgiven,
   );
   const prefixEmpty = unforgivenPrefix.length === 0;
   const wouldAdvanceUnforgiven = !prefixEmpty && !night.advanceRefused;
 
   const blocker = STRATEGIES[strategyName]({
-    prs, windowPrs, deferredNumbers, wouldAdvanceUnforgiven, prefixEmpty,
+    prs,
+    windowPrs,
+    deferredNumbers,
+    wouldAdvanceUnforgiven,
+    prefixEmpty,
   });
   const forgive = new Set(stalled && blocker !== null ? [blocker] : []);
 
   const { skipped, still } = partitionDeferrals(
-    deferredAll, counts, threshold, forgive
+    deferredAll,
+    counts,
+    threshold,
+    forgive,
   );
   const skippedSet = new Set(skipped);
 
   const heldBack = new Set(
-    [...deferredPagesByPr, ...admissionDeferred].filter((n) => !skippedSet.has(n))
+    [...deferredPagesByPr, ...admissionDeferred].filter(
+      (n) => !skippedSet.has(n),
+    ),
   );
 
   const cursorPrs =
@@ -140,5 +166,10 @@ function runNight(night, strategyName) {
 }
 
 if (typeof module !== "undefined") {
-  module.exports = { runNight, advanceCursorList, partitionDeferrals, STRATEGIES };
+  module.exports = {
+    runNight,
+    advanceCursorList,
+    partitionDeferrals,
+    STRATEGIES,
+  };
 }

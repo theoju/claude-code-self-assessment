@@ -46,6 +46,44 @@ touched at all.
 
 Reproduce with `node run.js`.
 
+## Does the CCE-169 window cap subsume this? No.
+
+Asked 2026-09-23 because most of the complexity here — `admission_deferred`,
+`time_truncated`, the two-population `held_back`, the `prs` vs `window_prs`
+asymmetry — exists only because a run admits an unbounded window and then
+truncates it mid-flight. If CCE-169 bounds the window before admission, does
+`prs == window_prs` make Defect 1 unreachable rather than merely guarded?
+
+| scenario                                | `current`           | verdict              |
+| --------------------------------------- | ------------------- | -------------------- |
+| 7. cap=10, the capped window drains     | moved, nothing lost | Defect 1 unreachable |
+| 8. cap=10, first PR's group undrainable | **SILENT FREEZE**   | Defect 1 unchanged   |
+
+**The cap bounds the window; it does not bound the first page group.** `i == 0`
+is caused by the oldest PR's group being larger than the budget, which is
+orthogonal to how many PRs the window holds. That is CCE-155 (resumable page
+groups, still Backlog), and CCE-169's own ticket records the production
+instance on the ADIS host:
+
+```
+time_budget_exceeded: authored 3/152 page batches (budget 2340s); deferring the rest
+time_budget_no_advance_no_cursor: truncated run had no admitted PR with a usable merge_sha
+```
+
+A run that authored 3 of 152 batches could not finish the first PR's group.
+Capping that window at 10 PRs changes 152 to something smaller and leaves the
+first group exactly as undrainable.
+
+**The cap also costs a signal.** Today an operator can see a stall because the
+window is visibly enormous. Under a cap the window is always small, so a
+first-group stall looks like a healthy run against a short window. That makes
+CCE-185 Part 2 — emit a stall reason whenever `_stalled and not
+baseline_moved`, independent of `_forgive` — _more_ load-bearing after CCE-169
+lands, not less.
+
+Ship both. They are orthogonal: CCE-169 bounds how much work a run faces,
+CCE-185 makes the escape reachable and the failure audible.
+
 ## Verdict — two independent parts
 
 **Part 1 — selection.** `_blocker` scans `prs`, which has had the
