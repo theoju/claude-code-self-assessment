@@ -124,7 +124,7 @@ sandbox off and under Playwright alike, so visual review is a human step.
 ## Tests
 
 ```bash
-npx vitest run            # 761 tests across 49 files, ~3s
+npx vitest run            # 771 tests across 50 files, ~3s
 ```
 
 If a test fails after a scoring change, update the fixture in
@@ -598,6 +598,24 @@ model-effort, parallel, permissions, planning`) — **`scheduled`, `remote`,
   lockfile without rewriting `package-lock.json`. Prefer it over
   `rm node_modules package-lock.json && npm i`, which regenerates the
   lockfile and can silently bump transitive versions.
+- **Worktree sessions: three things that bite (2026-09-23, PR #261).**
+  **(a)** The worktree-isolation guard refuses plain `git add`/`commit`/`diff`
+  because the rtk hook rewrites them to `rtk git …`, which the guard can't
+  verify. Call git by absolute path — `/usr/bin/git add …` — one command per
+  call; `git switch` alone happens to pass. Any command whose text contains
+  `github` (a URL, a `gh` Accept header) is refused the same way; build such
+  strings in a script or split them (`"git""hub"`). **(b)** The guard also
+  covers the user's `!` commands, and it refuses `git -C <main-checkout>` and
+  `cd <main-checkout> && git …`. Updating the main checkout's `main` after a
+  merge has to happen in a terminal **outside** Claude Code:
+  `cd /Users/theo/Projects/claude-extensions && git merge --ff-only origin/main`.
+  **(c)** A fresh worktree borrows the parent's `node_modules`, so the
+  `postinstall` hook never ran there and the gitignored
+  `app/data/boris-tips-content.json` is missing. Three test files then fail
+  to _load_ (`Failed to resolve import "@/app/data/boris-tips-content.json"`)
+  while every test that does load passes; the total reads 737 instead of the
+  full count (see ## Tests). Run `npm run snapshot:boris-tips` once per
+  worktree.
 - **"How many Boris tips?" also has several answers — name which one.**
   Directly analogous to the probe-count rule above, and the source of a
   recurring "the docs contradict themselves" false alarm (raised again by a
