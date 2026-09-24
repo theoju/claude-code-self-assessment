@@ -2,10 +2,10 @@
 
 Two launchd jobs run back-to-back every morning:
 
-| Time  | Routine     | Script                              | What it does                                                        | Posts to                                       |
-|-------|-------------|-------------------------------------|---------------------------------------------------------------------|------------------------------------------------|
-| 06:00 | Coverage    | `scripts/run-coverage.mjs`          | Vitest + V8 coverage, integration suite, benches, Playwright web vitals | Slack — links to `/coverage`               |
-| 07:15 | Self-Assessment     | `scripts/run-assessment.mjs`        | Re-scores 12 Boris dimensions on the **Platform Setup** + **Execution** axes from `~/.claude/` and `~/.claude/usage-data/` + audits CLAUDE.md targets (report-only) | Slack — links to `/`                           |
+| Time  | Routine         | Script                       | What it does                                                                                                                                                        | Posts to                     |
+| ----- | --------------- | ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------- |
+| 06:00 | Coverage        | `scripts/run-coverage.mjs`   | Vitest + V8 coverage, integration suite, benches, Playwright web vitals                                                                                             | Slack — links to `/coverage` |
+| 07:15 | Self-Assessment | `scripts/run-assessment.mjs` | Re-scores 12 Boris dimensions on the **Platform Setup** + **Execution** axes from `~/.claude/` and `~/.claude/usage-data/` + audits CLAUDE.md targets (report-only) | Slack — links to `/`         |
 
 The 75-minute gap means the dashboard reflects fresh coverage by the time the Self-Assessment summary arrives. Both routines reuse the same `SLACK_WEBHOOK_URL` from `.env.local`.
 
@@ -29,7 +29,7 @@ node scripts/run-assessment.mjs --print --no-slack --claude-md-target "work-mono
 
 ## Why not `/schedule`?
 
-`/schedule` creates a cloud-hosted routine on Anthropic infrastructure. It can't read your local `~/.claude/` directory, which is exactly the data the scorer needs. So we use **macOS launchd** instead — it runs locally against real signals and can wake the laptop if it's asleep at 07:15.
+`/schedule` creates a cloud-hosted routine on Anthropic infrastructure. It can't read your local `~/.claude/` directory, which is exactly the data the scorer needs. So we use **macOS launchd** instead — it runs locally against real signals, and if the laptop is asleep at 07:15 the run fires when it next wakes.
 
 The dashboard itself stays local (`http://localhost:3737`). The Slack message includes that link — it only resolves on your own machine, which is the right behavior for a private dashboard.
 
@@ -53,6 +53,7 @@ node scripts/run-assessment.mjs --print
 ```
 
 The installer:
+
 - Reads `SLACK_WEBHOOK_URL` from `.env.local` and bakes it into the LaunchAgent.
 - Creates `~/Library/LaunchAgents/com.<you>.claude-self-assessment.plist`.
 - Loads it into `launchctl`.

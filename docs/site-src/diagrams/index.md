@@ -52,6 +52,17 @@ A non-zero exit leaves the previous artifact untouched. Update
 `meta.repository.revision` to the commit you rendered against, and add a row
 to the catalog above in the same change.
 
+After re-rendering, refresh the static previews the GitHub README embeds
+(GitHub cannot run the interactive HTML):
+
+```bash
+node scripts/diagram-previews.mjs
+```
+
+It writes `<name>.preview.light.svg` and `<name>.preview.dark.svg` beside each
+`.html` in this directory: the diagram's inline SVG with the page CSS embedded
+and the theme pinned. Commit them with the re-rendered HTML.
+
 To add a diagram, write a new spec in this directory, deliver it here, and add
 its row. Both files must live under `docs/site-src/` — `mkdocs build --strict`
 rejects links to targets outside the docs directory.
