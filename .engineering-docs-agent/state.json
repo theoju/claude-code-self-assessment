@@ -1,8 +1,8 @@
 {
   "version": "1",
   "last_successful_run": {
-    "head_sha": "ab6ef21f499f9ef7a003857dbe2a9e7642d63102",
-    "completed_at": "2026-09-23T12:43:14.805646+00:00"
+    "head_sha": "99b0b6225bc932c21c0a14e17ec8f46f83ab9e8a",
+    "completed_at": "2026-09-24T12:41:24.469275+00:00"
   },
   "dismissed_gap_flags": {},
   "pr_summaries": {
@@ -345,7 +345,7 @@
     "theoju/claude-code-self-assessment#255": {
       "merge_sha": "3bd9d89ed5587e6eb68169411d18e9b8efa0e3d1",
       "fingerprint": "e6d7c2a0894b9d2f",
-      "last_seen_at": "2026-09-23T13:02:16.080503+00:00",
+      "last_seen_at": "2026-09-24T12:49:28.912824+00:00",
       "summary": {
         "pr_number": 255,
         "what_changed": "Fixed all remaining broken citation_exists checks across the published docs site (29 pages audited, 3 failing pages / 6 bad citations found and corrected to 0 failing). The fixes covered three categories: two pages had stale intra-repo paths pointing at docs/ instead of the actual docs/site-src/ location; one scoring-criteria row contained an illustrative example path (`.github/workflows/claude.yml` \"or similar\") that was rewritten as prose instead of being added to the citation-exemption list; and references to three ship-skill spoke files that actually live in the private theoju/claude-config repo were rewritten as plain spoke names rather than path-shaped tokens, avoiding both 404s and disclosure of a private repo's existence/layout on the public site.",
@@ -368,7 +368,7 @@
     "theoju/claude-code-self-assessment#256": {
       "merge_sha": "e7a0c8f9db7306cfde4080429b0975d2472c215f",
       "fingerprint": "e6d7c2a0894b9d2f",
-      "last_seen_at": "2026-09-23T13:02:16.080503+00:00",
+      "last_seen_at": "2026-09-24T12:49:28.912824+00:00",
       "summary": {
         "pr_number": 256,
         "what_changed": "Updated the existing docs-agent baseline-freeze incident retrospective (docs/superpowers/2026-09-14-docs-agent-baseline-freeze-incident.md) to reflect that the incident is actually resolved. Three edits: the status line now shows 'resolved' plus the current baseline (advanced to 2026-09-22T12:31, the first promotion since 08-22, after nightly run #280 auto-merged); a new 'Resolution (2026-09-21)' section separates what held up the freeze (a deadlock reproducible on a sibling host) from what remains unexplained (deferral-counter divergence between the run branch and main on this repo, and zero increments on the dogfood host); and the old 'Recommended next steps' section is kept verbatim but marked superseded. A second commit also corrects an earlier misreading of a `#221: 1` counter entry as a stale fossil \u2014 log evidence from run #280 shows PR #221 (merged 2026-08-14) was in fact the live blocker for the full 31.2-day freeze; the wrong sentence is left in place under a correction marker rather than rewritten.",
@@ -387,10 +387,48 @@
         "error": null,
         "partial": false
       }
+    },
+    "theoju/claude-code-self-assessment#262": {
+      "merge_sha": "270f21e378073b6ac0ae6ee3b7848ba5871d7372",
+      "fingerprint": "e6d7c2a0894b9d2f",
+      "last_seen_at": "2026-09-24T12:49:28.912824+00:00",
+      "summary": {
+        "pr_number": 262,
+        "what_changed": "Added a single handoff document (docs/superpowers/cce-177-handoff-prompt.md) that packages verified current-state context and a prioritized ticket order (CCE-177 \u2192 CCE-174 \u2192 CCE-172 \u2192 CCE-176) for a fresh session to pick up outstanding work in the sibling engineering-docs-agent repo. It notes that three of the last six nightly runs were 'blind' due to a schema_invalid error in source-collector, which is why CCE-177 (fixing that) leads the queue, and carries launch-environment caveats (seatbelt profile check, PYTHONDONTWRITEBYTECODE, --body-file usage, per-action Jira auth) plus method warnings from a prior cycle.",
+        "why": "The 31-day baseline freeze ended and PR #280 auto-merged a new baseline, but recent nightly runs have been failing silently (no state.json emitted), undermining the stall-detection safety net. This handoff consolidates verified state and ordering so the next session doesn't have to reconstruct context from prior conversation scrollback.",
+        "breaking": false,
+        "doc_targets": [],
+        "notes": "This PR only adds an internal cross-repo handoff/planning artifact under docs/superpowers/ (agent working docs, not the published docs site) and carries no user-visible product behavior change. It describes work to be done in a sibling repository (engineering-docs-agent), not this project's architecture or operations. No core-lens documentation page reflects this content; treating it as a no-op for doc_targets per the 'internal refactor / no user-visible behavior' exemption."
+      }
+    },
+    "theoju/claude-code-self-assessment#261": {
+      "merge_sha": "6d135aa647c2c0ce005c93b6ca001d82f8a5adaf",
+      "fingerprint": "e6d7c2a0894b9d2f",
+      "last_seen_at": "2026-09-24T12:49:28.912824+00:00",
+      "summary": {
+        "pr_number": 261,
+        "what_changed": "Restructured the project README as the GitHub landing page (new section order: what it measures, quick start, daily use, optional setup, how it works, project layout, FAQ, attribution, license), embedded both archify diagrams (architecture and scoring data flow) as light/dark SVG picture previews linking to the live docs site, corrected several stale claims (all 12 dimensions now have Execution scorers, probe catalog has 50 entries, per-axis scoring, real clone URL, 87 vs 75 tip-count explanation), fixed an inaccurate launchd wake claim in README/ROUTINE.md/install.sh (StartCalendarInterval jobs run on next wake, they don't wake the Mac), added a new script (diagram-previews.mjs) that regenerates the SVG previews with a CI drift test, and removed the full MIT license text from the README in favor of a link to LICENSE.",
+        "why": "The README had drifted out of sync with the actual scorer/probe counts and launchd behavior, and the diagrams catalog needed a GitHub-renderable preview since GitHub can't execute the interactive archify HTML output \u2014 static SVGs with dark/light variants let the landing page show the diagrams while linking through to the live docs site for the interactive version.",
+        "breaking": false,
+        "doc_targets": [
+          {
+            "lens": "core",
+            "action": "edit",
+            "page_hint": "diagrams/index.md",
+            "doc_kind": "architecture",
+            "notes": "PR adds the generated preview SVGs and the diagram-previews.mjs regeneration workflow; the catalog page's 'Rendered from' / preview-generation steps should reflect this."
+          },
+          {
+            "lens": "core",
+            "action": "create",
+            "page_hint": "2026-09-24-readme-restructure-and-stale-claims.md",
+            "doc_kind": "decision",
+            "notes": "Digest of the README landing-page restructure, corrected stale claims (scorer count, probe count, per-axis scoring, launchd wake behavior), and the new diagram-preview embedding approach for GitHub rendering."
+          }
+        ],
+        "notes": "README.md, ROUTINE.md, and scripts/launchd/install.sh are repo-root/tooling files outside the mkdocs lens tree; their content changes are captured via the digest note rather than direct edit targets since no matching lens page exists for them."
+      }
     }
-  },
-  "deferral_counts": {
-    "theoju/claude-code-self-assessment#255": 1
   },
   "skipped_prs": [
     {

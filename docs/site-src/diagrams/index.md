@@ -4,6 +4,7 @@ sources:
   - https://github.com/theoju/claude-code-self-assessment/pull/246
   - https://github.com/theoju/claude-code-self-assessment/pull/249
   - https://github.com/theoju/claude-code-self-assessment/pull/254
+  - https://github.com/theoju/claude-code-self-assessment/pull/261
 synthesized_into: []
 doc_kind: architecture
 ---
@@ -61,7 +62,18 @@ node scripts/diagram-previews.mjs
 
 It writes `<name>.preview.light.svg` and `<name>.preview.dark.svg` beside each
 `.html` in this directory: the diagram's inline SVG with the page CSS embedded
-and the theme pinned. Commit them with the re-rendered HTML.
+and the theme pinned. Commit them with the re-rendered HTML. The README embeds
+both pairs as `<picture>` elements — dark source, light fallback — each
+wrapped in a link to the diagram's live page on this docs site, so a GitHub
+visitor sees the picture but still lands on the interactive version for pan,
+zoom, and search.
+
+Regenerating the HTML without regenerating the previews is a drift bug, not a
+style nit: `scripts/__tests__/diagram-previews.test.mjs` reads every
+`docs/site-src/diagrams/*.html` back through `toPreviewSvg()` and asserts
+byte-equality against the committed `.preview.{light,dark}.svg` beside it, so
+`npx vitest run` fails if the two fall out of sync — run
+`node scripts/diagram-previews.mjs` again before committing.
 
 To add a diagram, write a new spec in this directory, deliver it here, and add
 its row. Both files must live under `docs/site-src/` — `mkdocs build --strict`
