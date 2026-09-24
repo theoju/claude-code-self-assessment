@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Which PR should the stall escape forgive?</title>
+<style>
+  :root{--bg:#fbfaf8;--fg:#1c1b19;--dim:#6b6762;--line:#e3ded6;--accent:#b2541f;--panel:#fff;--warn:#fdf3e7}
+  @media (prefers-color-scheme:dark){:root{--bg:#171614;--fg:#ece8e1;--dim:#9a948c;--line:#33302b;--accent:#e08a4e;--panel:#1f1e1b;--warn:#2b2216}}
+  *{box-sizing:border-box}
+  body{margin:0;padding:40px 16px 80px;background:var(--bg);color:var(--fg);
+       font:16px/1.6 ui-sans-serif,-apple-system,"Segoe UI",sans-serif}
+  main{max-width:920px;margin:0 auto}
+  h1{font-size:28px;line-height:1.25;margin:0 0 8px;letter-spacing:-.02em}
+  .sub{color:var(--dim);margin:0 0 28px;max-width:70ch}
+  .q{background:var(--panel);border:1px solid var(--line);border-left:3px solid var(--accent);
+     border-radius:8px;padding:18px 20px;margin:0 0 32px}
+  .q h2{font-size:14px;text-transform:uppercase;letter-spacing:.08em;color:var(--accent);margin:0 0 8px}
+  .q p{margin:0 0 10px;max-width:72ch}.q p:last-child{margin:0}
+  h3{font-size:13px;text-transform:uppercase;letter-spacing:.08em;color:var(--dim);
+     margin:32px 0 12px;padding-bottom:6px;border-bottom:1px solid var(--line)}
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:20px}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px}
+  .f{min-width:0}
+  .f .k{font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--dim);margin-bottom:3px}
+  .f .v{font:14px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace;word-break:break-word}
+  .verdict{margin-top:18px;padding:12px 14px;border-radius:6px;background:var(--warn);
+           border:1px solid var(--line);font-weight:600}
+  .bad{color:#b3261e}@media(prefers-color-scheme:dark){.bad{color:#f2857c}}
+  .good{color:#1d6b3e}@media(prefers-color-scheme:dark){.good{color:#67c48d}}
+  button{font:inherit;font-size:14px;padding:9px 14px;border-radius:6px;border:1px solid var(--line);
+         background:var(--panel);color:var(--fg);cursor:pointer}
+  button:hover{border-color:var(--accent);color:var(--accent)}
+  button[aria-pressed=true]{background:var(--accent);border-color:var(--accent);color:#fff}
+  .row{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px}
+  .tabs{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:16px}
+  .desc{color:var(--dim);margin:0 0 16px;max-width:72ch}
+  ol.steps{margin:0;padding-left:0;list-style:none}
+  ol.steps li{margin-bottom:8px;display:flex;gap:10px;align-items:center}
+  ol.steps .n{width:22px;height:22px;flex:0 0 22px;border-radius:50%;background:var(--line);
+              color:var(--dim);font-size:12px;display:grid;place-items:center}
+  ol.steps li.done .n{background:var(--accent);color:#fff}
+  table{border-collapse:collapse;width:100%;font-size:14px;margin-top:8px}
+  th,td{text-align:left;padding:7px 10px;border-bottom:1px solid var(--line);
+        font-family:ui-monospace,Menlo,monospace}
+  th{font-family:inherit;font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--dim)}
+</style>
+</head>
+<body>
+<main>
+  <h1>Which pull request should the stall escape forgive?</h1>
+  <p class="sub">A driveable model of one night of the engineering-docs-agent pipeline.
+     Press buttons, watch the baseline move — or fail to.</p>
+
+  <div class="q">
+    <h2>The question this answers</h2>
+    <p>The docs pipeline documents merged pull requests oldest-first and keeps a
+       <strong>baseline</strong> marking how far it has got. A PR whose page could not be
+       written is <strong>held back</strong>, and the baseline may not move past it — so one
+       stuck PR stops everything behind it.</p>
+    <p>A safety valve exists: if the baseline has not moved in four days, the pipeline
+       <strong>forgives</strong> a stuck PR — abandoning its documentation permanently so the
+       rest can proceed. The question is <strong>which one</strong>. Forgive too eagerly and
+       work is thrown away that was never even attempted. Forgive too cautiously and the
+       pipeline freezes silently, which is what happened for 31 days.</p>
+    <p>Four rules are compared below. Watch the <strong>verdict</strong> line.</p>
+  </div>
+
+  <h3>Rule being used</h3>
+  <div class="row" id="strats"></div>
+
+  <h3>Current state</h3>
+  <div class="panel">
+    <div class="grid" id="state"></div>
+    <div class="verdict" id="verdict"></div>
+  </div>
+
+  <h3>Free play — change the situation</h3>
+  <div class="panel">
+    <div class="row" id="freeplay"></div>
+    <p class="desc" style="margin:4px 0 0">Every click re-runs the night and re-renders the state above.</p>
+  </div>
+
+  <h3>Guided walkthroughs</h3>
+  <div class="tabs" id="tabs"></div>
+  <div class="panel">
+    <p class="desc" id="scenDesc"></p>
+    <ol class="steps" id="steps"></ol>
+  </div>
+
+  <h3>All rules, all scenarios</h3>
+  <div class="panel" style="overflow-x:auto"><table id="matrix"></table></div>
+</main>
+
+<script>
+/* PROTOTYPE — throwaway. Pure model of one docs-agent night:
+ * admission -> authoring -> deferral partition -> stall escape -> cursor advance.
+ *
+ * QUESTION: when the stall clock fires, which PR should be forgiven?
+ * Mirrors scripts/orchestrator_runner.py at 13511b6c (post CCE-140/151/175/178).
+ * No DOM. Liftable.
+ */
+
+// --- faithful port of advance_cursor_list (orchestrator_runner.py) ---
+function advanceCursorList(admitted, deferredTail, heldBack) {
+  const out = [];
+  for (const n of [...admitted, ...deferredTail]) {
+    if (heldBack.has(n)) break;
+    out.push(n);
+  }
+  return out;
+}
+
+// --- faithful port of partition_deferrals (post CCE-178) ---
+function partitionDeferrals(deferred, counts, threshold, forgive) {
+  const skipped = [],
+    still = [];
+  for (const n of deferred) {
+    const count = counts[n] || 0;
+    if (count >= threshold || forgive.has(n)) skipped.push(n);
+    else still.push(n);
+  }
+  return { skipped, still };
+}
+
+const STRATEGIES = {
+  // A — what main does today. Scans `prs`, the POST-truncation admitted prefix.
+  current: ({ prs, deferredNumbers }) =>
+    prs.find((n) => deferredNumbers.has(n)) ?? null,
+
+  // B — the one-word fix: scan the full window instead of the admitted prefix.
+  windowScan: ({ windowPrs, deferredNumbers }) =>
+    windowPrs.find((n) => deferredNumbers.has(n)) ?? null,
+
+  // C — cursor-aware: same scan as B, but only forgive when the cursor is
+  // genuinely stuck. If the prefix can already move, the escape is not needed.
+  cursorAware: ({ windowPrs, deferredNumbers, wouldAdvanceUnforgiven }) =>
+    wouldAdvanceUnforgiven
+      ? null
+      : (windowPrs.find((n) => deferredNumbers.has(n)) ?? null),
+
+  // F — prefix-stuck: forgive ONLY when the unforgiven cursor prefix is empty,
+  // i.e. the oldest window PR is itself held back. That is the one situation
+  // forgiveness can fix. A prefix that is non-empty but refused by the CCE-109
+  // SHA guards is a DIFFERENT problem; forgiving there costs a PR and buys
+  // nothing, so it must emit a diagnostic instead of abandoning work.
+  prefixStuck: ({ windowPrs, deferredNumbers, prefixEmpty }) =>
+    prefixEmpty
+      ? (windowPrs.find((n) => deferredNumbers.has(n)) ?? null)
+      : null,
+};
+
+/**
+ * @param {object} night
+ *   windowPrs        number[]  full window, oldest first
+ *   admittedCount    number    how many the admission gate reached (i)
+ *   pagesFailed      number[]  admitted PRs whose page did not land
+ *   baselineAgeDays  number
+ *   stallDays        number
+ *   threshold        number
+ *   counts           {pr: n}
+ * @param {'current'|'windowScan'|'cursorAware'} strategyName
+ */
+function runNight(night, strategyName) {
+  const {
+    admittedCount,
+    pagesFailed,
+    baselineAgeDays,
+    stallDays,
+    threshold,
+    counts,
+  } = night;
+
+  // CCE-169: bound the derived window to the oldest N PRs so a run always
+  // faces a drainable amount of work. Everything past the cap is not in this
+  // run's window at all — not deferred, not held back, not counted.
+  const windowPrs = night.windowCap
+    ? night.windowPrs.slice(0, night.windowCap)
+    : night.windowPrs;
+
+  // CORRECTION 2026-09-23: the real admission gate is
+  //     if deadline is not None and i > 0 and clock() > deadline:
+  // The `i > 0` clause means it NEVER truncates before admitting the oldest
+  // PR, so `prs` is never emptied by truncation. The first version of this
+  // model omitted that clause and treated admittedCount === 0 as a legal
+  // state, producing a confident "silent freeze" for a configuration
+  // production cannot enter. Clamping here keeps the model faithful.
+  const effectiveAdmitted =
+    windowPrs.length > 0 ? Math.max(1, admittedCount) : admittedCount;
+
+  const prs = windowPrs.slice(0, effectiveAdmitted); // post-truncation
+  const admissionDeferred = windowPrs.slice(effectiveAdmitted);
+  const timeTruncated = admissionDeferred.length > 0;
+
+  // complement writer: only admitted PRs can owe pages
+  const deferredPagesByPr = pagesFailed.filter((n) => prs.includes(n));
+
+  // _deferred_all = admission_deferred ++ (deferred_pages_by_pr INTERSECT pr_by_number)
+  const prByNumber = new Set(prs);
+  const deferredAll = [
+    ...admissionDeferred,
+    ...deferredPagesByPr.filter((n) => prByNumber.has(n)),
+  ];
+  const deferredNumbers = new Set(deferredAll);
+
+  const stalled = stallDays > 0 && baselineAgeDays >= stallDays;
+
+  // what the cursor would do with NO forgiveness at all (input to strategy C).
+  // `advanceRefused` models the CCE-109 guards that can reject a computed
+  // cursor (unanchorable merge_sha, non-forward SHA, unreachable from HEAD) —
+  // a prefix can be non-empty and STILL not move the baseline.
+  const heldBackUnforgiven = new Set([
+    ...deferredPagesByPr,
+    ...admissionDeferred,
+  ]);
+  const unforgivenPrefix = advanceCursorList(
+    prs,
+    admissionDeferred,
+    heldBackUnforgiven,
+  );
+  const prefixEmpty = unforgivenPrefix.length === 0;
+  const wouldAdvanceUnforgiven = !prefixEmpty && !night.advanceRefused;
+
+  const blocker = STRATEGIES[strategyName]({
+    prs,
+    windowPrs,
+    deferredNumbers,
+    wouldAdvanceUnforgiven,
+    prefixEmpty,
+  });
+  const forgive = new Set(stalled && blocker !== null ? [blocker] : []);
+
+  const { skipped, still } = partitionDeferrals(
+    deferredAll,
+    counts,
+    threshold,
+    forgive,
+  );
+  const skippedSet = new Set(skipped);
+
+  const heldBack = new Set(
+    [...deferredPagesByPr, ...admissionDeferred].filter(
+      (n) => !skippedSet.has(n),
+    ),
+  );
+
+  const cursorPrs =
+    timeTruncated || heldBack.size > 0
+      ? advanceCursorList(prs, admissionDeferred, heldBack)
+      : [...prs];
+
+  const advanced = cursorPrs.length > 0 && !night.advanceRefused;
+
+  return {
+    admitted: prs,
+    admissionDeferred,
+    pagesOwed: deferredPagesByPr,
+    stalled,
+    blocker,
+    forgiven: [...forgive],
+    skipped,
+    stillDeferred: still,
+    heldBack: [...heldBack].sort((a, b) => a - b),
+    cursorReaches: advanced ? cursorPrs[cursorPrs.length - 1] : null,
+    baselineMoved: advanced,
+    // `if _forgive:` guards the deferral_stall_escape reason in the real code
+    escapeReasonEmitted: forgive.size > 0,
+    // the silent-freeze signature this prototype exists to find
+    silentFreeze: stalled && !advanced && forgive.size === 0,
+  };
+}
+
+
+</script>
+
+<script>
+const RULES = [
+  ["current","What the code does today"],
+  ["windowScan","Oldest stuck PR anywhere in the window"],
+  ["cursorAware","…only if the baseline can't already move"],
+  ["prefixStuck","…only if the very oldest PR is the stuck one"],
+];
+const SCEN = [
+  {t:"A normal stuck night",
+   d:"Four PRs, all attempted. The oldest one's page failed. The baseline has been stuck 31 days. Every rule should forgive that oldest PR and let the baseline move.",
+   n:{windowPrs:[221,222,223,224],admittedCount:4,pagesFailed:[221],baselineAgeDays:31.2}},
+  {t:"Nothing got attempted",
+   d:"The run ran out of time before starting a single PR. Watch 'What the code does today': it finds nothing to forgive, the baseline stays put, and no explanation is recorded. This is the silent freeze.",
+   n:{windowPrs:[219,220,221,222,223,224,225,226,227,228],admittedCount:0,pagesFailed:[],baselineAgeDays:31.2}},
+  {t:"A healthy night",
+   d:"Five PRs documented, five ran out of time. The baseline is fresh, so the valve is closed. Nothing should be thrown away.",
+   n:{windowPrs:[219,220,221,222,223,224,225,226,227,228],admittedCount:5,pagesFailed:[],baselineAgeDays:1.0}},
+  {t:"Stuck clock, healthy work",
+   d:"Everything attempted succeeded; the rest merely ran out of time. The baseline CAN move on its own. Watch 'Oldest stuck PR anywhere': it throws away PR 224, which was never even attempted. That is the trap.",
+   n:{windowPrs:[219,220,221,222,223,224,225,226,227,228],admittedCount:5,pagesFailed:[],baselineAgeDays:31.2}},
+  {t:"Stuck at the front, plus a backlog",
+   d:"The oldest PR failed and there is also a time-cut tail. Only the oldest should be given up; the tail keeps its chances.",
+   n:{windowPrs:[219,220,221,222,223,224,225,226,227,228],admittedCount:5,pagesFailed:[219],baselineAgeDays:31.2}},
+  {t:"Frozen for a different reason",
+   d:"Work succeeded, but a separate safety check refuses to move the baseline. Forgiving cannot help here — watch two rules give up a PR and gain nothing, while the honest rules record no explanation at all. Both behaviours are wrong, in opposite directions.",
+   n:{windowPrs:[219,220,221,222,223,224,225,226,227,228],admittedCount:5,pagesFailed:[],baselineAgeDays:31.2,advanceRefused:true}},
+];
+const BASE={stallDays:4,threshold:3,counts:{}};
+let rule="current", night={...BASE,...SCEN[0].n}, scen=0, step=0;
+
+const el=id=>document.getElementById(id);
+const list=a=>a&&a.length?a.join(", "):"—";
+
+function render(){
+  const r=runNight(night,rule);
+  el("state").innerHTML=[
+    ["Pull requests in this window",list(night.windowPrs)],
+    ["Attempted this run",list(r.admitted)],
+    ["Ran out of time",list(r.admissionDeferred)],
+    ["Page failed to publish",list(r.pagesOwed)],
+    ["Days since baseline moved",night.baselineAgeDays+" (valve opens at "+night.stallDays+")"],
+    ["Safety valve open?",r.stalled?"yes":"no"],
+    ["PR chosen for forgiveness",r.blocker??"none"],
+    ["Given up permanently",list(r.forgiven)],
+    ["Still blocking",list(r.heldBack)],
+    ["Baseline reaches",r.cursorReaches??"did not move"],
+    ["Explanation recorded?",r.escapeReasonEmitted?"yes":"no"],
+  ].map(([k,v])=>`<div class="f"><div class="k">${k}</div><div class="v">${v}</div></div>`).join("");
+  let t,c;
+  if(r.silentFreeze){t="Frozen, and nothing explains why — an operator sees a green run and a stuck baseline.";c="bad";}
+  else if(!r.baselineMoved&&r.forgiven.length){t="Still frozen, but a PR was given up anyway — the loss bought nothing.";c="bad";}
+  else if(!r.baselineMoved){t="Frozen, with an explanation recorded.";c="";}
+  else if(r.forgiven.length){t=`Baseline moved. PR ${r.forgiven.join(", ")} is permanently undocumented.`;c="";}
+  else {t="Baseline moved and nothing was lost.";c="good";}
+  el("verdict").innerHTML=`<span class="${c}">${t}</span>`;
+  document.querySelectorAll("#strats button").forEach(b=>
+    b.setAttribute("aria-pressed",String(b.dataset.r===rule)));
+  el("steps").querySelectorAll("li").forEach((li,i)=>li.classList.toggle("done",i<step));
+  renderMatrix();
+}
+function renderMatrix(){
+  let h="<tr><th>scenario</th>"+RULES.map(([k])=>`<th>${k}</th>`).join("")+"</tr>";
+  SCEN.forEach((s,i)=>{
+    h+=`<tr><td style="font-family:inherit">${i+1}. ${s.t}</td>`;
+    for(const [k] of RULES){
+      const r=runNight({...BASE,...s.n},k);
+      const v=r.silentFreeze?'<span class="bad">silent freeze</span>'
+        :(!r.baselineMoved&&r.forgiven.length)?'<span class="bad">lost, still frozen</span>'
+        :!r.baselineMoved?"frozen (explained)"
+        :r.forgiven.length?`moved, lost ${r.forgiven}`
+        :'<span class="good">moved, no loss</span>';
+      h+=`<td>${v}</td>`;
+    }
+    h+="</tr>";
+  });
+  el("matrix").innerHTML=h;
+}
+function loadScen(i){
+  scen=i;step=0;night={...BASE,...SCEN[i].n};
+  el("scenDesc").textContent=SCEN[i].d;
+  const acts=[
+    ["Set up this situation",()=>{night={...BASE,...SCEN[i].n};}],
+    ["Open the safety valve (31 days stuck)",()=>{night.baselineAgeDays=31.2;}],
+    ["Run the night",()=>{}],
+  ];
+  el("steps").innerHTML=acts.map(([l],k)=>
+    `<li><span class="n">${k+1}</span><button data-k="${k}">${l}</button></li>`).join("");
+  el("steps").querySelectorAll("button").forEach((b,k)=>b.onclick=()=>{acts[k][1]();step=k+1;render();});
+  document.querySelectorAll("#tabs button").forEach((b,k)=>b.setAttribute("aria-pressed",String(k===i)));
+  render();
+}
+el("strats").innerHTML=RULES.map(([k,d])=>`<button data-r="${k}" title="${d}">${k}</button>`).join("");
+el("strats").querySelectorAll("button").forEach(b=>b.onclick=()=>{rule=b.dataset.r;render();});
+el("tabs").innerHTML=SCEN.map((s,i)=>`<button>${i+1}. ${s.t}</button>`).join("");
+el("tabs").querySelectorAll("button").forEach((b,i)=>b.onclick=()=>loadScen(i));
+const FREE=[
+  ["Time out one more PR",()=>{if(night.admittedCount>0)night.admittedCount--;}],
+  ["Attempt one more PR",()=>{if(night.admittedCount<night.windowPrs.length)night.admittedCount++;}],
+  ["Fail the oldest PR's page",()=>{const n=night.windowPrs[0];
+     if(!night.pagesFailed.includes(n))night.pagesFailed=[...night.pagesFailed,n];}],
+  ["Fix all pages",()=>{night.pagesFailed=[];}],
+  ["Add a day to the freeze",()=>{night.baselineAgeDays=+(night.baselineAgeDays+1).toFixed(1);}],
+  ["Reset the clock",()=>{night.baselineAgeDays=0;}],
+  ["Toggle the other safety check",()=>{night.advanceRefused=!night.advanceRefused;}],
+];
+el("freeplay").innerHTML=FREE.map(([l],i)=>`<button data-i="${i}">${l}</button>`).join("");
+el("freeplay").querySelectorAll("button").forEach(b=>b.onclick=()=>{FREE[+b.dataset.i][1]();render();});
+loadScen(0);
+</script>
+</body>
+</html>
