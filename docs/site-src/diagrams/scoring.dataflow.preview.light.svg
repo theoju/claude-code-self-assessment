@@ -1,129 +1,20 @@
 <svg xmlns="http://www.w3.org/2000/svg" data-theme="light" viewBox="0 0 1080 660" role="img" lang="en" aria-labelledby="archify-diagram-title archify-diagram-description" data-preset="classic" data-quality-profile="showcase"><style><![CDATA[
-/*
-JetBrains Mono variable WOFF2 subsets from Google Fonts service revision v24.
-These fixed bytes are shared by the viewer and its SVG/raster exports.
-No local() source: an installed copy must not override the bundled font.
-Uncovered characters (including CJK) still use the system fallback stack.
-Upstream: https://github.com/JetBrains/JetBrainsMono
 
-cyrillic-ext    1664 bytes  sha256 9343de2ca5d9549f792e7962375af8efb0f320c7643bfd36c884b5a30e5c396f
-cyrillic        8892 bytes  sha256 4995a9a43ac659ec32fcd8b463755cd6a07b31a6e6b3894a6a153b661cf490e2
-greek           6800 bytes  sha256 49c3da6c9a2b279b0f1f860f5cfb1f5dc38d88a5c7be9c9b1837bbc4e3db6111
-vietnamese      5872 bytes  sha256 d44eb1936043a56038eb02dd70b243f379bef65783f94ec12f277550720411f1
-latin-ext      11596 bytes  sha256 9c38cb2d0d2d93c1ee6e21fa78db76f13ea7e15e15cc64214c7ca89b6aaa35c4
-latin          31340 bytes  sha256 2c32b9b3ee358c119e210f6f5195f9bd34894d78a785ff2e95d60e718e400af4
-
-Copyright 2020 The JetBrains Mono Project Authors (https://github.com/JetBrains/JetBrainsMono)
-
-This Font Software is licensed under the SIL Open Font License, Version 1.1.
-This license is copied below, and is also available with a FAQ at:
-https://openfontlicense.org
-
-
------------------------------------------------------------
-SIL OPEN FONT LICENSE Version 1.1 - 26 February 2007
------------------------------------------------------------
-
-PREAMBLE
-The goals of the Open Font License (OFL) are to stimulate worldwide
-development of collaborative font projects, to support the font creation
-efforts of academic and linguistic communities, and to provide a free and
-open framework in which fonts may be shared and improved in partnership
-with others.
-
-The OFL allows the licensed fonts to be used, studied, modified and
-redistributed freely as long as they are not sold by themselves. The
-fonts, including any derivative works, can be bundled, embedded,
-redistributed and/or sold with any software provided that any reserved
-names are not used by derivative works. The fonts and derivatives,
-however, cannot be released under any other type of license. The
-requirement for fonts to remain under this license does not apply
-to any document created using the fonts or their derivatives.
-
-DEFINITIONS
-"Font Software" refers to the set of files released by the Copyright
-Holder(s) under this license and clearly marked as such. This may
-include source files, build scripts and documentation.
-
-"Reserved Font Name" refers to any names specified as such after the
-copyright statement(s).
-
-"Original Version" refers to the collection of Font Software components as
-distributed by the Copyright Holder(s).
-
-"Modified Version" refers to any derivative made by adding to, deleting,
-or substituting -- in part or in whole -- any of the components of the
-Original Version, by changing formats or by porting the Font Software to a
-new environment.
-
-"Author" refers to any designer, engineer, programmer, technical
-writer or other person who contributed to the Font Software.
-
-PERMISSION & CONDITIONS
-Permission is hereby granted, free of charge, to any person obtaining
-a copy of the Font Software, to use, study, copy, merge, embed, modify,
-redistribute, and sell modified and unmodified copies of the Font
-Software, subject to the following conditions:
-
-1) Neither the Font Software nor any of its individual components,
-in Original or Modified Versions, may be sold by itself.
-
-2) Original or Modified Versions of the Font Software may be bundled,
-redistributed and/or sold with any software, provided that each copy
-contains the above copyright notice and this license. These can be
-included either as stand-alone text files, human-readable headers or
-in the appropriate machine-readable metadata fields within text or
-binary files as long as those fields can be easily viewed by the user.
-
-3) No Modified Version of the Font Software may use the Reserved Font
-Name(s) unless explicit written permission is granted by the corresponding
-Copyright Holder. This restriction only applies to the primary font name as
-presented to the users.
-
-4) The name(s) of the Copyright Holder(s) or the Author(s) of the Font
-Software shall not be used to promote, endorse or advertise any
-Modified Version, except to acknowledge the contribution(s) of the
-Copyright Holder(s) and the Author(s) or with their explicit written
-permission.
-
-5) The Font Software, modified or unmodified, in part or in whole,
-must be distributed entirely under this license, and must not be
-distributed under any other license. The requirement for fonts to
-remain under this license does not apply to any document created
-using the Font Software.
-
-TERMINATION
-This license becomes null and void if any of the above conditions are
-not met.
-
-DISCLAIMER
-THE FONT SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
-EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO ANY WARRANTIES OF
-MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT
-OF COPYRIGHT, PATENT, TRADEMARK, OR OTHER RIGHT. IN NO EVENT SHALL THE
-COPYRIGHT HOLDER BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
-INCLUDING ANY GENERAL, SPECIAL, INDIRECT, INCIDENTAL, OR CONSEQUENTIAL
-DAMAGES, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
-FROM, OUT OF THE USE OR INABILITY TO USE THE FONT SOFTWARE OR FROM
-OTHER DEALINGS IN THE FONT SOFTWARE.
-*/
-    /* cyrillic-ext */
     
-    /* cyrillic */
     
-    /* greek */
     
-    /* vietnamese */
     
-    /* latin-ext */
     
-    /* latin */
+    
+    
+    
+    
+    
+    
     
   
 
-    /* ==========================================================
-       THEME VARIABLES — switch by toggling [data-theme] on <html>
-       ========================================================== */
+    
     :root,
     [data-theme="dark"] {
       --bg: #020617;
@@ -131,7 +22,7 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
       --text: #ffffff;
       --text-muted: #94a3b8;
       --text-dim: #475569;
-      /* UI chrome and menu hints need more contrast than SVG .t-dim accents */
+      
       --text-faint: #7d8da1;
 
       --panel: rgba(15, 23, 42, 0.5);
@@ -142,8 +33,7 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
       --arrow: #64748b;
       --arrow-emphasis: #34d399;
 
-      /* Opaque mask color used behind semi-transparent component fills
-         so the arrows drawn underneath are properly hidden. */
+      
       --mask: #0f172a;
 
       --frontend-fill:    rgba(8, 51, 68, 0.4);
@@ -208,11 +98,7 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
       --toolbar-menu-bg:  #ffffff;
     }
 
-    /* ==========================================================
-       SIGNAL FLOW — an opt-in, motion-forward visual preset.
-       The variables also target a standalone exported SVG, whose
-       root carries data-preset and data-theme directly.
-       ========================================================== */
+    
     [data-preset="signal-flow"][data-theme="dark"] {
       --bg: #030711;
       --grid: #15233a;
@@ -276,12 +162,7 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
       --arrow-emphasis: #0d9488;
     }
 
-    /* ==========================================================
-       BLUEPRINT — a review-first drafting preset for deployment,
-       infrastructure, and technical design documentation. It keeps
-       the same semantic palette and geometry while trading glow for
-       precise grid contrast, squared materials, and drafting marks.
-       ========================================================== */
+    
     [data-preset="blueprint"][data-theme="dark"] {
       --bg: #06131f;
       --grid: #17425a;
@@ -352,13 +233,7 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
       --toolbar-menu-bg: #f9fdff;
     }
 
-    /* ==========================================================
-       EDITORIAL — a warm, publication-minded preset for design
-       reviews, launch notes, and documentation. The diagram keeps
-       the same semantic palette and exact geometry, but trades
-       software chrome for paper, ink, ruled structure, and one
-       restrained vermilion accent.
-       ========================================================== */
+    
     [data-preset="editorial"][data-theme="dark"] {
       --bg: #181611;
       --grid: #39342a;
@@ -466,8 +341,7 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
       background-attachment: fixed;
     }
 
-    /* Gallery/embed mode keeps the generated artifact as the source of truth
-       while presenting only its diagram surface inside a proof card. */
+    
     html[data-embed="true"] body {
       min-height: 0;
       padding: 0;
@@ -495,9 +369,7 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
     }
     html[data-embed="true"] .diagram-container svg { min-width: 0; }
 
-    /* Share Chapter Cue lives in the HTML viewer layer, not inside the SVG.
-       It gives one-shot embeds a title, authored note, truthful stop order,
-       and lifecycle state while canonical diagram geometry stays untouched. */
+    
     .share-chapter-cue { display: none; }
     html[data-embed="true"][data-share-playback="true"] .share-chapter-cue:not([hidden]),
     html[data-embed="true"][data-share-moment="true"] .share-chapter-cue:not([hidden]) {
@@ -627,9 +499,7 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
       transform-origin: left center;
     }
 
-    /* Presentation Stage is a viewer-only layer: it gives the live diagram
-       the viewport while keeping guided views, theme, focus, and exports real.
-       Embed mode wins when both query parameters are present. */
+    
     html[data-present="true"]:not([data-embed="true"]) body {
       height: 100dvh;
       min-height: 0;
@@ -682,10 +552,7 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
       color: var(--frontend-stroke);
     }
 
-    /* The reader owns only the outer scale. Wide diagrams keep one authored
-       SVG/viewBox while the runtime chooses a desktop width from the actual
-       vertical budget. This avoids device-specific files and breakpoint
-       jumps between a laptop and a tall monitor. */
+    
     .container {
       width: 100%;
       max-width: var(--archify-reader-width, 1440px);
@@ -890,10 +757,7 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
       animation: archify-signal-scan 4.8s ease-in-out 1 both;
     }
 
-    /* Motion Governor gives the reader a real static state and gives the
-       strongest semantic action the only motion budget. Atmosphere resets to
-       its authored base instead of freezing mid-cycle. Static artifacts never
-       start a decorative pulse or scan. */
+    
     html:not([data-motion-capable="true"]) svg[data-animation="trace"] [data-animate] {
       animation: none !important;
     }
@@ -1131,10 +995,7 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
       background: var(--toolbar-hover);
     }
 
-    /* Semantic Radar is a deliberately simplified, viewer-only overview. It
-       uses authored node bounds and the live camera viewport rather than
-       cloning the canonical SVG, so IDs, filters, animation, and export state
-       stay singular and deterministic. */
+    
     .overview-map {
       position: absolute;
       right: 1rem;
@@ -1377,9 +1238,7 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
       background: var(--toolbar-hover);
     }
 
-    /* Semantic Lens turns the compiled node-kind palette into an analytical
-       legend. One kind reveals its real traffic; two kinds compare only their
-       direct authored relationships. Geometry and the canonical SVG stay put. */
+    
     .semantic-lens {
       position: absolute;
       right: 1rem;
@@ -1552,9 +1411,7 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
       to { opacity: 1; transform: translateY(0) scale(1); }
     }
 
-    /* Route Probe answers a reader question over the compiled semantic graph:
-       choose two stable nodes and reveal the shortest authored directed route.
-       The receipt and signal live entirely in the viewer layer. */
+    
     .route-probe {
       position: absolute;
       left: 1rem;
@@ -2077,10 +1934,7 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
       text-align: center;
     }
 
-    /* Diagram Guide keeps the artifact's growing reader vocabulary
-       discoverable without widening the permanent control bar. It derives
-       honest counts at runtime and delegates every action to an existing
-       production interaction instead of creating a second command system. */
+    
     .diagram-guide {
       position: absolute;
       top: 1rem;
@@ -2892,10 +2746,7 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
     html[data-preset="blueprint"] .guided-view-chapter,
     html[data-preset="blueprint"] .guided-view-chapter-index { border-radius: 0.12rem !important; }
 
-    /* Story Shelf — keep every authored chapter and the Play action visible,
-       but do not spend a second row on unavailable director controls before
-       the reader enters a chapter. Existing data-active-view state expands
-       the full guided surface without a new toggle or stored preference. */
+    
     .guided-views[data-active-view="all"] {
       grid-template-columns: minmax(11rem, .72fr) auto minmax(0, 2fr);
       align-items: center;
@@ -2952,9 +2803,7 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
       box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.82), 0 12px 32px rgba(45, 78, 99, 0.08);
     }
 
-    /* Preserve the one-screen guarantee on ordinary laptop displays. The
-       high-screen expansion above must not trade a fuller canvas for page
-       scrolling at 900–1080px heights. */
+    
     @media (min-width: 768px) and (max-height: 1100px) {
       .header { margin-bottom: 1rem; }
       .diagram-container {
@@ -3038,18 +2887,11 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
 
     .card li { margin-bottom: 0.375rem; }
 
-    /* ==========================================================
-       Print stylesheet — hide interactive controls, force light,
-       drop the grid so the diagram doesn't waste ink, use landscape
-       so wide diagrams fit, pack summary cards into 2 columns to
-       avoid an orphan card on a trailing page.
-       ========================================================== */
+    
     @page { size: landscape; margin: 1.5cm; }
 
     @media print {
-      /* Force the FULL light palette — including component fills/strokes and
-         lane/arrow colors — so printing from dark theme doesn't put neon
-         strokes and translucent dark fills on white paper. */
+      
       :root, [data-theme="dark"], [data-theme="light"] {
         --bg: #ffffff;
         --grid: transparent;
@@ -3091,7 +2933,7 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
       html[data-preset="signal-flow"] .diagram-container,
       html[data-preset="signal-flow"] .card { background: #ffffff; }
       .cards { grid-template-columns: 1fr 1fr; }
-      /* Ensure elements break sensibly across pages */
+      
       .card { break-inside: avoid; page-break-inside: avoid; }
       .diagram-container { break-inside: avoid; page-break-inside: avoid; }
       .diagram-container svg [data-detail] {
@@ -3128,9 +2970,7 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
       h1, .subtitle { color: #0f172a; }
     }
 
-    /* ==========================================================
-       TOOLBAR (theme toggle + export menu)
-       ========================================================== */
+    
     .toolbar {
       position: fixed;
       top: 1rem;
@@ -3625,7 +3465,7 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
       font-size: 0.55rem;
     }
 
-    /* Toast — brief feedback for actions like "copied" */
+    
     .archify-toast {
       position: fixed;
       top: 1rem;
@@ -3768,9 +3608,7 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
       .relationship-lens-actions #btn-focus-relations { display: block; color: var(--database-stroke); }
       .focus-chip:not([data-relations-expanded="true"]) .relationship-lens-head { border-bottom-color: transparent; }
       .focus-chip:not([data-relations-expanded="true"]) .relationship-lens-list { display: none; }
-      /* While a mobile reader previews one relationship, turn the full Lens
-         into a compact peek card. This keeps the exact source and target on
-         canvas instead of covering them with a long, scrollable list. */
+      
       .focus-chip[data-relationship-previewing="true"] .relationship-lens-list {
         max-height: none;
         padding: 0.35rem;
@@ -4013,9 +3851,7 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
       .guided-view-handoff { max-width: 6.5rem; }
     }
 
-    /* ==========================================================
-       SVG SEMANTIC CLASSES — use these instead of inline fill/stroke
-       ========================================================== */
+    
     .c-grid       { stroke: var(--grid); fill: none; }
     .c-mask       { fill: var(--mask); stroke: none; }
 
@@ -4027,7 +3863,7 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
     .c-messagebus { fill: var(--messagebus-fill); stroke: var(--messagebus-stroke); }
     .c-external   { fill: var(--external-fill);   stroke: var(--external-stroke); }
 
-    /* Text helpers */
+    
     .t-primary { fill: var(--text); }
     .t-muted   { fill: var(--text-muted); }
     .t-dim     { fill: var(--text-dim); }
@@ -4039,9 +3875,7 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
     .t-messagebus { fill: var(--messagebus-stroke); }
     .t-external   { fill: var(--external-stroke); }
 
-    /* Semantic Sigils are small authored role stamps, not icons from a brand
-       pack and not viewer controls. Prefix selectors with svg so the canonical
-       export's SVG-only stylesheet collector keeps them automatically. */
+    
     svg .semantic-sigil {
       fill: none;
       stroke: currentColor;
@@ -4061,9 +3895,7 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
     svg .s-messagebus { color: var(--messagebus-stroke); }
     svg .s-external   { color: var(--external-stroke); }
 
-    /* Brand Marks are authored identity badges. Their color is contained
-       inside one neutral plate so vendor color never replaces Archify's
-       semantic node and relationship vocabulary. */
+    
     svg .brand-mark { pointer-events: none; }
     svg .brand-mark-badge { fill: #fff; stroke: none; }
     svg .brand-mark-frame {
@@ -4082,10 +3914,7 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
     svg[data-preset="blueprint"] .brand-mark-badge,
     svg[data-preset="blueprint"] .brand-mark-frame { rx: 1px; }
 
-    /* Reading Depth is a viewer-only level-of-detail layer. MAP preserves the
-       authored structure and primary labels, READ restores relationship labels
-       and node context, and FULL restores tags and fine annotations. Semantic
-       intent can reveal the relevant detail without moving any geometry. */
+    
     svg [data-detail] { transition: opacity 160ms ease; }
     svg [data-detail-anchor] {
       transform-box: fill-box;
@@ -4102,8 +3931,7 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
       transform: translateY(8px);
     }
 
-    /* Focus, lens, preview, route, and story states are stronger reader intent than
-       the global zoom level. Reveal only their exact semantic matches. */
+    
     svg[data-focus-active] [data-focus-match][data-detail],
     svg[data-focus-active] [data-focus-match] [data-detail],
     svg[data-reach-active] [data-reach-match][data-detail],
@@ -4135,19 +3963,19 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
     svg [data-node-id]:hover [data-detail-anchor],
     svg [data-node-id]:focus-visible [data-detail-anchor] { transform: none; }
 
-    /* Arrows */
+    
     .a-default   { stroke: var(--arrow); fill: none; }
     .a-emphasis  { stroke: var(--arrow-emphasis); fill: none; }
     .a-security  { stroke: var(--security-stroke); fill: none; stroke-dasharray: 5,5; }
     .a-dashed    { stroke: var(--database-stroke); fill: none; stroke-dasharray: 4,4; }
 
-    /* Arrowhead markers reference these */
+    
     .m-default   { fill: var(--arrow); }
     .m-emphasis  { fill: var(--arrow-emphasis); }
     .m-security  { fill: var(--security-stroke); }
     .m-dashed    { fill: var(--database-stroke); }
 
-    /* Stable semantic exploration hooks emitted by every renderer. */
+    
     svg [data-node-id] {
       cursor: pointer;
       transition: opacity 0.18s ease, filter 0.18s ease;
@@ -4158,11 +3986,7 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
       filter: drop-shadow(0 0 7px var(--frontend-stroke));
       outline: none;
     }
-    /* Verified Source Beacons are installed at runtime only for nodes whose
-       repository evidence passed the local revision/blob/line checks. They
-       live inside the owning node so every focus, route, story, and guided
-       view keeps one coherent opacity state. Export serialization removes
-       them before producing the canonical SVG or any derived visual. */
+    
     .source-evidence-beacon {
       pointer-events: none;
       opacity: 0.76;
@@ -4308,10 +4132,7 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
       filter: drop-shadow(0 0 10px var(--frontend-stroke));
     }
 
-    /* Authored Reachability is a bounded graph query over the relationships
-       already present in the artifact. Upstream walks incoming edges;
-       downstream walks outgoing edges. It never claims runtime causality and
-       changes only viewer emphasis, not canonical geometry or export bytes. */
+    
     svg[data-reach-active] [data-node-id],
     svg[data-reach-active] [data-edge-from] { opacity: 0.09; }
     svg[data-reach-active] [data-reach-match] { opacity: 1; }
@@ -4332,10 +4153,7 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
       filter: none;
     }
 
-    /* Direct Relationship Explorer makes authored paths a real input surface
-       without changing their visible stroke or canonical SVG. A transparent
-       runtime rail supplies forgiving pointer geometry; the exact authored
-       path and endpoints continue to carry every visible state. */
+    
     .relationship-hit-overlay { pointer-events: none; }
     .relationship-hit-target { outline: none; }
     .relationship-hit-rail {
@@ -4381,9 +4199,7 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
       .relationship-hit-rail { stroke-width: 24; }
     }
 
-    /* Relationship Preview is temporary exploration state layered on top of
-       neighborhood focus. It changes emphasis only; exported geometry and the
-       relationship's original solid/dashed visual language stay untouched. */
+    
     svg[data-relationship-preview-active] [data-focus-match] { opacity: 0.18; }
     svg[data-relationship-preview-active] [data-relationship-preview],
     svg[data-relationship-preview-active] [data-relationship-preview-node] { opacity: 1; }
@@ -4477,9 +4293,7 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
     svg[data-preset="editorial"] .semantic-flow-token { filter: none; }
     html[data-embed="true"] .relationship-pulse-overlay { display: none; }
 
-    /* Intent Trace is a temporary, pre-click exploration layer. Related
-       topology stays readable while a short viewer-only signal runs over
-       cloned edge geometry; the authored edge remains untouched underneath. */
+    
     svg[data-intent-trace-active] [data-node-id],
     svg[data-intent-trace-active] [data-edge-from] { opacity: 0.2; }
     svg[data-intent-trace-active] [data-intent-trace-match] { opacity: 1; }
@@ -4497,9 +4311,7 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
       opacity: 0.94;
       animation: archify-intent-trace-flow 1.15s linear 1 both;
     }
-    /* Direction names describe each edge relative to the focused node only.
-       The cloned geometry already runs from the authored source to target, so
-       incoming and outgoing signals must share the same playback direction. */
+    
     .intent-trace-flow[data-direction="out"] {
       stroke: var(--frontend-stroke);
       filter: drop-shadow(0 0 4px var(--frontend-stroke));
@@ -4533,9 +4345,7 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
       border: 0;
     }
 
-    /* Route Probe separates a durable two-point query from selection and
-       one-hop hover. Only the chosen shortest directed path stays prominent;
-       the traveling signal is cloned viewer geometry and never authored SVG. */
+    
     svg[data-route-picking="target"] [data-node-id] { opacity: 0.24; }
     svg[data-route-picking="target"] [data-route-candidate],
     svg[data-route-picking="target"] [data-route-start] { opacity: 1; }
@@ -4649,9 +4459,7 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
       filter: drop-shadow(0 0 3px var(--frontend-stroke));
     }
 
-    /* Story Trail is a viewer-only overlay derived from the ordered focus IDs
-       of the active guided view. The authored edge stays underneath with its
-       original color, dash pattern, marker, and geometry intact. */
+    
     .story-trail-overlay { pointer-events: none; }
     .story-carrier-overlay { pointer-events: none; }
     .story-trail-flow {
@@ -4712,9 +4520,7 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
       filter: drop-shadow(0 2px 2px color-mix(in srgb, var(--text) 16%, transparent));
     }
 
-    /* Chapter Delta Preview is a static, pre-commit comparison between two
-       chapter focus sets. Symbols in the rail carry the meaning without color;
-       these SVG rules only make exact stable-ID membership easier to scan. */
+    
     svg[data-chapter-preview] [data-node-id],
     svg[data-chapter-preview] [data-edge-from] {
       opacity: 0.1 !important;
@@ -4736,15 +4542,12 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
     }
     svg[data-preset="blueprint"][data-chapter-preview] [data-node-id] { filter: none !important; }
 
-    /* Dashed boundary variants */
+    
     .c-security-group { fill: transparent; stroke: var(--security-stroke); stroke-dasharray: 4,4; }
     .c-region         { fill: rgba(251, 191, 36, 0.05); stroke: var(--cloud-stroke); stroke-dasharray: 8,4; }
     .c-lane           { fill: var(--lane-fill); stroke: var(--lane-stroke); stroke-dasharray: 6,6; }
 
-    /* Optional trace animation, enabled only by meta.animation = "trace".
-       The ordinary viewer performs one ambient pass and then restores the
-       authored solid/security/async line language. WebM samples the same
-       authored geometry into an explicit canvas timeline. */
+    
     html[data-ambient-motion="running"] svg[data-animation="trace"] [data-animate="edge"] {
       animation: archify-edge-flow 2.4s linear 1;
       animation-delay: calc(var(--step, 0) * 160ms);
@@ -4780,9 +4583,7 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
       animation-name: archify-editorial-node-pulse;
       animation-duration: 3.5s;
     }
-    /* Embedded proofs are static until a named Story Trail chapter is played.
-       This keeps proof grids calm and ensures ?play=1 stops all viewer motion
-       after one 3.2 second chapter instead of leaving ambient trace loops on. */
+    
     html[data-embed="true"] svg[data-animation="trace"] [data-animate],
     html[data-share-playback="true"] svg[data-animation="trace"] [data-animate] {
       animation: none !important;

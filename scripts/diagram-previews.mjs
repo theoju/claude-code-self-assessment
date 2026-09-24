@@ -13,7 +13,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const ROOT = dirname(dirname(fileURLToPath(import.meta.url)));
-const DIAGRAMS = join(ROOT, "docs", "site-src", "diagrams");
+export const DIAGRAMS = join(ROOT, "docs", "site-src", "diagrams");
 
 export const THEMES = ["light", "dark"];
 
@@ -21,6 +21,9 @@ export function toPreviewSvg(html, theme) {
   const css = [...html.matchAll(/<style[^>]*>([\s\S]*?)<\/style>/g)]
     .map((m) => m[1])
     .join("\n")
+    // Comments carry nothing a renderer needs, including the font license
+    // that only applies alongside the webfonts dropped on the next line.
+    .replace(/\/\*[\s\S]*?\*\//g, "")
     // Embedded webfonts are most of the bytes, and GitHub's image proxy
     // renders the SVG in isolation anyway; fall back to the system stack.
     .replace(/@font-face\s*\{[^}]*\}/g, "")
@@ -36,13 +39,19 @@ export function toPreviewSvg(html, theme) {
     throw new Error("no inline <svg> found — is this an archify HTML diagram?");
   }
   const svg = html.slice(start, end + "</svg>".length);
+  const openTag = svg.match(/^<svg\b[^>]*>/)[0];
+  // A duplicate xmlns is invalid XML and breaks the <img>; add it only if absent.
+  const xmlns = /\sxmlns=/.test(openTag)
+    ? ""
+    : ' xmlns="http://www.w3.org/2000/svg"';
 
+  // Function replacers: a `$` in the CSS must not be read as a replace pattern.
   return svg
+    .replace(/^<svg\b/, () => `<svg${xmlns} data-theme="${theme}"`)
     .replace(
-      /^<svg\b/,
-      `<svg xmlns="http://www.w3.org/2000/svg" data-theme="${theme}"`,
-    )
-    .replace(/(<svg\b[^>]*>)/, `$1<style><![CDATA[${css}]]></style>`);
+      /^<svg\b[^>]*>/,
+      (tag) => `${tag}<style><![CDATA[${css}]]></style>`,
+    );
 }
 
 function main() {
