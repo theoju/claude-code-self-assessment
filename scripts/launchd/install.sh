@@ -54,7 +54,7 @@ launchctl unload "${PLIST_DEST}" 2>/dev/null || true
 launchctl load "${PLIST_DEST}"
 
 echo "Installed: ${PLIST_DEST}"
-echo "Next run:  07:15 daily (launchd wakes the laptop if asleep)"
+echo "Next run:  07:15 daily (if the Mac is asleep, it runs on next wake)"
 echo ""
 echo "Commands:"
 echo "  launchctl list | grep ${LABEL}        # verify loaded"
