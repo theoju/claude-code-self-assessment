@@ -1,8 +1,8 @@
 {
   "version": "1",
   "last_successful_run": {
-    "head_sha": "99b0b6225bc932c21c0a14e17ec8f46f83ab9e8a",
-    "completed_at": "2026-09-24T12:41:24.469275+00:00"
+    "head_sha": "2ae91b9b9fd01cba279e3d6141d241d6a1c70744",
+    "completed_at": "2026-09-25T12:43:35.163958+00:00"
   },
   "dismissed_gap_flags": {},
   "pr_summaries": {
@@ -427,6 +427,27 @@
           }
         ],
         "notes": "README.md, ROUTINE.md, and scripts/launchd/install.sh are repo-root/tooling files outside the mkdocs lens tree; their content changes are captured via the digest note rather than direct edit targets since no matching lens page exists for them."
+      }
+    },
+    "theoju/claude-code-self-assessment#266": {
+      "merge_sha": "2ae91b9b9fd01cba279e3d6141d241d6a1c70744",
+      "fingerprint": "e6d7c2a0894b9d2f",
+      "last_seen_at": "2026-09-25T12:47:23.759171+00:00",
+      "summary": {
+        "pr_number": 266,
+        "what_changed": "Committed three previously-untracked documents into docs/superpowers/artifacts/ (and a handoff prompt) capturing the CCE-183 payload audit: a census of ~30 unbounded agent payload/output fields across 12 dispatch sites, the measurement that MAX_ARG_STRLEN (131,072 B on ubuntu-latest, not ~1MB ARG_MAX) is the binding input ceiling, the 130,203-char jira_issues measurement from a failing run, and a five-item fix proposal centered on bounding once at dispatch_validated rather than per-field. Two corrections were applied to the captured docs versus the working-tree originals, verified against source.",
+        "why": "The documents existed only as untracked files in a working tree, and this repo's session-hygiene rule (born from the 2026-08-26 incident where a hook and test harness were permanently lost from an ephemeral location) requires such primary-source material to be committed to git. These docs are the primary source for CCE-183 and supply the root-cause measurement CCE-177 shipped on.",
+        "breaking": false,
+        "doc_targets": [
+          {
+            "lens": "core",
+            "action": "create",
+            "page_hint": "2026-09-25-cce183-payload-audit.md",
+            "doc_kind": "decision",
+            "notes": "Summarizes the CCE-183 payload/output field audit and the MAX_ARG_STRLEN finding now captured under docs/superpowers/artifacts/; treat as a decision/investigation record rather than evergreen architecture."
+          }
+        ],
+        "notes": "PR only adds artifact/handoff docs under docs/superpowers/ (not under the core lens root); doc_targets proposes a lens-facing digest page pointing at the newly committed audit rather than editing an existing architecture page, since no existing page in available_sections covers payload/dispatch bounding."
       }
     }
   },
