@@ -1,15 +1,10 @@
 {
   "current_run": {
-    "started_at": "2026-09-25T12:43:35.163958+00:00",
-    "head_sha": "2ae91b9b9fd01cba279e3d6141d241d6a1c70744",
+    "started_at": "2026-09-26T12:11:19.306576+00:00",
+    "head_sha": "7ae50147c7d1df046c753b2b7e7a7f472b081aa0",
     "partial": false,
-    "partial_reasons": [
-      "prose_contamination_rescued: content-validator"
-    ],
-    "citation_findings_emitted": 0,
-    "fact_check_warnings": [
-      "`docs/site-src/2026-09-25-cce183-payload-audit.md`: A function held up in the first draft as the pattern worth copying (the repo's one existing payload-size bound, on voice-sample text) turned out to have three of its own defects on inspection... It remains the only working payload-size bound in that pipeline, but it's cited in the audit as a cautionary example rather than a template. (vs `docs/superpowers/cce-183-handoff-prompt.md`)"
-    ],
+    "partial_reasons": [],
+    "fact_check_warnings": [],
     "source_drift": [],
     "citation_drift": {
       "checked": 0,
