@@ -1,9 +1,15 @@
 {
   "current_run": {
-    "started_at": "2026-09-26T12:11:19.306576+00:00",
-    "head_sha": "7ae50147c7d1df046c753b2b7e7a7f472b081aa0",
-    "partial": false,
-    "partial_reasons": [],
+    "started_at": "2026-09-29T14:00:15.017479+00:00",
+    "head_sha": "2dae5ad56b780cf7e77e42fdcb2e74aee24aaecf",
+    "partial": true,
+    "partial_reasons": [
+      "source_collector_invalid: returned None"
+    ],
+    "blind": true,
+    "blind_reasons": [
+      "source_collector_invalid: returned None"
+    ],
     "fact_check_warnings": [],
     "source_drift": [],
     "citation_drift": {
