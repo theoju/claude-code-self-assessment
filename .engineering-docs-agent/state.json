@@ -6,40 +6,6 @@
   },
   "dismissed_gap_flags": {},
   "pr_summaries": {
-    "theoju/claude-code-self-assessment#227": {
-      "merge_sha": "9ca4413fab0478168908db5e16c3f31d94a547b1",
-      "fingerprint": "e6d7c2a0894b9d2f",
-      "last_seen_at": "2026-09-11T12:12:04.657041+00:00",
-      "summary": {
-        "pr_number": 227,
-        "what_changed": "Housekeeping follow-up to PR #226: added `.gitignore` rules to cover `.claude/*.bak` backup files and `__pycache__/` directories, and tracked a previously-untracked handoff artifact `docs/superpowers/cce-145-handoff-prompt.md`. No behavior change.",
-        "why": "The repo-fence work in #226 left stray untracked artifacts: editing tools produce `.bak` files beside the already-ignored `.claude/settings.local.json` (risking accidental commit of local permissions), syntax-checking Python retrospective artifacts left `__pycache__` bytecode with no ignore rule, and a 105-line handoff doc had been sitting untracked, cluttering `git status`.",
-        "breaking": false,
-        "doc_targets": [
-          {
-            "lens": "core",
-            "action": "create",
-            "page_hint": "2026-09-11-post-fence-housekeeping.md",
-            "doc_kind": "decision",
-            "notes": "Minor housekeeping digest; low-priority, optional to publish. Documents the .gitignore additions and the newly-tracked handoff doc as a follow-up to the repo-fence retrospective."
-          }
-        ],
-        "notes": "Purely internal chore with no architecture or behavior impact; a digest-style note is sufficient rather than a dedicated architecture page."
-      }
-    },
-    "theoju/claude-code-self-assessment#230": {
-      "merge_sha": "432b271e250287b49e1b01f2e7f44742c863a370",
-      "fingerprint": "e6d7c2a0894b9d2f",
-      "last_seen_at": "2026-09-12T11:36:37.052685+00:00",
-      "summary": {
-        "pr_number": 230,
-        "what_changed": "Added a paste-ready handoff prompt (`docs/superpowers/cce-170-173-handoff-prompt.md`) for a fresh session in the sibling `engineering-docs-agent` repo to work through Jira tickets CCE-170/171/172/173. It sequences the fixes with rationale, flags one finding as possibly stale pending re-verification, calls out two known process traps to avoid repeating, and clarifies that the target repo's merge-on-green-suite policy still requires asking before merging.",
-        "why": "Four tickets were filed 2026-09-10 against engineering-docs-agent, but this repo's sessions are fenced from writing there by a native permissions.deny cross-repo guard, so the actual work must start in a session opened in that repo \u2014 this prompt is the context transfer artifact enabling that, following the existing cce-145-handoff-prompt.md precedent.",
-        "breaking": false,
-        "doc_targets": [],
-        "notes": "This PR adds an internal, unpublished handoff/planning artifact under docs/superpowers/ (explicitly excluded from the mkdocs site per docs_dir scoping to docs/site-src/), not a user-visible product or architecture change. No published-docs update is warranted; treating it as the \u00a74 'no documentation-relevant change' exception."
-      }
-    },
     "theoju/claude-code-self-assessment#232": {
       "merge_sha": "8b143a84268c3639936967532b0243af1570cce7",
       "fingerprint": "e6d7c2a0894b9d2f",
