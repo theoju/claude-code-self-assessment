@@ -1,32 +1,11 @@
 {
   "version": "1",
   "last_successful_run": {
-    "head_sha": "4343562819a5fbf117ca1198c4c692b5b82bafa9",
-    "completed_at": "2026-10-21T12:52:47.054970+00:00"
+    "head_sha": "f551c1568c0d5aebbc63c9da0c8f91055521f3a9",
+    "completed_at": "2026-10-22T12:55:37.573465+00:00"
   },
   "dismissed_gap_flags": {},
   "pr_summaries": {
-    "theoju/claude-code-self-assessment#235": {
-      "merge_sha": "f885ec5fcd079afd0e8d0b788babaeff740952cb",
-      "fingerprint": "e6d7c2a0894b9d2f",
-      "last_seen_at": "2026-09-22T12:46:09.702517+00:00",
-      "summary": {
-        "pr_number": 235,
-        "what_changed": "Added a follow-up note in docs/superpowers/ documenting a verified, still-open CLAUDE.md correction in the sibling engineering-docs-agent repo: the claim that CCE-101 auto-merge eligibility depends on fact-checker warnings remains false on that repo's main branch, contradicted by `_maybe_auto_merge`'s own docstring. The note captures the verified anchor and replacement text so the fix can be applied in a single edit later.",
-        "why": "engineering-docs-agent PR #225 carried three CLAUDE.md corrections and sat unmerged for a month; a 2026-09-13 audit against main found two already resolved independently but the CCE-101 eligibility claim never landed. The diagnosing session's sandbox profile fenced writes to engineering-docs-agent (reads and gh worked, file writes did not), so this PR records a note rather than applying the fix directly.",
-        "breaking": false,
-        "doc_targets": [
-          {
-            "lens": "core",
-            "action": "create",
-            "page_hint": "2026-09-13-cce101-eligibility-followup.md",
-            "doc_kind": "decision",
-            "notes": "Tracking note for an unresolved cross-repo CLAUDE.md correction (engineering-docs-agent's CCE-101 auto-merge eligibility claim); no code or doc change landed in this repo beyond the note itself. No existing archive/operations/architecture section fits, so placed as a flat dated slug at the lens root."
-          }
-        ],
-        "notes": "The PR's only file is itself a documentation artifact (docs/superpowers/2026-09-13-cce101-eligibility-claim-followup.md) targeting a different repo's CLAUDE.md, not this repo's mkdocs-published lenses. The proposed doc_target is a lightweight digest entry per \u00a74 rather than a substantive new page, since the actual fix is out of scope for this repo."
-      }
-    },
     "theoju/claude-code-self-assessment#236": {
       "merge_sha": "134bb3837e9051f48d8830d3203c9961800d8d11",
       "fingerprint": "e6d7c2a0894b9d2f",
