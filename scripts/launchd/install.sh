@@ -4,7 +4,8 @@
 #   ./scripts/launchd/install.sh          # install / reload
 #   ./scripts/launchd/install.sh uninstall
 #
-# Reads SLACK_WEBHOOK_URL from .env.local (if present) so you don't have to paste it.
+# Gets SLACK_WEBHOOK_URL from the Keychain via `secret run` when it holds it,
+# else from .env.local (if present), so you don't have to paste it.
 
 set -euo pipefail
 
@@ -21,7 +22,14 @@ if [[ "${1:-}" == "uninstall" ]]; then
   exit 0
 fi
 
-if [[ -f "${REPO_ROOT}/.env.local" ]]; then
+# Prefer the Keychain: `secret run` hands the webhook to each run, so the plist
+# holds no Secret. Without it, .env.local's value is baked into the plist.
+SECRET_BIN="$(command -v secret || true)"
+RUN_PREFIX=""
+if [[ -n "${SECRET_BIN}" ]] && "${SECRET_BIN}" list | grep -x 'claude-extensions/SLACK_WEBHOOK_URL' >/dev/null; then
+  RUN_PREFIX="<string>${SECRET_BIN}</string><string>run</string><string>claude-extensions</string><string>--</string>"
+  SLACK_WEBHOOK_URL=""
+elif [[ -f "${REPO_ROOT}/.env.local" ]]; then
   set -a
   # shellcheck disable=SC1091
   source "${REPO_ROOT}/.env.local"
@@ -34,7 +42,7 @@ if [[ -z "${NODE_BIN}" ]]; then
   exit 1
 fi
 
-if [[ -z "${SLACK_WEBHOOK_URL:-}" ]]; then
+if [[ -z "${RUN_PREFIX}" && -z "${SLACK_WEBHOOK_URL:-}" ]]; then
   echo "Warning: SLACK_WEBHOOK_URL not set — Slack posts will be skipped."
   echo "         Add it to .env.local and re-run this installer."
   SLACK_WEBHOOK_URL=""
@@ -48,6 +56,7 @@ sed \
   -e "s|{{REPO_ROOT}}|${REPO_ROOT}|g" \
   -e "s|{{HOME}}|${HOME}|g" \
   -e "s|{{SLACK_WEBHOOK_URL}}|${SLACK_WEBHOOK_URL}|g" \
+  -e "s|{{RUN_PREFIX}}|${RUN_PREFIX}|g" \
   "${TEMPLATE}" > "${PLIST_DEST}"
 
 launchctl unload "${PLIST_DEST}" 2>/dev/null || true

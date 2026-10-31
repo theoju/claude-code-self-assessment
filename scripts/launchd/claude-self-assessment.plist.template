@@ -7,6 +7,7 @@
 
   <key>ProgramArguments</key>
   <array>
+    {{RUN_PREFIX}}
     <string>{{NODE_BIN}}</string>
     <string>{{REPO_ROOT}}/scripts/run-assessment.mjs</string>
   </array>

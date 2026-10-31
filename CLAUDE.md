@@ -26,7 +26,8 @@ npm run test:e2e          # Playwright (e2e/, needs `npm run dev` reachable)
 ```
 
 `scripts/run-assessment.mjs` does **not** auto-load `.env.local`; for ad-hoc
-runs that should post to Slack, prefix with `set -a; source .env.local; set +a;`.
+runs that should post to Slack, prefix with `secret run claude-extensions --`
+(webhook in the Keychain) or `set -a; source .env.local; set +a;`.
 
 ## Scoring model
 
@@ -362,9 +363,11 @@ already checked out at …`). The GitHub-side merge still succeeds — only
   (PR #62 cycle).
 - Sourcing `.env.local` for local runs: `scripts/run-assessment.mjs` reads
   `process.env.SLACK_WEBHOOK_URL` directly and does not auto-load
-  `.env.local`. The LaunchAgent gets it via `EnvironmentVariables` in the
-  plist (baked at install). For ad-hoc local runs that should post to
-  Slack, prefix with `set -a; source .env.local; set +a;`.
+  `.env.local`. The LaunchAgent starts through `secret run` when the Keychain
+  holds `claude-extensions/SLACK_WEBHOOK_URL`, else gets it via
+  `EnvironmentVariables` in the plist (baked at install). For ad-hoc local
+  runs that should post to Slack, prefix with `secret run claude-extensions --`
+  or `set -a; source .env.local; set +a;`.
 - Cross-references between sibling docs/skills/commands should be
   bidirectional. When you add a pointer in one direction (e.g. PR #26 made
   `/refresh-insights` point to `/self-assessment`), check whether the
