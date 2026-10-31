@@ -7,7 +7,7 @@ Two launchd jobs run back-to-back every morning:
 | 06:00 | Coverage        | `scripts/run-coverage.mjs`   | Vitest + V8 coverage, integration suite, benches, Playwright web vitals                                                                                             | Slack — links to `/coverage` |
 | 07:15 | Self-Assessment | `scripts/run-assessment.mjs` | Re-scores 12 Boris dimensions on the **Platform Setup** + **Execution** axes from `~/.claude/` and `~/.claude/usage-data/` + audits CLAUDE.md targets (report-only) | Slack — links to `/`         |
 
-The 75-minute gap means the dashboard reflects fresh coverage by the time the Self-Assessment summary arrives. Both routines reuse the same `SLACK_WEBHOOK_URL` from `.env.local`.
+The 75-minute gap means the dashboard reflects fresh coverage by the time the Self-Assessment summary arrives. Both routines reuse the same `SLACK_WEBHOOK_URL`, from the Keychain through `secret run` or from `.env.local`.
 
 # Morning assessment routine
 
@@ -54,7 +54,7 @@ node scripts/run-assessment.mjs --print
 
 The installer:
 
-- Reads `SLACK_WEBHOOK_URL` from `.env.local` and bakes it into the LaunchAgent.
+- Makes the LaunchAgent start through `secret run` when the Keychain holds `claude-extensions/SLACK_WEBHOOK_URL`, so the plist holds no Secret. Otherwise reads `SLACK_WEBHOOK_URL` from `.env.local` and bakes it into the LaunchAgent.
 - Creates `~/Library/LaunchAgents/com.<you>.claude-self-assessment.plist`.
 - Loads it into `launchctl`.
 - Tells you how to test, inspect logs, and uninstall.

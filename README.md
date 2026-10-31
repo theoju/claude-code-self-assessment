@@ -140,8 +140,9 @@ The markdown file is gitignored, rendered locally, and never posted to Slack.
 
 1. Create an Incoming Webhook at <https://api.slack.com/apps> (new app → add
    the Incoming Webhooks feature → add to a channel).
-2. Paste the URL into `.env.local` as `SLACK_WEBHOOK_URL=...`. `.env.local` is
-   gitignored.
+2. With the `secret` CLI installed, store the URL in the macOS Keychain:
+   `secret add claude-extensions/SLACK_WEBHOOK_URL`. Otherwise paste it into
+   `.env.local` as `SLACK_WEBHOOK_URL=...`. `.env.local` is gitignored.
 3. Check that `slack.enabled` is `true` in `assessment.config.json` (the
    default).
 4. `npm run assess` now posts a scored card with strengths, biggest gaps, and
@@ -162,7 +163,10 @@ launchctl start com.$(whoami).claude-self-assessment   # fire once to test
 npm run schedule:uninstall   # remove
 ```
 
-The installer reads `SLACK_WEBHOOK_URL` from `.env.local` and bakes it into
+When the Keychain holds `claude-extensions/SLACK_WEBHOOK_URL`, the installer
+makes the LaunchAgent start through `secret run`, which reads the webhook at
+each run, so the plist holds no Secret. Otherwise it reads `SLACK_WEBHOOK_URL`
+from `.env.local` and bakes it into
 `~/Library/LaunchAgents/com.<you>.claude-self-assessment.plist`.
 [`ROUTINE.md`](./ROUTINE.md) explains why `/schedule` can't do this job:
 Anthropic-cloud routines can't read your local `~/.claude/`.
